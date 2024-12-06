@@ -432,6 +432,21 @@ geo_check() {
     [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
 }
 
+warp_check() {
+    local response warp_ipv4 warp_ipv6
+    local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
+    # set -- "$cloudflare_api"
+    for url in $cloudflare_api; do
+        response=$(curl -fskL4 -m 3 "$url" | grep warp | cut -d= -f2)
+        [ "$response" == 'on' ] && { warp_ipv4=on; break; } || warp_ipv4=off
+    done
+
+    for url in $cloudflare_api; do
+        response=$(curl -fskL6 -m 3 "$url" | grep warp | cut -d= -f2)
+        [ "$response" == 'on' ] && { warp_ipv6=on; break; } || warp_ipv6=off
+    done
+}
+
 # 设置地区相关的Github代理配置
 cdn_check() {
     ip_address
