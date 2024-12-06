@@ -2,20 +2,15 @@
 #
 # Description: A lightweight shell scripting toolbox designed for more convenient operations.
 #
-# Copyright (C) 2021 - 2024 honeok <yihaohey@gmail.com>
+# Copyright (C) 2021-2024 honeok <honeok@duck.com>
 # Blog: www.honeok.com
-# Twitter: https://twitter.com/hone0k
 # https://github.com/honeok/Tools/blob/master/honeok.sh
 #
-# Acknowledgments:
-# @kejilion    <https://github.com/kejilion>
-# @teddysun    <https://github.com/teddysun>
+# Acks:
+#       @kejilion <https://github.com/kejilion>
+#       @teddysun <https://github.com/teddysun>
 
-# export LANG=en_US.UTF-8
-# set -x
-
-honeok_v="v3.1.1"
-submit_time=$(curl -fskL "api.github.com/repos/honeok/Tools/commits?path=honeok.sh" | grep -o '"date": "[^"]*' | head -n 1 | sed 's/"date": "//' | sed 's/T/./' | sed 's/^\(....\)-\(..\)-\(..\).*/\1.\2.\3/')
+honeok_v="v3.2.0 (2024.12.6)"
 
 yellow='\033[93m'
 red='\033[31m'
@@ -43,17 +38,46 @@ _bg_yellow() { echo -e "${bg_yellow}${bold}$@${white}"; }
 _bg_red() { echo -e "${bg_red}${bold}$@${white}"; }
 _bg_green() { echo -e "${bg_green}${bold}$@${white}"; }
 
-cd /root > /dev/null 2>&1
+info_msg=$(_bg_yellow 提示)
+err_msg=$(_bg_red 警告)
+suc_msg=$(_bg_green 成功)
+_info_msg() { echo -e "$info_msg $@"; }
+_err_msg() { echo -e "$err_msg $@"; }
+_suc_msg() { echo -e "$suc_msg $@"; }
+
+cd /root >/dev/null 2>&1
 honeok_pid="/tmp/honeok.pid"
 if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
-    echo -e "$(_bg_red '提示'): ${red}脚本已经在运行！如误判请反馈问题至:${white} https://github.com/honeok/Tools/issues"
+    _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
     exit 1
 fi
 
 # 将当前进程的PID写入文件
 echo $$ > "$honeok_pid"
 
-print_logo(){
+# export LANG=en_US.UTF-8
+export DEBIAN_FRONTEND=noninteractive # Debian或Ubuntu非交互安装
+
+# ============== 脚本退出执行相关 ==============
+# 终止信号捕获，意外中断时能优雅地处理
+trap _exit SIGINT SIGQUIT SIGTERM SIGHUP
+
+_exit() {
+    echo ""
+    _err_msg "$(_red '检测到退出操作，脚本终止！')"
+    global_exit
+    exit 0
+}
+
+# 全局退出操作
+global_exit() {
+    [ -f "$honeok_pid" ] && rm -f "$honeok_pid"
+    [ -f "$HOME/get-docker.sh" ] && rm -f "$HOME/get-docker.sh"
+    [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
+    [ -f "xanmod_check.sh" ] && rm -f xanmod_check.sh*
+}
+
+print_logo() {
     local os_info=$(grep '^PRETTY_NAME=' /etc/os-release | cut -d '"' -f 2 | sed 's/ (.*)//')
 echo -e "${yellow}   __                      __     💀
   / /  ___  ___  ___ ___  / /__
@@ -73,11 +97,11 @@ virt_check() {
     local system_product_name=""
     local system_version=""
 
-    if command -v dmesg > /dev/null 2>&1; then
+    if command -v dmesg >/dev/null 2>&1; then
         kernel_logs=$(dmesg 2>/dev/null)
     fi
 
-    if command -v dmidecode > /dev/null 2>&1; then
+    if command -v dmidecode >/dev/null 2>&1; then
         system_manufacturer=$(dmidecode -s system-manufacturer 2>/dev/null)
         system_product_name=$(dmidecode -s system-product-name 2>/dev/null)
         system_version=$(dmidecode -s system-version 2>/dev/null)
@@ -125,11 +149,11 @@ virt_check() {
 }
 
 # 系统信息
-system_info(){
+system_info() {
     # 获取虚拟化类型
     virt_check
 
-    local get_cmd=$(command -v curl > /dev/null 2>&1 && echo "curl -fskL" || echo "wget -qO-")
+    local get_cmd=$(command -v curl >/dev/null 2>&1 && echo "curl -fsSkL" || echo "wget -qO-")
 
     # 获取CPU型号
     local cpu_model=$(grep -i 'model name' /proc/cpuinfo | head -n 1 | awk -F': ' '{print $2}') 
@@ -160,7 +184,7 @@ system_info(){
     # 检查AES-NI指令集支持
     local aes_ni
     # 尝试使用lscpu检查AES-NI支持
-    if command -v lscpu > /dev/null 2>&1 && lscpu | grep -q 'aes'; then
+    if command -v lscpu >/dev/null 2>&1 && lscpu | grep -q 'aes'; then
         aes_ni="✔ Enabled"
     else
         # 如果lscpu未找到，尝试使用/proc/cpuinfo
@@ -174,10 +198,10 @@ system_info(){
     # 检查VM-x/AMD-V支持
     local vm_support
     # 尝试使用lscpu检查Intel的VM-x支持
-    if command -v lscpu > /dev/null 2>&1 && lscpu | grep -iq 'vmx'; then
+    if command -v lscpu >/dev/null 2>&1 && lscpu | grep -iq 'vmx'; then
         vm_support="✔ VM-x Enabled"
     # 检查是否支持AMD的AMD-V
-    elif command -v lscpu > /dev/null 2>&1 && lscpu | grep -iq 'svm'; then
+    elif command -v lscpu >/dev/null 2>&1 && lscpu | grep -iq 'svm'; then
         vm_support="✔ AMD-V Enabled"
     else
         # lscpu未找到，使用/proc/cpuinfo进行检查
@@ -223,7 +247,7 @@ system_info(){
     local uptime_str=$(awk '{a=$1/86400;b=($1%86400)/3600;c=($1%3600)/60} {printf("%d days %d hour %d min\n",a,b,c)}' /proc/uptime)
 
     # 获取负载平均值
-    local load_average=$(command -v w > /dev/null 2>&1 && w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//' || uptime | awk -F'load average:' '{print $2}' | awk '{print $1, $2, $3}')
+    local load_average=$(command -v w >/dev/null 2>&1 && w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//' || uptime | awk -F'load average:' '{print $2}' | awk '{print $1, $2, $3}')
 
     # 计算CPU使用率，处理可能的除零错误
     local cpu_usage=$(awk -v OFMT='%0.2f' '
@@ -243,7 +267,7 @@ system_info(){
 
     # 获取操作系统版本信息
     local os_release
-    if command -v lsb_release > /dev/null 2>&1; then
+    if command -v lsb_release >/dev/null 2>&1; then
         os_release=$(lsb_release -d | awk -F: '{print $2}' | xargs | sed 's/ (.*)//')
     elif [ -f /etc/redhat-release ]; then
         os_release=$(awk '{print ($1, $3~/^[0-9]/ ? $3 : $4)}' /etc/redhat-release)
@@ -259,17 +283,17 @@ system_info(){
     local cpu_architecture=$(uname -m 2>/dev/null || lscpu | awk -F ': +' '/Architecture/{print $2}' || echo "Full Unknown")
 
     # 获取内核版本信息
-    local kernel_version=$(uname -r || (command -v hostnamectl > /dev/null 2>&1 && hostnamectl | sed -n 's/^[[:space:]]*Kernel:[[:space:]]*Linux \?\(.*\)$/\1/p'))
+    local kernel_version=$(uname -r || (command -v hostnamectl >/dev/null 2>&1 && hostnamectl | sed -n 's/^[[:space:]]*Kernel:[[:space:]]*Linux \?\(.*\)$/\1/p'))
 
     # 获取网络拥塞控制算法
     local congestion_algorithm=""
-    if command -v sysctl > /dev/null 2>&1; then
+    if command -v sysctl >/dev/null 2>&1; then
         congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)
     fi
 
     # 获取队列算法
     local queue_algorithm=""
-    if command -v sysctl > /dev/null 2>&1; then
+    if command -v sysctl >/dev/null 2>&1; then
         queue_algorithm=$(sysctl -n net.core.default_qdisc 2>/dev/null)
     fi
 
@@ -319,7 +343,7 @@ system_info(){
     # 获取系统时区
     if grep -q 'Alpine' /etc/issue; then
         local system_time=$(date +"%Z %z")
-    elif command -v timedatectl > /dev/null 2>&1; then
+    elif command -v timedatectl >/dev/null 2>&1; then
         local system_time=$(timedatectl | awk '/Time zone/ {print $3}' | xargs)
     elif [ -f /etc/timezone ]; then
         local system_time=$(cat /etc/timezone)
@@ -331,11 +355,11 @@ system_info(){
     # local current_time=$(date +"%Y-%m-%d %H:%M:%S")
 
     # 获取北京时间
-    local beijing_time
+    local east8_time
     if [[ "$($get_cmd --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
-        beijing_time=$(date -d @$(($($get_cmd https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
+        east8_time=$(date -d @$(($($get_cmd https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
     else
-        beijing_time=$($get_cmd "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
+        east8_time=$($get_cmd "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
     fi
 
     echo "系统信息查询"
@@ -366,26 +390,9 @@ system_info(){
     echo "-------------------------"
     echo "地理位置          : ${location}"
     echo "系统时区          : ${system_time}"
-    echo "北京时间          : ${beijing_time}"
+    echo "北京时间          : ${east8_time}"
     echo "-------------------------"
-    echo
-}
-
-# =============== 脚本退出执行相关 ===============
-# 终止信号捕获，意外中断时能优雅地处理
-trap _exit SIGINT SIGQUIT SIGTERM SIGHUP
-
-_exit() {
-    # 终止信号捕获Ctrl+C
-    echo -e "\n$(_bg_red '提示'): ${red}检测到退出操作，脚本终止！${white}\n"
-    global_exit
-    exit 0
-}
-
-# 全局退出操作
-global_exit() {
-    [ -f "$honeok_pid" ] && rm -f "$honeok_pid"  # 删除PID文件
-    [ -f "get-docker.sh" ] && rm -f get-docker.sh
+    echo ""
 }
 
 # =============== 通用函数START ===============
@@ -403,7 +410,6 @@ ip_address() {
             break
         fi
     done
-
     for service in "${ipv6_services[@]}"; do
         ipv6_address=$(curl -fskL6 -m 3 "$service")
         if [[ "$ipv6_address" =~ ^[0-9a-fA-F:]+$ ]]; then
@@ -412,29 +418,45 @@ ip_address() {
     done
 }
 
-# 设置地区相关的Github代理配置
-set_region_config() {
-    ip_address
+# 获取服务器地区
+geo_check() {
+    local response
+    local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
+    local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
+    # set -- "$cloudflare_api"
+    for url in $cloudflare_api; do
+        response=$(curl -A "$user_agent" -m 10 -s "$url")
+        [ -n "$response" ] && country=$(echo "$response" | grep -oP 'loc=\K\w+')
+        [ ! -z "$country" ] && break
+    done
+    [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
+}
 
-    if [[ "$(curl -s -k -L --connect-timeout 5 ipinfo.io/country)" == "CN" || -z "$ipv4_address" && -n "$ipv6_address" ]]; then
-        execute_commands=0  # 0 表示允许执行命令
-        #github_proxy="https://ghproxy.lvedong.eu.org/"
+# 设置地区相关的Github代理配置
+cdn_check() {
+    ip_address
+    geo_check
+
+    if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
+        $(curl -fsSkL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
+        exec_ok=0  # 0 表示允许执行命令
         github_proxy="https://gh-proxy.com/"
     else
-        execute_commands=1  # 1 表示不执行命令
+        exec_ok=1  # 1 表示不执行命令
         github_proxy=""     # 不使用代理
     fi
 }
 
 # 根据地区配置条件执行命令的函数
 exec_cmd() {
-    if [ "$execute_commands" -eq 0 ]; then  # 检查是否允许执行命令
+    if [ "$exec_ok" -eq 0 ]; then  # 检查是否允许执行命令
         "$@"
     fi
 }
 
-# 调用地区配置函数
-set_region_config
+# 环境启动预检
+geo_check
+cdn_check
 
 # 安装软件包
 install() {
@@ -444,29 +466,29 @@ install() {
     fi
 
     for package in "$@"; do
-        if ! command -v "$package" > /dev/null 2>&1; then
+        if ! command -v "$package" >/dev/null 2>&1; then
             _yellow "正在安装$package"
-            if command -v dnf > /dev/null 2>&1; then
+            if command -v dnf >/dev/null 2>&1; then
                 dnf update -y
                 dnf install epel-release -y
                 dnf install "$package" -y
-            elif command -v yum > /dev/null 2>&1; then
+            elif command -v yum >/dev/null 2>&1; then
                 yum update -y
                 yum install epel-release -y
                 yum install "$package" -y
-            elif command -v apt > /dev/null 2>&1; then
+            elif command -v apt >/dev/null 2>&1; then
                 apt update -y
                 apt install "$package" -y
-            elif command -v apk > /dev/null 2>&1; then
+            elif command -v apk >/dev/null 2>&1; then
                 apk update
                 apk add "$package"
-            elif command -v pacman > /dev/null 2>&1; then
+            elif command -v pacman >/dev/null 2>&1; then
                 pacman -Syu --noconfirm
                 pacman -S --noconfirm "$package"
-            elif command -v zypper > /dev/null 2>&1; then
+            elif command -v zypper >/dev/null 2>&1; then
                 zypper refresh
                 zypper install -y "$package"
-            elif command -v opkg > /dev/null 2>&1; then
+            elif command -v opkg >/dev/null 2>&1; then
                 opkg update
                 opkg install "$package"
             else
@@ -489,19 +511,19 @@ remove() {
 
     check_installed() {
         local package="$1"
-        if command -v dnf > /dev/null 2>&1; then
-            rpm -q "$package" > /dev/null 2>&1
-        elif command -v yum > /dev/null 2>&1; then
-            rpm -q "$package" > /dev/null 2>&1
-        elif command -v apt > /dev/null 2>&1; then
+        if command -v dnf >/dev/null 2>&1; then
+            rpm -q "$package" >/dev/null 2>&1
+        elif command -v yum >/dev/null 2>&1; then
+            rpm -q "$package" >/dev/null 2>&1
+        elif command -v apt >/dev/null 2>&1; then
             dpkg -l | grep -qw "$package"
-        elif command -v apk > /dev/null 2>&1; then
+        elif command -v apk >/dev/null 2>&1; then
             apk info | grep -qw "$package"
-        elif command -v pacman > /dev/null 2>&1; then
-            pacman -Qi "$package" > /dev/null 2>&1
-        elif command -v zypper > /dev/null 2>&1; then
-            zypper se -i "$package" > /dev/null 2>&1
-        elif command -v opkg > /dev/null 2>&1; then
+        elif command -v pacman >/dev/null 2>&1; then
+            pacman -Qi "$package" >/dev/null 2>&1
+        elif command -v zypper >/dev/null 2>&1; then
+            zypper se -i "$package" >/dev/null 2>&1
+        elif command -v opkg >/dev/null 2>&1; then
             opkg list-installed | grep -qw "$package"
         else
             _red "未知的包管理器！"
@@ -513,19 +535,19 @@ remove() {
     for package in "$@"; do
         _yellow "正在卸载$package"
         if check_installed "$package"; then
-            if command -v dnf > /dev/null 2>&1; then
+            if command -v dnf >/dev/null 2>&1; then
                 dnf remove "$package"* -y
-            elif command -v yum > /dev/null 2>&1; then
+            elif command -v yum >/dev/null 2>&1; then
                 yum remove "$package"* -y
-            elif command -v apt > /dev/null 2>&1; then
+            elif command -v apt >/dev/null 2>&1; then
                 apt purge "$package"* -y
-            elif command -v apk > /dev/null 2>&1; then
+            elif command -v apk >/dev/null 2>&1; then
                 apk del "$package"* -y
-            elif command -v pacman > /dev/null 2>&1; then
+            elif command -v pacman >/dev/null 2>&1; then
                 pacman -Rns --noconfirm "$package"
-            elif command -v zypper > /dev/null 2>&1; then
+            elif command -v zypper >/dev/null 2>&1; then
                 zypper remove -y "$package"
-            elif command -v opkg > /dev/null 2>&1; then
+            elif command -v opkg >/dev/null 2>&1; then
                 opkg remove --force "$package"
             fi
         else
@@ -540,121 +562,96 @@ systemctl() {
     local cmd="$1"
     local service_name="$2"
 
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         service "$service_name" "$cmd"
     else
-        /bin/systemctl "$cmd" "$service_name"
+        /usr/bin/systemctl "$cmd" "$service_name"
     fi
 }
 
 # 重载systemd管理的服务
 daemon_reload() {
-    if ! command -v apk > /dev/null 2>&1; then
-        if command -v systemctl > /dev/null 2>&1; then
-            /bin/systemctl daemon-reload
+    if ! command -v apk >/dev/null 2>&1; then
+        if command -v systemctl >/dev/null 2>&1; then
+            /usr/bin/systemctl daemon-reload
         fi
     fi
 }
 
 disable() {
     local service_name="$1"
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         # Alpine使用OpenRC
         rc-update del "$service_name"
     else
-        /bin/systemctl disable "$service_name"
+        /usr/bin/systemctl disable "$service_name"
     fi
 }
 
 # 设置服务为开机自启
 enable() {
     local service_name="$1"
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         rc-update add "$service_name" default
     else
-        systemctl enable "$service_name"
+        /usr/bin/systemctl enable "$service_name"
     fi
-
-    if [ $? -eq 0 ]; then
-        echo -e "${green}${service_name}已设置为开机自启${white}"
-    else
-        echo -e "${red}${service_name}设置开机自启失败${white}"
-    fi
+    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已设置为开机自启")" || _err_msg "$(_red "${service_name}设置开机自启失败")"
 }
 
 # 启动服务
 start() {
     local service_name="$1"
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         service "$service_name" start
     else
-        systemctl start "$service_name"
+        /usr/bin/systemctl start "$service_name"
     fi
-    if [ $? -eq 0 ]; then
-        echo -e "${green}${service_name}已启动${white}"
-    else
-        echo -e "${red}${service_name}启动失败${white}"
-    fi
+    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已启动")" || _err_msg "$(_red "${service_name}启动失败")"
 }
 
 # 停止服务
 stop() {
     local service_name="$1"
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         service "$service_name" stop
     else
-        systemctl stop "$service_name"
+        /usr/bin/systemctl stop "$service_name"
     fi
-    if [ $? -eq 0 ]; then
-        echo -e "${green}${service_name}已停止${white}"
-    else
-        echo -e "${red}${service_name}停止失败${white}"
-    fi
+    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已停止")" || _err_msg "$(_red "${service_name}停止失败")"
 }
 
 # 重启服务
 restart() {
     local service_name="$1"
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         service "$service_name" restart
     else
-        systemctl restart "$service_name"
+        /usr/bin/systemctl restart "$service_name"
     fi
-    if [ $? -eq 0 ]; then
-        echo -e "${green}${service_name}已重启${white}"
-    else
-        echo -e "${red}${service_name}重启失败${white}"
-    fi
+    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已重启")" || _err_msg "$(_red "${service_name}重启失败")"
 }
 
 # 重载服务
 reload() {
     local service_name="$1"
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         service "$service_name" reload
     else
-        systemctl reload "$service_name"
+        /usr/bin/systemctl reload "$service_name"
     fi
-    if [ $? -eq 0 ]; then
-        echo -e "${green}${service_name}已重载${white}"
-    else
-        echo -e "${red}${service_name}重载失败${white}"
-    fi
+    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已重载")" || _err_msg "$(_red "${service_name}重载失败")"
 }
 
 # 查看服务状态
 status() {
     local service_name="$1"
-    if command -v apk > /dev/null 2>&1; then
+    if command -v apk >/dev/null 2>&1; then
         service "$service_name" status
     else
-        systemctl status "$service_name"
+        /usr/bin/systemctl status "$service_name"
     fi
-    if [ $? -eq 0 ]; then
-        echo -e "${green}${service_name}状态已显示${white}"
-    else
-        echo -e "${red}${service_name}状态显示失败${white}"
-    fi
+    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}状态已显示")" || _err_msg "$(_red "${service_name}状态显示失败")"
 }
 
 # 结尾任意键结束
@@ -669,7 +666,7 @@ end_of() {
 # 检查用户是否为root
 need_root() {
     clear
-    [ "$EUID" -ne "0" ] && echo -e "$(_bg_red '提示'): ${red}该功能需要root用户才能运行！${white}" && end_of && honeok
+    [ "$EUID" -ne "0" ] && _err_msg "$(_red '该功能需要root用户才能运行！')" && end_of && honeok
 }
 
 # 定义全局脚本下载路径
@@ -678,7 +675,7 @@ set_script_dir() {
 
     # 判断路径是否存在
     if [ ! -d "$script_dir" ]; then
-        mkdir -p "$script_dir"
+        mkdir "$script_dir" -p >/dev/null 2>&1
         globle_script_dir="$script_dir"
     else
         globle_script_dir="$script_dir"
@@ -686,40 +683,30 @@ set_script_dir() {
 }
 
 # =============== 系统更新START ===============
-wait_for_lock() {
-    local timeout=300  # 设置超时时间为300秒(5分钟)
-    local waited=0
-
-    while fuser /var/lib/dpkg/lock-frontend > /dev/null 2>&1; do
-        _yellow "等待dpkg锁释放"
-        sleep 1
-        waited=$((waited + 1))
-        if [ $waited -ge $timeout ]; then
-            _red "等待dpkg锁超时"
-            break # 等待dpkg锁超时后退出循环
-        fi
-    done
-}
-
 # 修复dpkg中断问题
-fix_dpkg(){
-    DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+fix_dpkg() {
+    pkill -f -9 'apt|dpkg'
+    rm -f /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend >/dev/null 2>&1
+    dpkg --configure -a
 }
 
 linux_update() {
     _yellow "正在系统更新"
-    if command -v dnf > /dev/null 2>&1; then
+    if command -v dnf >/dev/null 2>&1; then
         dnf -y update
-    elif command -v yum > /dev/null 2>&1; then
+    elif command -v yum >/dev/null 2>&1; then
         yum -y update
-    elif command -v apt > /dev/null 2>&1; then
-        wait_for_lock
+    elif command -v apt >/dev/null 2>&1; then
         fix_dpkg
-        DEBIAN_FRONTEND=noninteractive apt update -y
-        DEBIAN_FRONTEND=noninteractive apt full-upgrade -y
-    elif command -v apk > /dev/null 2>&1; then
+        apt update -y
+        apt full-upgrade -y
+    elif command -v apk >/dev/null 2>&1; then
         apk update && apk upgrade
-    elif command -v opkg > /dev/null 2>&1; then
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Syu --noconfirm
+    elif command -v zypper >/dev/null 2>&1; then
+        zypper refresh && zypper update
+    elif command -v opkg >/dev/null 2>&1; then
         opkg update
     else
         _red "未知的包管理器"
@@ -732,37 +719,48 @@ linux_update() {
 linux_clean() {
     _yellow "正在系统清理"
 
-    if command -v dnf > /dev/null 2>&1; then
+    if command -v dnf >/dev/null 2>&1; then
         dnf autoremove -y
         dnf clean all
         dnf makecache
         journalctl --rotate
-        journalctl --vacuum-time=7d # 删除所有早于7天前的日志
-        journalctl --vacuum-size=500M
-    elif command -v yum > /dev/null 2>&1; then
+        journalctl --vacuum-time=3d # 删除所有早于7天前的日志
+        journalctl --vacuum-size=200M
+    elif command -v yum >/dev/null 2>&1; then
         yum autoremove -y
         yum clean all
         yum makecache
         journalctl --rotate
-        journalctl --vacuum-time=7d # 删除所有早于7天前的日志
-        journalctl --vacuum-size=500M
-    elif command -v apt > /dev/null 2>&1; then
-        wait_for_lock
+        journalctl --vacuum-time=3d
+        journalctl --vacuum-size=200M
+    elif command -v apt >/dev/null 2>&1; then
         fix_dpkg
         apt autoremove --purge -y
         apt clean -y
         apt autoclean -y
         journalctl --rotate
-        journalctl --vacuum-time=7d # 删除所有早于7天前的日志
-        journalctl --vacuum-size=500M
-    elif command -v apk > /dev/null 2>&1; then
+        journalctl --vacuum-time=3d
+        journalctl --vacuum-size=200M
+    elif command -v apk >/dev/null 2>&1; then
         apk cache clean
         rm -fr /var/log/*
         rm -fr /var/cache/apk/*
         rm -fr /tmp/*
-    elif command -v opkg > /dev/null 2>&1; then
-        rm -rf /var/log/*
-        rm -rf /tmp/*
+    elif command -v pacman >/dev/null 2>&1; then
+        pacman -Rns $(pacman -Qdtq) --noconfirm
+        pacman -Scc --noconfirm
+        journalctl --rotate
+        journalctl --vacuum-time=3d
+        journalctl --vacuum-size=200M
+    elif command -v zypper >/dev/null 2>&1; then
+        zypper clean --all
+        zypper refresh
+        journalctl --rotate
+        journalctl --vacuum-time=3d
+        journalctl --vacuum-size=200M
+    elif command -v opkg >/dev/null 2>&1; then
+        rm -fr /var/log/*
+        rm -fr /tmp/*
     else
         _red "未知的包管理器"
         return 1
@@ -1019,7 +1017,7 @@ linux_bbr() {
                     server_reboot
                     ;;
                 0)
-                    break  # 跳出循环,退出菜单
+                    break  # 跳出循环，退出菜单
                     ;;
                 *)
                     _red "无效选项，请重新输入"
@@ -1042,14 +1040,14 @@ docker_global_status() {
     local network_count=$(docker network ls -q 2>/dev/null | wc -l)
     local volume_count=$(docker volume ls -q 2>/dev/null | wc -l)
 
-    if command -v docker > /dev/null 2>&1; then
+    if command -v docker >/dev/null 2>&1; then
         echo "-------------------------"
-        echo -e "${green}环境已经安装${white}  容器: ${green}$container_count${white}  镜像: ${green}$image_count${white}  网络: ${green}$network_count${white}  卷: ${green}$volume_count${white}"
+        echo -e "${green}环境已经安装${white}  容器: ${green}${container_count}${white}  镜像: ${green}${image_count}${white}  网络: ${green}${network_count}${white}  卷: ${green}${volume_count}${white}"
     fi
 }
 
 install_docker() {
-    if ! command -v docker > /dev/null 2>&1; then
+    if ! command -v docker >/dev/null 2>&1; then
         install_add_docker
     else
         _green "Docker环境已经安装"
@@ -1061,25 +1059,25 @@ docker_main_version() {
     local docker_compose_version=""
 
     # 获取 Docker 版本
-    if command -v docker > /dev/null 2>&1; then
+    if command -v docker >/dev/null 2>&1; then
         docker_version=$(docker --version | awk -F '[ ,]' '{print $3}')
-    elif command -v docker.io > /dev/null 2>&1; then
+    elif command -v docker.io >/dev/null 2>&1; then
         docker_version=$(docker.io --version | awk -F '[ ,]' '{print $3}')
     fi
 
     # 获取 Docker Compose 版本
-    if command -v docker-compose > /dev/null 2>&1; then
+    if command -v docker-compose >/dev/null 2>&1; then
         docker_compose_version=$(docker-compose version --short)
-    elif command -v docker > /dev/null 2>&1 && docker compose version > /dev/null 2>&1; then
+    elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
         docker_compose_version=$(docker compose version --short)
     fi
 
-    echo -e "${yellow}已安装Docker版本: ${white}v$docker_version"
-    echo -e "${yellow}已安装Docker Compose版本: ${white}v$docker_compose_version${white}"
+    echo "已安装Docker版本: v${docker_version}"
+    echo "已安装Docker Compose版本: v${docker_compose_version}"
 }
 
 install_docker_official() {
-    if [[ "$(curl -s -k -L --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
+    if [[ "$country" == "CN" ]];then
         cd ~
         # curl -fsSL -o "get-docker.sh" "${github_proxy}raw.githubusercontent.com/docker/docker-install/master/install.sh" && chmod +x get-docker.sh
         curl -fsSL -o "get-docker.sh" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
@@ -1106,18 +1104,18 @@ install_add_docker() {
     if [ -f /etc/os-release ] && grep -q "Fedora" /etc/os-release; then
         install_docker_official
         install_common_docker
-    elif command -v dnf > /dev/null 2>&1; then
-        if ! dnf config-manager --help > /dev/null 2>&1; then
+    elif command -v dnf >/dev/null 2>&1; then
+        if ! dnf config-manager --help >/dev/null 2>&1; then
             install dnf-plugins-core
         fi
 
-        [ -f /etc/yum.repos.d/docker*.repo ] && rm -f /etc/yum.repos.d/docker*.repo > /dev/null
+        [ -f /etc/yum.repos.d/docker*.repo ] && rm -f /etc/yum.repos.d/docker*.repo >/dev/null 2>&1
 
         # 判断地区安装
-        if [[ "$(curl -s -k -L --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
-            dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo > /dev/null
+        if [[ "$country" == "CN" ]];then
+            dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo >/dev/null 2>&1
         else
-            dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo > /dev/null
+            dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo >/dev/null 2>&1
         fi
 
         install docker-ce docker-ce-cli containerd.io
@@ -1127,36 +1125,36 @@ install_add_docker() {
     elif [ -f /etc/os-release ] && grep -q "Kali" /etc/os-release; then
         install apt-transport-https ca-certificates curl gnupg lsb-release
         rm -f /usr/share/keyrings/docker-archive-keyring.gpg
-        if [[ "$(curl -s -k -L --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
+        if [[ "$country" == "CN" ]];then
             if [ "$(uname -m)" = "x86_64" ]; then
-                sed -i '/^deb \[arch=amd64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list > /dev/null
+                sed -i '/^deb \[arch=amd64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg > /dev/null
-                echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+                curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             elif [ "$(uname -m)" = "aarch64" ]; then
-                sed -i '/^deb \[arch=arm64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list > /dev/null
+                sed -i '/^deb \[arch=arm64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg > /dev/null
-                echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+                curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             fi
         else
             if [ "$(uname -m)" = "x86_64" ]; then
-                sed -i '/^deb \[arch=amd64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list > /dev/null
+                sed -i '/^deb \[arch=amd64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg > /dev/null
-                echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+                curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             elif [ "$(uname -m)" = "aarch64" ]; then
-                sed -i '/^deb \[arch=arm64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list > /dev/null
+                sed -i '/^deb \[arch=arm64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg > /dev/null
-                echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+                curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             fi
         fi
         install docker-ce docker-ce-cli containerd.io
         enable docker
         start docker
         install_common_docker
-    elif command -v apt > /dev/null 2>&1 || command -v yum > /dev/null 2>&1; then
+    elif command -v apt >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
         install_docker_official
         install_common_docker
     else
@@ -1177,7 +1175,7 @@ generate_docker_config() {
 
     install jq
 
-    if ! command -v docker > /dev/null 2>&1; then
+    if ! command -v docker >/dev/null 2>&1; then
         _red "Docker未安装在系统上，无法优化"
         return 1
     fi
@@ -1201,7 +1199,7 @@ generate_docker_config() {
     fi
 
     # 检查服务器是否在中国
-    if [[ "$(curl -s -k -L --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
+    if [[ "$country" == "CN" ]];then
         is_china_server='true'
     fi
 
@@ -1243,8 +1241,8 @@ generate_docker_config() {
     _green "Docker配置文件已重新加载并重启Docker服务"
     daemon_reload
     restart docker
-    _yellow "Docker配置文件已根据服务器IP归属做相关优化"
-    _yellow "配置文件默认关闭Docker IPV6，如需调整自行修改$config_file"
+    echo "Docker配置文件已根据服务器IP归属做相关优化"
+    echo "配置文件默认关闭Docker IPV6，如需调整自行修改${config_file}"
 }
 
 restart_docker_retry() {
@@ -1254,14 +1252,14 @@ restart_docker_retry() {
 
     daemon_reload
     while (( attempt < max_retries )); do
-        if restart docker; then
+        if restart docker >/dev/null 2>&1; then
             return 0  # 重启成功，返回
         fi
         (( attempt++ ))
-        _yellow "重启Docker失败，正在重试（尝试次数: $attempt）"
+        echo -e "${red}重启Docker失败，正在重试（尝试次数: $attempt）${white}"
         sleep "$retry_delay"
     done
-    _red "重启Docker失败，超过最大重试次数！"
+    _err_msg "$(_red '重启Docker失败，超过最大重试次数！')"
     return 1
 }
 
@@ -1269,49 +1267,49 @@ docker_ipv6_on() {
     need_root
     install jq
 
-    local CONFIG_FILE="/etc/docker/daemon.json"
-    local REQUIRED_IPV6_CONFIG='{"ipv6": true, "fixed-cidr-v6": "2001:db8:1::/64"}'
-    local LOCK_FILE="/tmp/docker_ipv6.lock"
+    local config_file="/etc/docker/daemon.json"
+    local required_ipv6_config='{"ipv6": true, "fixed-cidr-v6": "2001:db8:1::/64"}'
+    local lock_file="/tmp/docker_ipv6.lock"
 
     # 检查锁文件是否存在，以及Docker启动状态
-    if [ -f "$LOCK_FILE" ] || \
-        ! docker info > /dev/null 2>&1 || \
+    if [ -f "$lock_file" ] || \
+        ! docker info >/dev/null 2>&1 || \
         # 检查Docker API是否可用
-        ! curl -s --unix-socket /var/run/docker.sock http://localhost/version > /dev/null 2>&1; then
+        ! curl -s --unix-socket /var/run/docker.sock http://localhost/version >/dev/null 2>&1; then
         _red "请不要在短时间重复开关会导致docker启动失败！"
         return 1
     fi
 
     # 检查配置文件是否存在，如果不存在则创建文件并写入默认设置
-    if [ ! -f "$CONFIG_FILE" ]; then
-        echo "$REQUIRED_IPV6_CONFIG" | jq . > "$CONFIG_FILE"
+    if [ ! -f "$config_file" ]; then
+        echo "$required_ipv6_config" | jq . > "$config_file"
         restart_docker_retry
     else
         # 使用jq处理配置文件的更新
-        local ORIGINAL_CONFIG=$(<"$CONFIG_FILE")
+        local original_config=$(<"$config_file")
 
-        # 检查当前配置是否已经有 ipv6 设置
-        local CURRENT_IPV6=$(echo "$ORIGINAL_CONFIG" | jq '.ipv6 // false')
+        # 检查当前配置是否已经有ipv6设置
+        local current_ipv6=$(echo "$original_config" | jq '.ipv6 // false')
 
-        # 更新配置，开启 IPv6
-        if [[ "$CURRENT_IPV6" == "false" ]]; then
-            UPDATED_CONFIG=$(echo "$ORIGINAL_CONFIG" | jq '. + {ipv6: true, "fixed-cidr-v6": "2001:db8:1::/64"}')
+        # 更新配置，开启IPv6
+        if [[ "$current_ipv6" == "false" ]]; then
+            updated_config=$(echo "$original_config" | jq '. + {ipv6: true, "fixed-cidr-v6": "2001:db8:1::/64"}')
         else
-            UPDATED_CONFIG=$(echo "$ORIGINAL_CONFIG" | jq '. + {"fixed-cidr-v6": "2001:db8:1::/64"}')
+            updated_config=$(echo "$original_config" | jq '. + {"fixed-cidr-v6": "2001:db8:1::/64"}')
         fi
 
         # 对比原始配置与新配置
-        if [[ "$ORIGINAL_CONFIG" == "$UPDATED_CONFIG" ]]; then
+        if [[ "$original_config" == "$updated_config" ]]; then
             _yellow "当前已开启ipv6访问"
         else
-            echo "$UPDATED_CONFIG" | jq . > "$CONFIG_FILE"
+            echo "$updated_config" | jq . > "$config_file"
             restart_docker_retry
             _green "已成功开启ipv6访问"
 
             # 创建锁文件
-            touch "$LOCK_FILE"
-            # 等待 6 秒后删除锁文件
-            (sleep 6 && rm -f "$LOCK_FILE") &
+            touch "$lock_file"
+            # 等待6秒后删除锁文件
+            (sleep 6 && rm -f "$lock_file") &
         fi
     fi
 }
@@ -1320,45 +1318,45 @@ docker_ipv6_off() {
     need_root
     install jq
 
-    local CONFIG_FILE="/etc/docker/daemon.json"
-    local LOCK_FILE="/tmp/docker_ipv6.lock"
+    local config_file="/etc/docker/daemon.json"
+    local lock_file="/tmp/docker_ipv6.lock"
 
     # 检查锁文件是否存在，以及Docker启动状态
-    if [ -f "$LOCK_FILE" ] || \
-        ! docker info > /dev/null 2>&1 || \
+    if [ -f "$lock_file" ] || \
+        ! docker info >/dev/null 2>&1 || \
         # 检查Docker API是否可用
-        ! curl -s --unix-socket /var/run/docker.sock http://localhost/version > /dev/null 2>&1; then
+        ! curl -s --unix-socket /var/run/docker.sock http://localhost/version >/dev/null 2>&1; then
         _red "请不要在短时间重复开关会导致docker启动失败！"
         return 1
     fi
 
     # 检查配置文件是否存在
-    if [ ! -f "$CONFIG_FILE" ]; then
+    if [ ! -f "$config_file" ]; then
         _red "配置文件不存在"
         return 1
     fi
 
     # 读取当前配置
-    local ORIGINAL_CONFIG=$(<"$CONFIG_FILE")
+    local original_config=$(<"$config_file")
 
     # 使用jq处理配置文件的更新
-    UPDATED_CONFIG=$(echo "$ORIGINAL_CONFIG" | jq 'del(.["fixed-cidr-v6"]) | .ipv6 = false')
+    updated_config=$(echo "$original_config" | jq 'del(.["fixed-cidr-v6"]) | .ipv6 = false')
 
     # 检查当前的 ipv6 状态
-    local CURRENT_IPV6=$(echo "$ORIGINAL_CONFIG" | jq -r '.ipv6 // false')
+    local current_ipv6=$(echo "$original_config" | jq -r '.ipv6 // false')
 
     # 对比原始配置与新配置
-    if [[ "$CURRENT_IPV6" == "false" ]]; then
+    if [[ "$current_ipv6" == "false" ]]; then
         _yellow "当前已关闭ipv6访问"
     else
-        echo "$UPDATED_CONFIG" | jq . > "$CONFIG_FILE"
+        echo "$updated_config" | jq . > "$config_file"
         restart_docker_retry
         _green "已成功关闭ipv6访问"
 
         # 创建锁文件
-        touch "$LOCK_FILE"
+        touch "$lock_file"
         # 等待 6 秒后删除锁文件
-        (sleep 6 && rm -f "$LOCK_FILE") &
+        (sleep 6 && rm -f "$lock_file") &
     fi
 }
 
@@ -1373,26 +1371,26 @@ uninstall_docker() {
     # 停止并删除Docker服务和容器
     stop_and_remove_docker() {
         local running_containers=$(docker ps -aq)
-        [ -n "$running_containers" ] && docker rm -f "$running_containers" > /dev/null 2>&1
-        stop docker > /dev/null 2>&1
-        disable docker > /dev/null 2>&1
+        [ -n "$running_containers" ] && docker rm -f "$running_containers" >/dev/null 2>&1
+        stop docker >/dev/null 2>&1
+        disable docker >/dev/null 2>&1
     }
 
     # 移除Docker文件和仓库文件
     cleanup_files() {
         for pattern in "${docker_depend_files[@]}"; do
             for file in $pattern; do
-                [ -e "$file" ] && rm -fr "$file" > /dev/null 2>&1
+                [ -e "$file" ] && rm -fr "$file" >/dev/null 2>&1
             done
         done
 
         for file in "${docker_data_files[@]}" "${binary_files[@]}"; do
-            [ -e "$file" ] && rm -fr "$file" > /dev/null 2>&1
+            [ -e "$file" ] && rm -fr "$file" >/dev/null 2>&1
         done
     }
 
     # 检查Docker是否安装
-    if ! command -v docker > /dev/null 2>&1; then
+    if ! command -v docker >/dev/null 2>&1; then
         _red "Docker未安装在系统上，无法继续卸载"
         return 1
     fi
@@ -1408,7 +1406,7 @@ uninstall_docker() {
     sleep 2
 
     # 检查卸载是否成功
-    if command -v docker > /dev/null 2>&1 || [ -e "/usr/bin/docker" ]; then
+    if command -v docker >/dev/null 2>&1 || [ -e "/usr/bin/docker" ]; then
         _red "Docker卸载失败，请手动检查"
         return 1
     else
@@ -1602,7 +1600,7 @@ docker_image() {
     done
 }
 
-docker_manager(){
+docker_manager() {
     while true; do
         clear
         echo "▶ Docker管理"
@@ -1637,7 +1635,7 @@ docker_manager(){
         case $choice in
             1)
                 clear
-                if ! command -v docker > /dev/null 2>&1; then
+                if ! command -v docker >/dev/null 2>&1; then
                     install_add_docker
                 else
                     docker_main_version
@@ -1894,63 +1892,60 @@ docker_manager(){
 }
 
 # =============== LDNMP建站START ===============
-manage_compose() {
-    local compose_cmd
+docker_compose() {
+    local docker_compose_cmd
     # 检查 docker compose 版本
-    if docker compose version > /dev/null 2>&1; then
-        compose_cmd="docker compose"
-    elif command -v docker-compose > /dev/null 2>&1; then
-        compose_cmd="docker-compose"
+    if docker compose version >/dev/null 2>&1; then
+        docker_compose_cmd="docker compose"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        docker_compose_cmd="docker-compose"
     fi
 
     case "$1" in
         start)    # 启动容器
-            $compose_cmd up -d
+            $docker_compose_cmd up -d
             ;;
         restart)
-            $compose_cmd restart
+            $docker_compose_cmd restart
             ;;
         stop)    # 停止容器
-            $compose_cmd stop
+            $docker_compose_cmd stop
             ;;
         recreate)
-            $compose_cmd up -d --force-recreate
+            $docker_compose_cmd up -d --force-recreate
             ;;
         down)    # 停止并删除容器
-            $compose_cmd down
+            $docker_compose_cmd down
             ;;
         pull)
-            $compose_cmd pull
+            $docker_compose_cmd pull
             ;;
         down_all) # 停止并删除容器、镜像、卷、未使用的网络
-            $compose_cmd down --rmi all --volumes --remove-orphans
+            $docker_compose_cmd down --rmi all --volumes --remove-orphans
             ;;
         version)
-            $compose_cmd version
+            $docker_compose_cmd version
             ;;
     esac
 }
 
 ldnmp_check_status() {
-    if docker inspect "ldnmp" > /dev/null 2>&1; then
-        _yellow "LDNMP环境已安装，可以选择更新LDNMP环境！"
+    if docker inspect "ldnmp" >/dev/null 2>&1; then
+        _yellow "LDNMP环境已安装！"
         end_of
         linux_ldnmp
     fi
 }
 
 ldnmp_install_status() {
-    if docker inspect "ldnmp" > /dev/null 2>&1; then
-        _yellow "LDNMP环境已安装，开始部署$webname"
-    else
-        _red "LDNMP环境未安装，请先安装LDNMP环境再部署网站！"
-        end_of
-        linux_ldnmp
+    if ! docker inspect "ldnmp" >/dev/null 2>&1; then
+        _red "LDNMP环境未安装，请先安装LDNMP环境！"
+        install_ldnmp_standalone
     fi
 }
 
 ldnmp_restore_check() {
-    if docker inspect "ldnmp" > /dev/null 2>&1; then
+    if docker inspect "ldnmp" >/dev/null 2>&1; then
         _yellow "LDNMP环境已安装，无法还原LDNMP环境，请先卸载现有环境再次尝试还原！"
         end_of
         linux_ldnmp
@@ -1958,70 +1953,54 @@ ldnmp_restore_check() {
 }
 
 nginx_install_status() {
-    if docker inspect "nginx" > /dev/null 2>&1; then
+    if docker inspect "nginx" >/dev/null 2>&1; then
         _yellow "Nginx环境已安装，开始部署$webname！"
     else
-        _red "Nginx环境未安装，请先安装Nginx环境再部署网站！"
+        _red "Nginx环境未安装，请先安装Nginx环境！"
         end_of
         linux_ldnmp
     fi
 }
 
 ldnmp_check_port() {
-    # 定义要检测的端口
-    ports=("80" "443")
-
-    # 检查端口占用情况
-    for port in "${ports[@]}"; do
-        result=$(netstat -tulpn | grep ":$port ")
-
-        if [ -n "$result" ]; then
-            clear
-            _red "端口$port已被占用，无法安装环境，卸载以下程序后重试！"
-            _yellow "$result"
-            end_of
-            linux_ldnmp
-            return 1
+    local check_cmd=$(command -v netstat >/dev/null 2>&1 && echo "netstat" || echo "ss")
+    for port in 80 443; do
+        local containers=$(docker ps --filter "publish=$port" --format "{{.ID}}" 2>/dev/null)
+        if [ -n "$containers" ]; then
+            docker stop $containers >/dev/null 2>&1
+        else
+            for pid in $($check_cmd -tulpn | grep ":$port " 2>/dev/null | awk '{print $7}' | cut -d'/' -f1); do
+                kill -9 $pid >/dev/null 2>&1
+            done
         fi
     done
 }
 
 ldnmp_install_deps() {
     clear
-    # 安装依赖包
-    install wget socat unzip tar
-}
-
-ldnmp_uninstall_deps() {
-    clear
-    remove socat
+    install wget unzip tar
 }
 
 ldnmp_install_certbot() {
-    local cron_job existing_cron certbot_dir
+    local cert_cron certbot_dir
     certbot_dir="/data/docker_data/certbot"
+
+    set_script_dir
 
     # 创建Certbot工作目录
     [ ! -d "$certbot_dir" ] && mkdir -p "$certbot_dir/cert" "$certbot_dir/data"
 
-    # 创建并进入脚本目录
-    [ ! -d /data/script ] && mkdir -p /data/script
-    cd /data/script || { _red "进入目录/data/script失败"; return 1; }
-
-    # 设置定时任务字符串
     check_crontab_installed
-    cron_job="0 0 * * * /data/script/cert_renewal.sh > /dev/null 2>&1"
 
-    # 检查是否存在相同的定时任务
-    existing_cron=$(crontab -l 2>/dev/null | grep -F "$cron_job")
-
-    if [ -z "$existing_cron" ]; then
-        # 下载并使脚本可执行
-        curl -fsSL -o "cert_renewal.sh" "${github_proxy}github.com/honeok/Tools/raw/master/InvScripts/docker_certbot.sh"
-        chmod +x cert_renewal.sh
+    # 设置定时任务
+    cert_cron="0 0 * * * $globle_script_dir/cert_renewal.sh >/dev/null 2>&1"
+    # 检查是否已有定时任务
+    if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
+        curl -fsSkL -o "$globle_script_dir/cert_renewal.sh" "${github_proxy}github.com/honeok/Tools/raw/master/InvScripts/docker_certbot.sh"
+        chmod a+x $globle_script_dir/cert_renewal.sh
 
         # 添加定时任务
-        (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
+        (crontab -l 2>/dev/null; echo "$cert_cron") | crontab - >/dev/null 2>&1
         _green "证书续签任务已安装！"
     else
         _yellow "证书续签任务已存在，无需重复安装！"
@@ -2029,30 +2008,31 @@ ldnmp_install_certbot() {
 }
 
 ldnmp_uninstall_certbot() {
-    local cron_job existing_cron certbot_dir certbot_image_ids
+    local cert_cron certbot_dir certbot_image_ids
     certbot_dir="/data/docker_data/certbot"
     certbot_image_ids=$(docker images --format "{{.ID}}" --filter=reference='certbot/*')
 
+    set_script_dir
+
     if [ -n "$certbot_image_ids" ]; then
         while IFS= read -r image_id; do
-            docker rmi "$image_id" > /dev/null 2>&1
+            docker rmi -f "$image_id" >/dev/null 2>&1
         done <<< "$certbot_image_ids"
     fi
 
-    cron_job="0 0 * * * /data/script/cert_renewal.sh > /dev/null 2>&1"
+    cert_cron="0 0 * * * $globle_script_dir/cert_renewal.sh >/dev/null 2>&1"
 
     # 检查并删除定时任务
-    existing_cron=$(crontab -l 2>/dev/null | grep -F "$cron_job")
-    if [ -n "$existing_cron" ]; then
-        (crontab -l 2>/dev/null | grep -Fv "$cron_job") | crontab -
+    if crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
+        (crontab -l 2>/dev/null | grep -Fv "0 0 * * * $cert_cron") | crontab - >/dev/null 2>&1
         _green "续签任务已从定时任务中移除"
     else
         _yellow "定时任务未找到，无需移除"
     fi
 
     # 删除脚本文件
-    if [ -f /data/script/cert_renewal.sh ]; then
-        rm /data/script/cert_renewal.sh
+    if [ -f "$globle_script_dir/cert_renewal.sh" ]; then
+        rm -f "$globle_script_dir/cert_renewal.sh"
         _green "续签脚本文件已删除"
     fi
 
@@ -2064,9 +2044,9 @@ ldnmp_uninstall_certbot() {
 }
 
 default_server_ssl() {
-    install openssl
+    install openssl >/dev/null 2>&1
 
-    if command -v dnf > /dev/null 2>&1 || command -v yum > /dev/null 2>&1; then
+    if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
         openssl req -x509 -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -keyout "$nginx_dir/certs/default_server.key" -out "$nginx_dir/certs/default_server.crt" -days 5475 -subj "/C=US/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name"
     else
         openssl genpkey -algorithm Ed25519 -out "$nginx_dir/certs/default_server.key"
@@ -2079,41 +2059,34 @@ default_server_ssl() {
 
 # Nginx日志轮转
 ldnmp_install_ngx_logrotate() {
-    web_dir="/data/docker_data/web"
-    nginx_dir="$web_dir/nginx"
-
     # 定义日志截断文件脚本路径
-    rotate_script="$nginx_dir/rotate.sh"
+    local rotate_script="$nginx_dir/rotate.sh"
 
     if [[ ! -d "$nginx_dir" ]]; then
         _red "Nginx目录不存在"
         return 1
-    else
-        curl -fsSL -o "$rotate_script" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh"
-        if [[ $? -ne 0 ]]; then
-            _red "脚本下载失败，请检查网络连接或脚本URL"
-            return 1
-        fi
-        chmod +x "$rotate_script"
     fi
 
-    # 检查crontab中是否存在相关任务
-    crontab_entry="0 0 * * 0 $rotate_script > /dev/null 2>&1"
-    if ! crontab -l | grep -q "$rotate_script"; then
-        # 添加crontab任务
-        (crontab -l; echo "$crontab_entry") | crontab -
-        _green "Nginx日志轮转任务已安装！"
-    else
+    curl -fsSkL -o "$rotate_script" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh" || {
+        _red "脚本下载失败，请检查网络连接或脚本URL"
+        return 1
+    }
+
+    chmod a+x "$rotate_script"
+
+    # 检查并添加crontab任务
+    local crontab_entry="0 0 * * 0 $rotate_script >/dev/null 2>&1"
+    if crontab -l | grep -q "$rotate_script"; then
         _yellow "Nginx日志轮转任务已存在"
+    else
+        (crontab -l; echo "$crontab_entry") | crontab -
+        _suc_msg "$(_green 'Nginx日志轮转任务已安装')"
     fi
 }
 
 ldnmp_uninstall_ngx_logrotate() {
-    web_dir="/data/docker_data/web"
-    nginx_dir="$web_dir/nginx"
-
     # 定义日志截断文件脚本路径
-    rotate_script="$nginx_dir/rotate.sh"
+    local rotate_script="$nginx_dir/rotate.sh"
 
     if [[ -d $nginx_dir ]]; then
         if [[ -f $rotate_script ]]; then
@@ -2124,7 +2097,7 @@ ldnmp_uninstall_ngx_logrotate() {
         fi
     fi
 
-    crontab_entry="0 0 * * 0 $rotate_script > /dev/null 2>&1"
+    local crontab_entry="0 0 * * 0 $rotate_script >/dev/null 2>&1"
     if crontab -l | grep -q "$rotate_script"; then
         crontab -l | grep -v "$rotate_script" | crontab -
         _green "Nginx日志轮转任务已卸载"
@@ -2133,133 +2106,93 @@ ldnmp_uninstall_ngx_logrotate() {
     fi
 }
 
+install_ldnmp_conf() {
+    # 创建必要的目录和文件
+    mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$nginx_dir/certs" "$web_dir/redis" "$web_dir/mysql"
+
+    # 下载配置文件
+    curl -fsSkL -o "$nginx_dir/nginx.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    curl -fsSkL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
+    curl -fsSkL -o "$web_dir/docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/ldnmp/stable-ldnmp-docker-compose.yml"
+
+    default_server_ssl
+
+    # 随机生成数据库密码并替换
+    DB_ROOT_PASSWD=$(openssl rand -base64 16)
+    DB_USER=$(openssl rand -hex 4)
+    DB_USER_PASSWD=$(openssl rand -base64 8)
+
+    sed -i "s#HONEOK_ROOTPASSWD#$DB_ROOT_PASSWD#g" "$web_dir/docker-compose.yml"
+    sed -i "s#HONEOK_USER#$DB_USER#g" "$web_dir/docker-compose.yml"
+    sed -i "s#HONEOK_PASSWD#$DB_USER_PASSWD#g" "$web_dir/docker-compose.yml"
+}
+
 install_ldnmp() {
-    check_swap
     cd "$web_dir"
-    manage_compose start
+    docker_compose start
     clear
-    _yellow "正在配置LDNMP环境，请耐心等待"
+}
 
-    # 定义要执行的命令
-    commands=(
-        "docker exec nginx chmod -R 777 /var/www/html > /dev/null 2>&1"
-        "docker exec nginx mkdir -p /var/cache/nginx/proxy > /dev/null 2>&1"
-        "docker exec nginx chmod 777 /var/cache/nginx/proxy > /dev/null 2>&1"
-        "docker exec nginx mkdir -p /var/cache/nginx/fastcgi > /dev/null 2>&1"
-        "docker exec nginx chmod 777 /var/cache/nginx/fastcgi > /dev/null 2>&1"
-        "docker restart nginx > /dev/null 2>&1"
+nginx_http_on() {
+    local ipv4_pattern='^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
+    local ipv6_pattern='^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)))))$'
 
-        "exec_cmd docker exec php sed -i \"s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g\" /etc/apk/repositories > /dev/null 2>&1"
-        "exec_cmd docker exec php74 sed -i \"s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g\" /etc/apk/repositories > /dev/null 2>&1"
+    if [[ ($domain =~ $ipv4_pattern || $domain =~ $ipv6_pattern) ]]; then
+        sed -i '/return 301\s+https:\/\/\$host\$request_uri;/s/^/#/' "$nginx_dir/conf.d/$domain.conf"
+    fi
+}
 
-        "docker exec php apk update > /dev/null 2>&1"
-        "docker exec php74 apk update > /dev/null 2>&1"
+install_ldnmp_standalone() {
+    need_root
+    install_docker
+    ldnmp_check_port
+    ldnmp_install_deps
+    ldnmp_install_certbot
+    install_ldnmp_conf
+    install_ldnmp
+    ldnmp_install_ngx_logrotate
+}
 
-        # php安装包管理
-        "curl -fsSL ${github_proxy}github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions > /dev/null 2>&1"
-        "docker exec php mkdir -p /usr/local/bin/ > /dev/null 2>&1"
-        "docker exec php74 mkdir -p /usr/local/bin/ > /dev/null 2>&1"
-        "docker cp /usr/local/bin/install-php-extensions php:/usr/local/bin/ > /dev/null 2>&1"
-        "docker cp /usr/local/bin/install-php-extensions php74:/usr/local/bin/ > /dev/null 2>&1"
-        "docker exec php chmod +x /usr/local/bin/install-php-extensions > /dev/null 2>&1"
-        "docker exec php74 chmod +x /usr/local/bin/install-php-extensions > /dev/null 2>&1"
-        "rm /usr/local/bin/install-php-extensions > /dev/null 2>&1"
-
-        # php安装扩展
-        "docker exec php sh -c '\
-            apk add --no-cache imagemagick imagemagick-dev \
-            && apk add --no-cache git autoconf gcc g++ make pkgconfig \
-            && rm -fr /tmp/imagick \
-            && git clone ${github_proxy}https://github.com/Imagick/imagick /tmp/imagick \
-            && cd /tmp/imagick \
-            && phpize \
-            && ./configure \
-            && make \
-            && make install \
-            && echo 'extension=imagick.so' > /usr/local/etc/php/conf.d/imagick.ini \
-            && rm -fr /tmp/imagick' > /dev/null 2>&1"
-
-        "docker exec php install-php-extensions imagick > /dev/null 2>&1"
-        "docker exec php install-php-extensions mysqli > /dev/null 2>&1"
-        "docker exec php install-php-extensions pdo_mysql > /dev/null 2>&1"
-        "docker exec php install-php-extensions gd > /dev/null 2>&1"
-        "docker exec php install-php-extensions intl > /dev/null 2>&1"
-        "docker exec php install-php-extensions zip > /dev/null 2>&1"
-        "docker exec php install-php-extensions exif > /dev/null 2>&1"
-        "docker exec php install-php-extensions bcmath > /dev/null 2>&1"
-        "docker exec php install-php-extensions opcache > /dev/null 2>&1"
-        "docker exec php install-php-extensions redis > /dev/null 2>&1"
-
-        # php配置参数
-        "docker exec php sh -c 'echo \"upload_max_filesize=50M \" > /usr/local/etc/php/conf.d/uploads.ini' > /dev/null 2>&1"
-        "docker exec php sh -c 'echo \"post_max_size=50M \" > /usr/local/etc/php/conf.d/post.ini' > /dev/null 2>&1"
-        "docker exec php sh -c 'echo \"memory_limit=256M\" > /usr/local/etc/php/conf.d/memory.ini' > /dev/null 2>&1"
-        "docker exec php sh -c 'echo \"max_execution_time=1200\" > /usr/local/etc/php/conf.d/max_execution_time.ini' > /dev/null 2>&1"
-        "docker exec php sh -c 'echo \"max_input_time=600\" > /usr/local/etc/php/conf.d/max_input_time.ini' > /dev/null 2>&1"
-        "docker exec php sh -c 'echo \"max_input_vars=3000\" > /usr/local/etc/php/conf.d/max_input_vars.ini' > /dev/null 2>&1"
-        "docker exec php sh -c 'echo \"expose_php=Off\" > /usr/local/etc/php/conf.d/custom-php-settings.ini' > /dev/null 2>&1"
-
-        # php重启
-        "docker exec php chmod -R 777 /var/www/html"
-        "docker restart php > /dev/null 2>&1"
-
-        # php7.4安装扩展
-        "docker exec php74 install-php-extensions imagick > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions mysqli > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions pdo_mysql > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions gd > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions intl > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions zip > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions exif > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions bcmath > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions opcache > /dev/null 2>&1"
-        "docker exec php74 install-php-extensions redis > /dev/null 2>&1"
-
-        # php7.4配置参数
-        "docker exec php74 sh -c 'echo \"upload_max_filesize=50M \" > /usr/local/etc/php/conf.d/uploads.ini' > /dev/null 2>&1"
-        "docker exec php74 sh -c 'echo \"post_max_size=50M \" > /usr/local/etc/php/conf.d/post.ini' > /dev/null 2>&1"
-        "docker exec php74 sh -c 'echo \"memory_limit=256M\" > /usr/local/etc/php/conf.d/memory.ini' > /dev/null 2>&1"
-        "docker exec php74 sh -c 'echo \"max_execution_time=1200\" > /usr/local/etc/php/conf.d/max_execution_time.ini' > /dev/null 2>&1"
-        "docker exec php74 sh -c 'echo \"max_input_time=600\" > /usr/local/etc/php/conf.d/max_input_time.ini' > /dev/null 2>&1"
-        "docker exec php74 sh -c 'echo \"max_input_vars=3000\" > /usr/local/etc/php/conf.d/max_input_vars.ini' > /dev/null 2>&1"
-        "docker exec php74 sh -c 'echo \"expose_php=Off\" > /usr/local/etc/php/conf.d/custom-php-settings.ini' > /dev/null 2>&1"
-
-        # php7.4重启
-        "docker exec php74 chmod -R 777 /var/www/html"
-        "docker restart php74 > /dev/null 2>&1"
-
-        # redis调优
-        "docker exec -it redis redis-cli CONFIG SET maxmemory 512mb > /dev/null 2>&1"
-        "docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru > /dev/null 2>&1"
-    )
-
-    total_commands=${#commands[@]}  # 计算总命令数
-
-    for ((i = 0; i < total_commands; i++)); do
-        command="${commands[i]}"
-        eval $command  # 执行命令
-
-        # 打印百分比和进度条
-        percentage=$(( (i + 1) * 100 / total_commands ))
-        completed=$(( percentage / 2 ))
-        remaining=$(( 50 - completed ))
-        progressBar="["
-            for ((j = 0; j < completed; j++)); do
-                progressBar+="#"
-            done
-            for ((j = 0; j < remaining; j++)); do
-                progressBar+="."
-            done
-            progressBar+="]"
-            echo -ne "\r[${yellow}$percentage%${white}] $progressBar"
-    done
-
-    echo # 打印换行，以便输出不被覆盖
-
+install_ldnmp_wordpress() {
     clear
-    _green "LDNMP环境安装完毕！"
-    echo "------------------------"
-    ldnmp_version
+    webname="WordPress"
+
+    ldnmp_install_status
+    add_domain
+    ldnmp_install_ssltls
+    ldnmp_certs_status
+    ldnmp_add_db
+
+    curl -fsSkL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
+    sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
+
+    nginx_http_on
+
+    wordpress_dir="$nginx_dir/html/$domain"
+    [ ! -d "$wordpress_dir" ] && mkdir -p "$wordpress_dir"
+    cd "$wordpress_dir"
+    # curl -fsSkL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
+    curl -fsSkL -o latest.zip "${github_proxy}github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
+
+    # 配置WordPress
+    wp_sample_config="$wordpress_dir/wordpress/wp-config-sample.php"
+    wp_config="$wordpress_dir/wordpress/wp-config.php"
+
+    echo "define('FS_METHOD', 'direct'); define('WP_REDIS_HOST', 'redis'); define('WP_REDIS_PORT', '6379');" >> "$wp_sample_config"
+    sed -i "s#database_name_here#$DB_NAME#g" "$wp_sample_config"
+    sed -i "s#username_here#$DB_USER#g" "$wp_sample_config"
+    sed -i "s#password_here#$DB_USER_PASSWD#g" "$wp_sample_config"
+    sed -i "s#localhost#mysql#g" "$wp_sample_config"
+    cp -p "$wp_sample_config" "$wp_config"
+
+    ldnmp_restart
+    ldnmp_display_success
+
+    #echo "数据库名: $DB_NAME"
+    #echo "用户名: $DB_USER"
+    #echo "密码: $DB_USER_PASSWD"
+    #echo "数据库地址: mysql"
+    #echo "表前缀: wp_"
 }
 
 ldnmp_install_nginx() {
@@ -2270,17 +2203,17 @@ ldnmp_install_nginx() {
     need_root
 
     # 如果已安装LDNMP环境直接返回
-    if docker inspect "ldnmp" > /dev/null 2>&1; then
+    if docker inspect "ldnmp" >/dev/null 2>&1; then
         _yellow "LDNMP环境已集成Nginx，无须重复安装"
         return 0
     fi
 
-    if docker inspect "nginx" > /dev/null 2>&1; then
-        if curl -sL "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml" | head -n 19 | diff - "/data/docker_data/web/docker-compose.yml" > /dev/null 2>&1; then
+    if docker inspect "nginx" >/dev/null 2>&1; then
+        if curl -sL "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml" | head -n 19 | diff - "/data/docker_data/web/docker-compose.yml" >/dev/null 2>&1; then
             _yellow "检测到通过本脚本已安装Nginx"
             return 0
         else
-            docker rm -f nginx > /dev/null 2>&1
+            docker rm -f nginx >/dev/null 2>&1
         fi
     else
         ldnmp_check_port
@@ -2297,7 +2230,7 @@ ldnmp_install_nginx() {
         curl -fsSL -o "${web_dir}/docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml"
 
         cd "${web_dir}"
-        manage_compose start
+        docker_compose start
 
         docker exec -it nginx chmod -R 777 /var/www/html
 
@@ -2381,94 +2314,102 @@ add_domain() {
 iptables_open() {
     local table
     for table in iptables ip6tables; do
-        if ! command -v $table > /dev/null 2>&1; then
-            _red "错误: $table 命令未找到，跳过相关操作"
+        if ! command -v $table >/dev/null 2>&1; then
             continue
         fi
 
-        $table -P INPUT ACCEPT
-        $table -P FORWARD ACCEPT
-        $table -P OUTPUT ACCEPT
-        $table -F
+        $table -P INPUT ACCEPT >/dev/null 2>&1
+        $table -P FORWARD ACCEPT >/dev/null 2>&1
+        $table -P OUTPUT ACCEPT >/dev/null 2>&1
+        $table -F >/dev/null 2>&1
     done
 }
 
 ldnmp_install_ssltls() {
-    certbot_dir="/data/docker_data/certbot"
-    local certbot_version
+    local ipv4_pattern ipv6_pattern
+    local certbot_dir="/data/docker_data/certbot"
+    local apply_cert_path="$certbot_dir/cert/live/$domain/fullchain.pem"
 
-    docker pull certbot/certbot
+    if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
+        docker stop nginx >/dev/null 2>&1
+    else
+        _err_msg "$(_red '未发现Nginx容器或未运行！')"
+        return 1
+    fi
+
+    iptables_open >/dev/null 2>&1
+    ldnmp_check_port >/dev/null 2>&1
 
     # 创建Certbot工作目录
     [ ! -d "$certbot_dir" ] && mkdir -p "$certbot_dir"
     mkdir -p "$certbot_dir/cert" "$certbot_dir/data"
 
-    if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
-        docker stop nginx > /dev/null 2>&1
-    else
-        _red "未发现Nginx容器或未运行"
-        return 1
+    # 如果证书文件不存在，则开始生成证书
+    if [ ! -f "$apply_cert_path" ]; then
+        ipv4_pattern='^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
+        ipv6_pattern='^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))))$'
+
+        # 判断是ipv4或ipv6地址
+        if [[ ($domain =~ $ipv4_pattern || $domain =~ $ipv6_pattern) ]]; then
+            # 如果是ip地址，生成自签证书
+            mkdir "$certbot_dir/cert/live/$domain" -p
+            if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+            # CentOS/RedHat系统生成EC类型证书
+            openssl req -x509 -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+                -keyout $certbot_dir/cert/live/$domain/privkey.pem \
+                -out $certbot_dir/cert/live/$domain/fullchain.pem -days 5475 \
+                -subj "/C=US/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name"
+            else
+                # 非CentOS/RedHat系统生成Ed25519类型证书
+                openssl genpkey -algorithm Ed25519 -out $certbot_dir/cert/live/$domain/privkey.pem
+                openssl req -x509 -key $certbot_dir/cert/live/$domain/privkey.pem \
+                    -out $certbot_dir/cert/live/$domain/fullchain.pem -days 5475 \
+                    -subj "/C=US/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name"
+            fi
+        else
+            docker run --rm --name certbot -p 80:80 -p 443:443 \
+                -v "$certbot_dir/cert:/etc/letsencrypt" \
+                -v "$certbot_dir/data:/var/lib/letsencrypt" \
+                certbot/certbot certonly --standalone -d "$domain" --email honeok@email.com \
+                --agree-tos --no-eff-email --force-renewal --key-type ecdsa
+        fi
     fi
 
-    iptables_open > /dev/null 2>&1
+    cp "$certbot_dir/cert/live/$domain/fullchain.pem" "$nginx_dir/certs/${domain}_cert.pem" >/dev/null 2>&1
+    cp "$certbot_dir/cert/live/$domain/privkey.pem" "$nginx_dir/certs/${domain}_key.pem" >/dev/null 2>&1
 
-    docker run --rm --name certbot \
-        -p 80:80 -p 443:443 \
-        -v "$certbot_dir/cert:/etc/letsencrypt" \
-        -v "$certbot_dir/data:/var/lib/letsencrypt" \
-        certbot/certbot delete --cert-name $domain > /dev/null 2>&1
-
-    certbot_version=$(docker run --rm certbot/certbot --version | grep -oP "\d+\.\d+\.\d+")
-
-    version_ge() {
-        [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" != "$1" ]
-    }
-
-    if version_ge "$certbot_version" "1.17.0"; then
-        docker run --rm --name certbot \
-            -p 80:80 -p 443:443 \
-            -v "$certbot_dir/cert:/etc/letsencrypt" \
-            -v "$certbot_dir/data:/var/lib/letsencrypt" \
-            certbot/certbot certonly --standalone -d $domain --email your@email.com --agree-tos --no-eff-email --force-renewal --key-type ecdsa
-    else
-        docker run --rm --name certbot \
-            -p 80:80 -p 443:443 \
-            -v "$certbot_dir/cert:/etc/letsencrypt" \
-            -v "$certbot_dir/data:/var/lib/letsencrypt" \
-            certbot/certbot certonly --standalone -d $domain --email your@email.com --agree-tos --no-eff-email --force-renewal
-    fi
-
-    cp "$certbot_dir/cert/live/$domain/fullchain.pem" "$nginx_dir/certs/${domain}_cert.pem" > /dev/null 2>&1
-    cp "$certbot_dir/cert/live/$domain/privkey.pem" "$nginx_dir/certs/${domain}_key.pem" > /dev/null 2>&1
-
-    docker start nginx > /dev/null 2>&1
+    docker start nginx >/dev/null 2>&1
 }
 
 ldnmp_certs_status() {
     sleep 1
-    file_path="/data/docker_data/certbot/cert/live/$domain/fullchain.pem"
+    local file_path="/data/docker_data/certbot/cert/live/$domain/fullchain.pem"
 
     if [ ! -f "$file_path" ]; then
         _red "域名证书申请失败，请检测域名是否正确解析或更换域名重新尝试！"
         end_of
-        linux_ldnmp
+        clear
+        echo -e "${info_msg} ${yellow}再次尝试证书申请${white}"
+        add_domain
+        ldnmp_install_ssltls
+        ldnmp_certs_status
     fi
 }
 
 ldnmp_add_db() {
     DB_NAME=$(echo "$domain" | sed -e 's/[^A-Za-z0-9]/_/g')
 
-    DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
-    DB_USER=$(grep -oP 'MYSQL_USER:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
-    DB_USER_PASSWD=$(grep -oP 'MYSQL_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+    DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
+    DB_USER=$(grep -oP 'MYSQL_USER:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
+    DB_USER_PASSWD=$(grep -oP 'MYSQL_PASSWORD:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
 
     if [[ -z "$DB_ROOT_PASSWD" || -z "$DB_USER" || -z "$DB_USER_PASSWD" ]]; then
         _red "无法获取MySQL凭据！"
         return 1
     fi
 
-    docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME; GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';" > /dev/null 2>&1 || {
-        _red "创建数据库或授予权限失败！"
+    docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "CREATE DATABASE IF NOT EXISTS $DB_NAME; GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'%';" >/dev/null 2>&1 || {
+        _err_msg "$(_red '创建数据库或授予权限失败！')"
         return 1
     }
 }
@@ -2476,45 +2417,51 @@ ldnmp_add_db() {
 reverse_proxy() {
     ip_address
     curl -fsSL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
-    sed -i "s/domain.com/$yuming/g" "$nginx_dir/conf.d/$domain.conf"
+    sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0.0.0.0/$ipv4_address/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0000/$duankou/g" "$nginx_dir/conf.d/$domain.conf"
-    docker restart nginx > /dev/null 2>&1
+    docker restart nginx >/dev/null 2>&1
 }
 
 nginx_check() {
-    docker exec nginx nginx -t > /dev/null 2>&1
+    docker exec nginx nginx -t >/dev/null 2>&1
+}
+
+ldnmp_restart_redis() {
+    docker exec redis redis-cli FLUSHALL >/dev/null 2>&1
+    docker exec -it redis redis-cli CONFIG SET maxmemory 512mb >/dev/null 2>&1
+    docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru >/dev/null 2>&1
+    docker exec -it redis redis-cli CONFIG SET save "" >/dev/null 2>&1
+    docker exec -it redis redis-cli CONFIG SET appendonly no >/dev/null 2>&1
 }
 
 ldnmp_restart() {
-    docker exec nginx chmod -R 777 /var/www/html
-    docker exec php chmod -R 777 /var/www/html
-    docker exec php74 chmod -R 777 /var/www/html
+    ldnmp_restart_redis
+    docker exec nginx chown -R nginx:nginx /var/www/html >/dev/null 2>&1
+    docker exec nginx mkdir -p /var/cache/nginx/proxy >/dev/null 2>&1
+    docker exec nginx mkdir -p /var/cache/nginx/fastcgi >/dev/null 2>&1
+    docker exec nginx chown -R nginx:nginx /var/cache/nginx/proxy >/dev/null 2>&1
+    docker exec nginx chown -R nginx:nginx /var/cache/nginx/fastcgi >/dev/null 2>&1
+    docker exec php chown -R www-data:www-data /var/www/html >/dev/null 2>&1
+    docker exec php74 chown -R www-data:www-data /var/www/html >/dev/null 2>&1
 
-    if nginx_check; then
-        cd "$web_dir" && manage_compose restart
-    else
-        _red "Nginx配置校验失败，请检查配置文件！"
-        return 1
-    fi
+    cd "$web_dir" && docker_compose restart
 }
 
 ldnmp_display_success() {
     clear
-    echo "您的$webname搭建好了！"
-    echo "https://$domain"
-    echo "------------------------"
-    echo "$webname安装信息如下"
+    _suc_msg "$(_green "您的${webname}搭建好了！")"
+    echo "https://${domain}"
 }
 
 nginx_display_success() {
     clear
-    echo "您的$webname搭建好了！"
-    echo "https://$domain"
+    _suc_msg "$(_green "您的${webname}搭建好了！")"
+    echo "https://${domain}"
 }
 
 fail2ban_status() {
-    docker restart fail2ban > /dev/null 2>&1
+    docker restart fail2ban >/dev/null 2>&1
 
     # 初始等待5秒，确保容器有时间启动
     sleep 5
@@ -2526,13 +2473,13 @@ fail2ban_status() {
 
     while [ $count -lt $retries ]; do
         # 捕获结果
-        if docker exec fail2ban fail2ban-client status > /dev/null 2>&1; then
+        if docker exec fail2ban fail2ban-client status >/dev/null 2>&1; then
             # 如果命令成功执行，显示fail2ban状态并退出循环
             docker exec fail2ban fail2ban-client status
             return 0
         else
             # 如果失败输出提示信息并等待
-            _yellow "Fail2Ban 服务尚未完全启动，重试中($((count+1))/$retries)"
+            _yellow "fail2Ban 服务尚未完全启动，重试中($((count+1))/$retries)"
         fi
 
         sleep $interval
@@ -2540,7 +2487,7 @@ fail2ban_status() {
     done
 
     # 如果多次检测后仍未成功,输出错误信息
-    _red "Fail2ban容器在重试后仍未成功运行！"
+    _red "fail2ban容器在重试后仍未成功运行！"
 }
 
 fail2ban_status_jail() {
@@ -2551,7 +2498,7 @@ fail2ban_sshd() {
     if grep -q 'Alpine' /etc/issue; then
         jail_name=alpine-sshd
         fail2ban_status_jail
-    elif command -v dnf > /dev/null 2>&1; then
+    elif command -v dnf >/dev/null 2>&1; then
         jail_name=centos-sshd
         fail2ban_status_jail
     else
@@ -2564,12 +2511,11 @@ fail2ban_install_sshd() {
     local fail2ban_dir="/data/docker_data/fail2ban"
     local config_dir="$fail2ban_dir/config/fail2ban"
 
-    [ ! -d "$fail2ban_dir" ] && mkdir -p "$fail2ban_dir"
-    cd "$fail2ban_dir"
+    [ ! -d "$fail2ban_dir" ] && mkdir -p "$fail2ban_dir" && cd "$fail2ban_dir"
 
-    curl -fsSL -o "docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
+    curl -fsSkL -o "docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
 
-    manage_compose start
+    docker_compose start
 
     sleep 3
     if grep -q 'Alpine' /etc/issue; then
@@ -2578,7 +2524,7 @@ fail2ban_install_sshd() {
         curl -fsSL -O "${github_proxy}raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd-ddos.conf"
         cd "$config_dir/jail.d/"
         curl -fsSL -O "${github_proxy}raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-ssh.conf"
-    elif command -v dnf > /dev/null 2>&1; then
+    elif command -v dnf >/dev/null 2>&1; then
         cd "$config_dir/jail.d/"
         curl -fsSL -O "${github_proxy}raw.githubusercontent.com/kejilion/config/main/fail2ban/centos-ssh.conf"
     else
@@ -2634,79 +2580,11 @@ linux_ldnmp() {
 
         case $choice in
             1)
-                need_root
                 ldnmp_check_status
-
-                # 清理可能存在的Nginx环境
-                if [ -d "$nginx_dir" ]; then
-                    cd "$web_dir"
-                    manage_compose down && rm docker-compose.yml
-                fi
-
-                ldnmp_check_port
-                ldnmp_install_deps
-                install_docker
-                ldnmp_install_certbot
-
-                mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$web_dir/redis" "$web_dir/mysql"
-
-                cd "$web_dir"
-
-                # 下载配置文件
-                curl -fsSL -o "$nginx_dir/nginx.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
-                curl -fsSL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-                curl -fsSL -o "$web_dir/docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/ldnmp/stable-ldnmp-docker-compose.yml"
-
-                default_server_ssl
-
-                # 随机生成数据库密码并替换
-                DB_ROOT_PASSWD=$(openssl rand -base64 16)
-                DB_USER=$(openssl rand -hex 4)
-                DB_USER_PASSWD=$(openssl rand -base64 8)
-
-                sed -i "s#HONEOK_ROOTPASSWD#$DB_ROOT_PASSWD#g" "$web_dir/docker-compose.yml"
-                sed -i "s#HONEOK_USER#$DB_USER#g" "$web_dir/docker-compose.yml"
-                sed -i "s#HONEOK_PASSWD#$DB_USER_PASSWD#g" "$web_dir/docker-compose.yml"
-
-                install_ldnmp
-                ldnmp_install_ngx_logrotate
+                install_ldnmp_standalone
                 ;;
             2)
-                clear
-                webname="WordPress"
-
-                ldnmp_install_status
-                add_domain
-                ldnmp_install_ssltls
-                ldnmp_certs_status
-                ldnmp_add_db
-
-                curl -fsSL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
-                sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-
-                wordpress_dir="$nginx_dir/html/$domain"
-                [ ! -d "$wordpress_dir" ] && mkdir -p "$wordpress_dir"
-                cd "$wordpress_dir"
-                curl -fsSL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm latest.zip
-
-                # 配置WordPress
-                wp_sample_config="$wordpress_dir/wordpress/wp-config-sample.php"
-                wp_config="$wordpress_dir/wordpress/wp-config.php"
-                echo "define('FS_METHOD', 'direct'); define('WP_REDIS_HOST', 'redis'); define('WP_REDIS_PORT', '6379');" >> "$wp_sample_config"
-                sed -i "s#database_name_here#$DB_NAME#g" "$wp_sample_config"
-                sed -i "s#username_here#$DB_USER#g" "$wp_sample_config"
-                sed -i "s#password_here#$DB_USER_PASSWD#g" "$wp_sample_config"
-                sed -i "s#localhost#mysql#g" "$wp_sample_config"
-                cp -p "$wp_sample_config" "$wp_config"
-
-                ldnmp_restart
-                ldnmp_display_success
-
-                #echo "数据库名: $DB_NAME"
-                #echo "用户名: $DB_USER"
-                #echo "密码: $DB_USER_PASSWD"
-                #echo "数据库地址: mysql"
-                #echo "表前缀: wp_"
+                install_ldnmp_wordpress
                 ;;
             3)
                 clear
@@ -3054,7 +2932,7 @@ linux_ldnmp() {
                 sed -i "s/baidu.com/$reverseproxy/g" "$nginx_dir/conf.d/$domain.conf"
 
                 if nginx_check; then
-                    docker restart nginx > /dev/null 2>&1
+                    docker restart nginx >/dev/null 2>&1
                 else
                     _red "Nginx配置校验失败，请检查配置文件"
                     return 1
@@ -3083,7 +2961,7 @@ linux_ldnmp() {
                 sed -i "s/0000/$port/g" "$nginx_dir/conf.d/$domain.conf"
 
                 if nginx_check; then
-                    docker restart nginx > /dev/null 2>&1
+                    docker restart nginx >/dev/null 2>&1
                 else
                     _red "Nginx配置校验失败，请检查配置文件"
                     return 1
@@ -3110,7 +2988,7 @@ linux_ldnmp() {
                 sed -i "s|fandaicom|$proxy_domain|g" "$nginx_dir/conf.d/$domain.conf"
 
                 if nginx_check; then
-                    docker restart nginx > /dev/null 2>&1
+                    docker restart nginx >/dev/null 2>&1
                 else
                     _red "Nginx配置校验失败，请检查配置文件"
                     return 1
@@ -3162,7 +3040,7 @@ linux_ldnmp() {
                 docker exec nginx chmod -R 777 /var/www/html
 
                 if nginx_check; then
-                    docker restart nginx > /dev/null 2>&1
+                    docker restart nginx >/dev/null 2>&1
                 else
                     _red "Nginx配置校验失败，请检查配置文件"
                     return 1
@@ -3246,7 +3124,7 @@ linux_ldnmp() {
                             rm -f "$nginx_dir/certs/${old_domain}_key.pem" "$nginx_dir/certs/${old_domain}_cert.pem"
 
                             if nginx_check; then
-                                docker restart nginx > /dev/null 2>&1
+                                docker restart nginx >/dev/null 2>&1
                             else
                                 _red "Nginx配置校验失败，请检查配置文件"
                                 return 1
@@ -3254,7 +3132,7 @@ linux_ldnmp() {
                             ;;
                         3)
                             if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
-                                docker restart nginx > /dev/null 2>&1
+                                docker restart nginx >/dev/null 2>&1
                             else
                                 _red "未发现Nginx容器或未运行"
                                 return 1
@@ -3276,7 +3154,7 @@ linux_ldnmp() {
                             vim $nginx_dir/nginx.conf
 
                             if nginx_check; then
-                                docker restart nginx > /dev/null 2>&1
+                                docker restart nginx >/dev/null 2>&1
                             else
                                 _red "Nginx配置校验失败，请检查配置文件"
                                 return 1
@@ -3287,7 +3165,7 @@ linux_ldnmp() {
                             vim "$nginx_dir/conf.d/$edit_domain.conf"
 
                             if nginx_check; then
-                                docker restart nginx > /dev/null 2>&1
+                                docker restart nginx >/dev/null 2>&1
                             else
                                 _red "Nginx配置校验失败，请检查配置文件"
                                 return 1
@@ -3319,7 +3197,7 @@ linux_ldnmp() {
 
                             # 检查Nginx配置并重启Nginx
                             if nginx_check; then
-                                docker restart nginx > /dev/null 2>&1
+                                docker restart nginx >/dev/null 2>&1
                             else
                                 _red "Nginx配置校验失败，请检查配置文件"
                                 return 1
@@ -3329,7 +3207,7 @@ linux_ldnmp() {
                             echo -n "删除站点数据库，请输入数据库名:"
                             read -r del_database
                             DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
-                            docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE $del_database;" > /dev/null 2>&1
+                            docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE $del_database;" >/dev/null 2>&1
                             ;;
                         0)
                             break
@@ -3344,7 +3222,7 @@ linux_ldnmp() {
                 clear
 
                 if docker ps --format '{{.Names}}' | grep -q '^ldnmp$'; then
-                    cd $web_dir && manage_compose down
+                    cd $web_dir && docker_compose down
                     cd .. && tar czvf web_$(date +"%Y%m%d%H%M%S").tar.gz web
 
                     while true; do
@@ -3411,13 +3289,13 @@ linux_ldnmp() {
                         check_crontab_installed
                         echo -n "选择每周备份的星期几（0-6,0代表星期日）:"
                         read -r weekday
-                        (crontab -l ; echo "0 0 * * $weekday /data/script/${useip}_backup.sh > /dev/null 2>&1") | crontab -
+                        (crontab -l ; echo "0 0 * * $weekday /data/script/${useip}_backup.sh >/dev/null 2>&1") | crontab -
                         ;;
                     2)
                         check_crontab_installed
                         echo -n "选择每天备份的时间(小时,0-23):"
                         read -r hour
-                        (crontab -l ; echo "0 $hour * * * /data/script/${useip}_backup.sh") | crontab - > /dev/null 2>&1
+                        (crontab -l ; echo "0 $hour * * * /data/script/${useip}_backup.sh") | crontab - >/dev/null 2>&1
                         ;;
                     *)
                         break  # 跳出
@@ -3450,7 +3328,7 @@ linux_ldnmp() {
                 install_ldnmp
                 ;;
             35)
-                if docker inspect fail2ban > /dev/null 2>&1 ; then
+                if docker inspect fail2ban >/dev/null 2>&1 ; then
                     while true; do
                         clear
                         echo "服务器防御程序已启动"
@@ -3528,7 +3406,7 @@ linux_ldnmp() {
                                 ;;
                             9)
                                 cd /data/docker_data/fail2ban
-                                manage_compose down_all
+                                docker_compose down_all
 
                                 [ -d /data/docker_data/fail2ban ] && rm -fr /data/docker_data/fail2ban
                                 crontab -l | grep -v "CF-Under-Attack.sh" | crontab - 2>/dev/null
@@ -3570,7 +3448,7 @@ linux_ldnmp() {
                                 curl -fsSL -o "/data/docker_data/web/nginx/conf.d/default.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
 
                                 if nginx_check; then
-                                    docker restart nginx > /dev/null 2>&1
+                                    docker restart nginx >/dev/null 2>&1
                                 else
                                     _red "Nginx配置校验失败，请检查配置文件"
                                     return 1
@@ -3638,7 +3516,7 @@ linux_ldnmp() {
                                 sed -i "s/BBBB/$CFKEY/g" /data/script/CF-Under-Attack.sh
                                 sed -i "s/CCCC/$CFZoneID/g" /data/script/CF-Under-Attack.sh
 
-                                cron_job="*/5 * * * * /data/script/CF-Under-Attack.sh > /dev/null 2>&1"
+                                cron_job="*/5 * * * * /data/script/CF-Under-Attack.sh >/dev/null 2>&1"
                                 existing_cron=$(crontab -l 2>/dev/null | grep -F "$cron_job")
                                 
                                 if [ -z "$existing_cron" ]; then
@@ -3731,7 +3609,7 @@ linux_ldnmp() {
                             rm -f "$web_dir/mysql_config.cnf"
 
                             cd "${web_dir}"
-                            manage_compose restart
+                            docker_compose restart
                             docker exec -it redis redis-cli CONFIG SET maxmemory 512mb
                             docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
 
@@ -3754,7 +3632,7 @@ linux_ldnmp() {
                             rm -f "$web_dir/mysql_config.cnf"
 
                             cd "${web_dir}"
-                            manage_compose restart
+                            docker_compose restart
                             docker exec -it redis redis-cli CONFIG SET maxmemory 1024mb
                             docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
 
@@ -3792,11 +3670,11 @@ linux_ldnmp() {
                             ldnmp_pods="nginx"
                             cd "$web_dir"
 
-                            docker rm -f "$ldnmp_pods" > /dev/null 2>&1
-                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi > /dev/null 2>&1
-                            manage_compose recreate "$ldnmp_pods"
+                            docker rm -f "$ldnmp_pods" >/dev/null 2>&1
+                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi >/dev/null 2>&1
+                            docker_compose recreate "$ldnmp_pods"
                             docker exec "$ldnmp_pods" chmod -R 777 /var/www/html
-                            docker restart "$ldnmp_pods" > /dev/null 2>&1
+                            docker restart "$ldnmp_pods" >/dev/null 2>&1
                             _green "更新${ldnmp_pods}完成"
                             ;;
                         2)
@@ -3808,9 +3686,9 @@ linux_ldnmp() {
 
                             sed -i "s/image: mysql/image: mysql:$version/" "$web_dir/docker-compose.yml"
                             docker rm -f "$ldnmp_pods"
-                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi > /dev/null 2>&1
-                            manage_compose recreate "$ldnmp_pods"
-                            docker restart "$ldnmp_pods" > /dev/null 2>&1
+                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi >/dev/null 2>&1
+                            docker_compose recreate "$ldnmp_pods"
+                            docker restart "$ldnmp_pods" >/dev/null 2>&1
                             _green "更新${ldnmp_pods}完成"
                             ;;
                         3)
@@ -3821,9 +3699,9 @@ linux_ldnmp() {
                             version=${version:-8.3}
                             cd "$web_dir"
                             sed -i "s/image: php:fpm-alpine/image: php:${version}-fpm-alpine/" "$web_dir/docker-compose.yml"
-                            docker rm -f "$ldnmp_pods" > /dev/null 2>&1
-                            docker images --filter=reference="php:*" -q | xargs -r docker rmi > /dev/null 2>&1
-                            manage_compose recreate "$ldnmp_pods"
+                            docker rm -f "$ldnmp_pods" >/dev/null 2>&1
+                            docker images --filter=reference="php:*" -q | xargs -r docker rmi >/dev/null 2>&1
+                            docker_compose recreate "$ldnmp_pods"
                             docker exec "$ldnmp_pods" chmod -R 777 /var/www/html
 
                             docker exec "$ldnmp_pods" apk update
@@ -3831,7 +3709,7 @@ linux_ldnmp() {
                             docker exec "$ldnmp_pods" mkdir -p /usr/local/bin/
                             docker cp /usr/local/bin/install-php-extensions "$ldnmp_pods":/usr/local/bin/
                             docker exec "$ldnmp_pods" chmod +x /usr/local/bin/install-php-extensions
-                            rm /usr/local/bin/install-php-extensions > /dev/null 2>&1
+                            rm /usr/local/bin/install-php-extensions >/dev/null 2>&1
 
                             docker exec "$ldnmp_pods" sh -c "\
                                 apk add --no-cache imagemagick imagemagick-dev \
@@ -3848,27 +3726,27 @@ linux_ldnmp() {
 
                             docker exec "$ldnmp_pods" install-php-extensions mysqli pdo_mysql gd intl zip exif bcmath opcache redis
 
-                            docker exec "$ldnmp_pods" sh -c 'echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini' > /dev/null 2>&1
-                            docker exec "$ldnmp_pods" sh -c 'echo "post_max_size=50M" > /usr/local/etc/php/conf.d/post.ini' > /dev/null 2>&1
-                            docker exec "$ldnmp_pods" sh -c 'echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini' > /dev/null 2>&1
-                            docker exec "$ldnmp_pods" sh -c 'echo "max_execution_time=1200" > /usr/local/etc/php/conf.d/max_execution_time.ini' > /dev/null 2>&1
-                            docker exec "$ldnmp_pods" sh -c 'echo "max_input_time=600" > /usr/local/etc/php/conf.d/max_input_time.ini' > /dev/null 2>&1
-                            docker exec "$ldnmp_pods" sh -c 'echo "max_input_vars=3000" > /usr/local/etc/php/conf.d/max_input_vars.ini' > /dev/null 2>&1
-                            docker exec "$ldnmp_pods" sh -c 'echo "expose_php=Off" > /usr/local/etc/php/conf.d/custom-php-settings.ini' > /dev/null 2>&1
+                            docker exec "$ldnmp_pods" sh -c 'echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini' >/dev/null 2>&1
+                            docker exec "$ldnmp_pods" sh -c 'echo "post_max_size=50M" > /usr/local/etc/php/conf.d/post.ini' >/dev/null 2>&1
+                            docker exec "$ldnmp_pods" sh -c 'echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini' >/dev/null 2>&1
+                            docker exec "$ldnmp_pods" sh -c 'echo "max_execution_time=1200" > /usr/local/etc/php/conf.d/max_execution_time.ini' >/dev/null 2>&1
+                            docker exec "$ldnmp_pods" sh -c 'echo "max_input_time=600" > /usr/local/etc/php/conf.d/max_input_time.ini' >/dev/null 2>&1
+                            docker exec "$ldnmp_pods" sh -c 'echo "max_input_vars=3000" > /usr/local/etc/php/conf.d/max_input_vars.ini' >/dev/null 2>&1
+                            docker exec "$ldnmp_pods" sh -c 'echo "expose_php=Off" > /usr/local/etc/php/conf.d/custom-php-settings.ini' >/dev/null 2>&1
 
-                            docker restart "$ldnmp_pods" > /dev/null 2>&1
+                            docker restart "$ldnmp_pods" >/dev/null 2>&1
                             _green "更新${ldnmp_pods}完成"
                             ;;
                         4)
                             ldnmp_pods="redis"
 
                             cd "$web_dir"
-                            docker rm -f "$ldnmp_pods" > /dev/null 2>&1
-                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi > /dev/null 2>&1
-                            manage_compose recreate "$ldnmp_pods"
+                            docker rm -f "$ldnmp_pods" >/dev/null 2>&1
+                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi >/dev/null 2>&1
+                            docker_compose recreate "$ldnmp_pods"
                             docker exec -it "$ldnmp_pods" redis-cli CONFIG SET maxmemory 512mb
                             docker exec -it "$ldnmp_pods" redis-cli CONFIG SET maxmemory-policy allkeys-lru
-                            docker restart "$ldnmp_pods" > /dev/null 2>&1
+                            docker restart "$ldnmp_pods" >/dev/null 2>&1
                             _green "更新${ldnmp_pods}完成"
                             ;;
                         5)
@@ -3879,7 +3757,7 @@ linux_ldnmp() {
                                 [Yy])
                                     _yellow "完整更新LDNMP环境"
                                     cd "$web_dir"
-                                    manage_compose down_all
+                                    docker_compose down_all
 
                                     ldnmp_check_port
                                     ldnmp_install_deps
@@ -3910,18 +3788,16 @@ linux_ldnmp() {
 
                 case "$choice" in
                     [Yy])
-                        if docker inspect "ldnmp" > /dev/null 2>&1; then
+                        if docker inspect "ldnmp" >/dev/null 2>&1; then
                             cd "$web_dir" || { _red "无法进入目录 $web_dir"; return 1; }
-                            manage_compose down_all
-                            ldnmp_uninstall_deps
+                            docker_compose down_all
                             ldnmp_uninstall_certbot
                             ldnmp_uninstall_ngx_logrotate
                             rm -fr "$web_dir"
                             _green "LDNMP环境已卸载并清除相关依赖"
-                        elif docker inspect "nginx" > /dev/null 2>&1 && [ -d "$nginx_dir" ]; then
+                        elif docker inspect "nginx" >/dev/null 2>&1 && [ -d "$nginx_dir" ]; then
                             cd "$web_dir" || { _red "无法进入目录 $web_dir"; return 1; }
-                            manage_compose down_all
-                            ldnmp_uninstall_deps
+                            docker_compose down_all
                             ldnmp_uninstall_certbot
                             ldnmp_uninstall_ngx_logrotate
                             rm -fr "$web_dir"
@@ -3951,11 +3827,11 @@ linux_ldnmp() {
 
 # =============== 系统工具START ===============
 restart_ssh() {
-    restart sshd ssh > /dev/null 2>&1
+    restart sshd ssh >/dev/null 2>&1
 }
 
 add_sshpasswd() {
-    _yellow "设置你的ROOT密码"
+    _yellow "设置你的root密码"
     passwd
 
     # 处理SSH配置文件以允许root登录和密码认证
@@ -3978,11 +3854,11 @@ add_sshpasswd() {
     fi
 
     # 清理不再使用的SSH配置文件目录
-    rm -fr /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/* > /dev/null 2>&1
+    rm -fr /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/* >/dev/null 2>&1
 
     restart_ssh
 
-    _green "ROOT登录设置完毕！"
+    _green "root登录设置完毕！"
 }
 
 # 备份DNS配置文件
@@ -4018,7 +3894,7 @@ set_dns() {
 
     local ipv6_addresses
 
-    if [[ "$(curl -s -k -L --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
+    if [[ "$country" == "CN" ]];then
         {
             echo "nameserver $ali_ipv4"
             echo "nameserver $tencent_ipv4"
@@ -4083,31 +3959,27 @@ lock_dns_status() {
 }
 
 reinstall_system() {
-    local initialPort
-    local current_sshport=$(grep -E '^[^#]*Port [0-9]+' /etc/ssh/sshd_config | awk '{print $2}')
     local os_info=$(grep '^PRETTY_NAME=' /etc/os-release | cut -d '"' -f 2 | sed 's/ (.*)//')
     local os_text="当前操作系统: ${os_info}"
 
-    reins_script_MollyLau() {
+    local current_sshport
+    current_sshport=$(grep -E '^[^#]*Port [0-9]+' /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
+    [ -z "$current_sshport" ] && current_sshport=22
+
+    script_MollyLau() {
         wget --no-check-certificate -qO InstallNET.sh "${github_proxy}https://raw.githubusercontent.com/leitbogioro/Tools/master/Linux_reinstall/InstallNET.sh" && chmod a+x InstallNET.sh
     }
 
-    reins_script_bin456789() {
+    script_bin456789() {
         curl -fsSL -O "${github_proxy}https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh"
     }
 
     dd_xitong_1() {
-        if [[ ${current_sshport} != "22" ]];then
-            initialPort="重装后端口: ${yellow}${current_sshport}${white}"
-        else
-            initialPort="重装后端口: ${yellow}22${white}"
-        fi
-
-        echo -e "重装后初始用户名: ${yellow}root${white}  初始密码: ${yellow}LeitboGi0ro${white}  ${initialPort}"
+        echo -e "重装后初始用户名: ${yellow}root${white} 初始密码: ${yellow}LeitboGi0ro${white} 初始端口: ${yellow}${current_sshport}${white}"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
         install wget
-        reins_script_MollyLau
+        script_MollyLau
     }
 
     dd_xitong_2() {
@@ -4115,21 +3987,21 @@ reinstall_system() {
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
         install wget
-        reins_script_MollyLau
+        script_MollyLau
     }
 
     dd_xitong_3() {
         echo -e "重装后初始用户名: ${yellow}root${white} 初始密码: ${yellow}123@@@${white} 初始端口: ${yellow}22${white}"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
-        reins_script_bin456789
+        script_bin456789
     }
 
     dd_xitong_4() {
         echo -e "重装后初始用户名: ${yellow}Administrator${white} 初始密码: ${yellow}123@@@${white} 初始端口: ${yellow}3389${white}"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
-        reins_script_bin456789
+        script_bin456789
     }
 
     # 重装系统
@@ -4138,7 +4010,7 @@ reinstall_system() {
         need_root
         clear
         echo -e "${red}注意: ${white}重装有风险失联，不放心者慎用重装预计花费15分钟，请提前备份数据！"
-        echo "感谢MollyLau大佬和bin456789大佬的脚本支持！"
+        _orange "感谢MollyLau大佬和bin456789大佬的脚本支持！"
         echo "-------------------------"
         _yellow "${os_text}"
         echo "-------------------------"
@@ -4384,17 +4256,12 @@ check_swap() {
 }
 
 add_swap() {
+    virt_check
     local new_swap=$1
 
     # VPS虚拟化校验排除LXC和OpenVZ
-    if [[ -d "/proc/vz" ]]; then
-        _red "您的VPS基于OpenVZ，不受支持！"
-        end_of
-        return 1
-    fi
-
-    if [[ $(cat /proc/1/environ | tr '\0' '\n' | grep -i '^container=' | awk -F'=' '{print $2}') =~ ^[lL][xX][cC]$ ]]; then
-        _red "您的VPS基于LXC容器，不受支持！"
+    if [[ "$virt_type" =~ ^(openvz|lxc|lxd)$ ]]; then
+        _err_msg "$(_red "您的VPS基于${virt_type}不受支持！")"
         end_of
         return 1
     fi
@@ -4411,12 +4278,10 @@ add_swap() {
     done
 
     # 确保/swapfile不再被使用
-    swapoff /swapfile 2>/dev/null
+    swapoff /swapfile >/dev/null 2>&1
 
     # 删除旧的/swapfile
-    if [ -f /swapfile ]; then
-        rm -f /swapfile
-    fi
+    [ -f /swapfile ] && rm -f /swapfile
 
     # 创建新的swap文件
     dd if=/dev/zero of=/swapfile bs=1M count="$new_swap" status=progress
@@ -4680,7 +4545,7 @@ xanmod_bbr3() {
     fi
 }
 
-linux_mirror(){
+linux_mirror() {
     local choice
     need_root
 
@@ -4718,7 +4583,7 @@ linux_mirror(){
 }
 
 check_crontab_installed() {
-    if command -v crontab > /dev/null 2>&1; then
+    if command -v crontab >/dev/null 2>&1; then
         _green "Crontab已安装"
         return $?
     else
@@ -4807,7 +4672,7 @@ new_ssh_port() {
     restart_ssh
 
     iptables_open
-    remove iptables-persistent ufw firewalld iptables-services > /dev/null 2>&1
+    remove iptables-persistent ufw firewalld iptables-services >/dev/null 2>&1
 
     _green "SSH端口已修改为:$new_port"
     sleep 1
@@ -4855,7 +4720,7 @@ cron_manager() {
                             _red "无效的日期输入"
                             continue
                         fi
-                        if ! (crontab -l ; echo "0 0 $day * * $newquest") | crontab - > /dev/null 2>&1; then
+                        if ! (crontab -l ; echo "0 0 $day * * $newquest") | crontab - >/dev/null 2>&1; then
                             _red "添加定时任务失败"
                         fi
                         ;;
@@ -4866,7 +4731,7 @@ cron_manager() {
                             _red "无效的星期输入"
                             continue
                         fi
-                        if ! (crontab -l ; echo "0 0 * * $weekday $newquest") | crontab - > /dev/null 2>&1; then
+                        if ! (crontab -l ; echo "0 0 * * $weekday $newquest") | crontab - >/dev/null 2>&1; then
                             _red "添加定时任务失败"
                         fi
                         ;;
@@ -4877,7 +4742,7 @@ cron_manager() {
                             _red "无效的小时输入"
                             continue
                         fi
-                        if ! (crontab -l ; echo "0 $hour * * * $newquest") | crontab - > /dev/null 2>&1; then
+                        if ! (crontab -l ; echo "0 $hour * * * $newquest") | crontab - >/dev/null 2>&1; then
                             _red "添加定时任务失败"
                         fi
                         ;;
@@ -4888,7 +4753,7 @@ cron_manager() {
                             _red "无效的分钟输入"
                             continue
                         fi
-                        if ! (crontab -l ; echo "$minute * * * * $newquest") | crontab - > /dev/null 2>&1; then
+                        if ! (crontab -l ; echo "$minute * * * * $newquest") | crontab - >/dev/null 2>&1; then
                             _red "添加定时任务失败"
                         fi
                         ;;
@@ -4946,8 +4811,8 @@ output_status() {
 
 add_sshkey() {
     # 生成 ED25519 类型的 SSH 密钥
-    # ssh-keygen -t rsa -b 4096 -C "xxxx@gmail.com" -f /root/.ssh/sshkey -N ""
-    ssh-keygen -t ed25519 -C "honeok@gmail.com" -f /root/.ssh/sshkey -N ""
+    # ssh-keygen -t rsa -b 4096 -C "xxxx@email.com" -f /root/.ssh/sshkey -N ""
+    ssh-keygen -t ed25519 -C "xxxx@email.com" -f /root/.ssh/sshkey -N ""
 
     # 将公钥添加到 authorized_keys 文件中
     cat ~/.ssh/sshkey.pub >> ~/.ssh/authorized_keys
@@ -4969,10 +4834,10 @@ add_sshkey() {
     # 删除 sshd 和 ssh 配置文件中的无用文件夹
     rm -fr /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/*
 
-    echo -e "${green}root私钥登录已开启，已关闭root密码登录重连将会生效${white}"
+    _red "root私钥登录已开启，已关闭root密码登录重连将会生效"
 }
 
-telegram_bot(){
+telegram_bot() {
     need_root
     set_script_dir
 
@@ -5015,10 +4880,10 @@ telegram_bot(){
                 fi
             fi
 
-            tmux kill-session -t TG-check-notify > /dev/null 2>&1
+            tmux kill-session -t TG-check-notify >/dev/null 2>&1
             tmux new -d -s TG-check-notify "${globle_script_dir}/TG-check-notify.sh"
-            crontab -l | grep -v "${globle_script_dir}/TG-check-notify.sh" | crontab - > /dev/null 2>&1
-            (crontab -l ; echo "@reboot tmux new -d -s TG-check-notify '${globle_script_dir}/TG-check-notify.sh'") | crontab - > /dev/null 2>&1
+            crontab -l | grep -v "${globle_script_dir}/TG-check-notify.sh" | crontab - >/dev/null 2>&1
+            (crontab -l ; echo "@reboot tmux new -d -s TG-check-notify '${globle_script_dir}/TG-check-notify.sh'") | crontab - >/dev/null 2>&1
 
             curl -fsSL -o "${globle_script_dir}/TG-SSH-check-notify.sh" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/TG-SSH-check-notify.sh"
             # 计算文件哈希
@@ -5037,9 +4902,9 @@ telegram_bot(){
             fi
 
             # 添加到~/.profile文件中
-            if ! grep -q "bash ${globle_script_dir}/TG-SSH-check-notify.sh" ~/.profile > /dev/null 2>&1; then
+            if ! grep -q "bash ${globle_script_dir}/TG-SSH-check-notify.sh" ~/.profile >/dev/null 2>&1; then
                 echo "bash ${globle_script_dir}/TG-SSH-check-notify.sh" >> ~/.profile
-                if command -v dnf > /dev/null 2>&1 || command -v yum > /dev/null 2>&1; then
+                if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
                     echo 'source ~/.profile' >> ~/.bashrc
                 fi
             fi
@@ -5313,8 +5178,8 @@ clamav_scan() {
         scan_params+="/mnt/host${dir} "
     done
 
-    mkdir -p $clamav_dir/log/ > /dev/null 2>&1
-    > $clamav_dir/log/scan.log > /dev/null 2>&1
+    mkdir -p $clamav_dir/log/ >/dev/null 2>&1
+    > $clamav_dir/log/scan.log >/dev/null 2>&1
 
     # 执行docker命令
     docker run -it --rm \
@@ -5349,18 +5214,18 @@ clamav_antivirus() {
         case $choice in
             1)
                 install_docker
-                docker volume create clam_db > /dev/null 2>&1
+                docker volume create clam_db >/dev/null 2>&1
                 clamav_freshclam
                 clamav_scan /
-                docker volume rm clam_db > /dev/null 2>&1
+                docker volume rm clam_db >/dev/null 2>&1
                 end_of
                 ;;
             2)
                 install_docker
-                docker volume create clam_db > /dev/null 2>&1
+                docker volume create clam_db >/dev/null 2>&1
                 clamav_freshclam
                 clamav_scan /etc /var /usr /home /root
-                docker volume rm clam_db > /dev/null 2>&1
+                docker volume rm clam_db >/dev/null 2>&1
                 end_of
                 ;;
             3)
@@ -5370,7 +5235,7 @@ clamav_antivirus() {
                 install_docker
                 clamav_freshclam
                 clamav_scan $directories
-                docker volume rm clam_db > /dev/null 2>&1
+                docker volume rm clam_db >/dev/null 2>&1
                 end_of
                 ;;
             *)
@@ -5642,10 +5507,10 @@ linux_language() {
     done
 }
 
-shell_colorchange(){
+shell_colorchange() {
     shell_colorchange_profile() {
 
-    if command -v dnf > /dev/null 2>&1 || command -v yum > /dev/null 2>&1; then
+    if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
         sed -i '/^PS1=/d' ~/.bashrc
         echo "${colorchange}" >> ~/.bashrc
         # source ~/.bashrc
@@ -5880,7 +5745,7 @@ cloudflare_ddns() {
                 read -r CFTTL
                 CFTTL=${CFTTL:-60}
 
-                curl -fsSL -o ~/cf-v4-ddns.sh "${github_proxy}raw.githubusercontent.com/yulewang/cloudflare-api-v4-ddns/master/cf-v4-ddns.sh"
+                curl -fsSL -o ${globle_script_dir}/cf-v4-ddns.sh "${github_proxy}raw.githubusercontent.com/yulewang/cloudflare-api-v4-ddns/master/cf-v4-ddns.sh"
 
                 sed -i "/^CFKEY=$/s/CFKEY=$/CFKEY=$CFKEY/" ${globle_script_dir}/cf-v4-ddns.sh
                 sed -i "/^CFUSER=$/s/CFUSER=$/CFUSER=$CFUSER/" ${globle_script_dir}/cf-v4-ddns.sh
@@ -5894,9 +5759,9 @@ cloudflare_ddns() {
 
                 check_crontab_installed
 
-                if ! (crontab -l 2>/dev/null; echo "*/1 * * * * /usr/local/bin/cf-ddns.sh > /dev/null 2>&1") | crontab -; then
+                if ! (crontab -l 2>/dev/null; echo "*/1 * * * * /usr/local/bin/cf-ddns.sh >/dev/null 2>&1") | crontab -; then
                     _red "无法自动添加Cron任务，请手动添加以下行到Crontab"
-                    _yellow "*/1 * * * * /usr/local/bin/cf-ddns.sh > /dev/null 2>&1"
+                    _yellow "*/1 * * * * /usr/local/bin/cf-ddns.sh >/dev/null 2>&1"
                     _yellow "按任意键继续"
                     read -n 1 -s -r -p ""
                 fi
@@ -5964,10 +5829,10 @@ linux_system_tools() {
         echo "▶ 系统工具"
         echo "------------------------"
         echo "2. 修改登录密码"
-        echo "3. ROOT密码登录模式                    4. 安装Python指定版本"
+        echo "3. root密码登录模式                    4. 安装Python指定版本"
         echo "5. 开放所有端口                        6. 修改SSH连接端口"
         echo "7. 优化DNS地址                         8. 一键重装系统"
-        echo "9. 禁用ROOT账户创建新账户              10. 切换IPV4/IPV6优先"
+        echo "9. 禁用root账户创建新账户              10. 切换IPV4/IPV6优先"
         echo "------------------------"
         echo "11. 查看端口占用状态                   12. 修改虚拟内存大小"
         echo "13. 用户管理                           14. 用户/密码随机生成器"
@@ -5976,7 +5841,7 @@ linux_system_tools() {
         echo "19. 切换系统更新源                     20. 定时任务管理"
         echo "------------------------"
         echo "21. 本机host解析                       22. Fail2banSSH防御程序"
-        echo "23. 限流自动关机                       24. ROOT私钥登录模式"
+        echo "23. 限流自动关机                       24. root私钥登录模式"
         echo "25. TG-bot系统监控预警                 26. 修复OpenSSH高危漏洞（岫源）"
         echo "27. 红帽系Linux内核升级                28. Linux系统内核参数优化"
         echo "29. 病毒扫描工具                       30. 文件管理器"
@@ -5987,8 +5852,6 @@ linux_system_tools() {
         echo "50. Cloudflare ddns解析                51. 一条龙系统调优"
         echo "------------------------"
         echo "99. 重启服务器"
-        echo "------------------------"
-        echo "101. 卸载honeok脚本"
         echo "------------------------"
         echo "0. 返回主菜单"
         echo "------------------------"
@@ -6026,7 +5889,7 @@ linux_system_tools() {
                 fi
 
                 if ! grep -q 'export PYENV_ROOT="\$HOME/.pyenv"' ~/.bashrc; then
-                    if command -v yum > /dev/null 2>&1; then
+                    if command -v yum >/dev/null 2>&1; then
                         install git
                         yum groupinstall "Development Tools" -y
                         install openssl-devel bzip2-devel libffi-devel ncurses-devel zlib-devel readline-devel sqlite-devel xz-devel findutils
@@ -6044,10 +5907,10 @@ linux_system_tools() {
                         export LDFLAGS="-L/usr/local/openssl/lib"
                         export CPPFLAGS="-I/usr/local/openssl/include"
                         export PKG_CONFIG_PATH="/usr/local/openssl/lib/pkgconfig"
-                    elif command -v apt > /dev/null 2>&1; then
+                    elif command -v apt >/dev/null 2>&1; then
                         install git
                         install build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev libgdbm-dev libnss3-dev libedit-dev
-                    elif command -v apk > /dev/null 2>&1; then
+                    elif command -v apk >/dev/null 2>&1; then
                         install git
                         apk add --no-cache bash gcc musl-dev libffi-dev openssl-dev bzip2-dev zlib-dev readline-dev sqlite-dev libc6-compat linux-headers make xz-dev build-base ncurses-dev
                     else
@@ -6083,8 +5946,8 @@ EOF
                 ;;
             5)
                 need_root
-                iptables_open
-                remove iptables-persistent ufw firewalld iptables-services > /dev/null 2>&1
+                iptables_open >/dev/null 2>&1
+                remove iptables-persistent ufw firewalld iptables-services >/dev/null 2>&1
                 _green "端口已全部开放"
                 ;;
             6)
@@ -6159,7 +6022,7 @@ EOF
                             rollbak_dns
                             ;;
                         3)
-                            ( command -v vim > /dev/null 2>&1 && vim /etc/resolv.conf ) || vi /etc/resolv.conf
+                            ( command -v vim >/dev/null 2>&1 && vim /etc/resolv.conf ) || vi /etc/resolv.conf
                             ;;
                         4)
                             ( lsattr /etc/resolv.conf | grep -qi 'i' && unlock_dns ) || lock_dns
@@ -6186,7 +6049,7 @@ EOF
                     linux_system_tools
                 fi
 
-                if id "$new_username" > /dev/null 2>&1; then
+                if id "$new_username" >/dev/null 2>&1; then
                     _red "用户$new_username已存在"
                     end_of
                     linux_system_tools
@@ -6239,11 +6102,11 @@ EOF
 
                     case $choice in
                         1)
-                            sysctl -w net.ipv6.conf.all.disable_ipv6=1 > /dev/null 2>&1
+                            sysctl -w net.ipv6.conf.all.disable_ipv6=1 >/dev/null 2>&1
                             _green "已切换为IPv4优先"
                             ;;
                         2)
-                            sysctl -w net.ipv6.conf.all.disable_ipv6=0 > /dev/null 2>&1
+                            sysctl -w net.ipv6.conf.all.disable_ipv6=0 >/dev/null 2>&1
                             _green "已切换为IPv6优先"
                             ;;
                         3)
@@ -6775,7 +6638,7 @@ EOF
             22)
                 need_root
                 while true; do
-                    if docker inspect fail2ban > /dev/null 2>&1 ; then
+                    if docker inspect fail2ban >/dev/null 2>&1 ; then
                     	clear
                     	echo "SSH防御程序已启动"
                     	echo "------------------------"
@@ -6803,7 +6666,7 @@ EOF
                                 ;;
                     		9)
                                 cd /data/docker_data/fail2ban
-                                manage_compose down_all
+                                docker_compose down_all
 
                                 [ -d /data/docker_data/fail2ban ] && rm -fr /data/docker_data/fail2ban
                                 ;;
@@ -6908,9 +6771,9 @@ EOF
                             sed -i "s/120/$tx_threshold_gb/g" ${globle_script_dir}/Limiting_Shut_down.sh
                             check_crontab_installed
                             crontab -l | grep -v '${globle_script_dir}/Limiting_Shut_down.sh' | crontab -
-                            (crontab -l ; echo "* * * * * ${globle_script_dir}/Limiting_Shut_down.sh") | crontab - > /dev/null 2>&1
+                            (crontab -l ; echo "* * * * * ${globle_script_dir}/Limiting_Shut_down.sh") | crontab - >/dev/null 2>&1
                             crontab -l | grep -v 'reboot' | crontab -
-                            (crontab -l ; echo "0 1 $cz_day * * reboot") | crontab - > /dev/null 2>&1
+                            (crontab -l ; echo "0 1 $cz_day * * reboot") | crontab - >/dev/null 2>&1
                             _green "限流关机已开启"
                             ;;
                         2)
@@ -7084,7 +6947,7 @@ EOF
                         echo -e "[${green}OK${white}] 4/10. 设置SSH端口号为${yellow}${new_port}${white}"
                         echo "------------------------------------------------"
                         iptables_open
-                        remove iptables-persistent ufw firewalld iptables-services > /dev/null 2>&1
+                        remove iptables-persistent ufw firewalld iptables-services >/dev/null 2>&1
                         echo -e "[${green}OK${white}] 5/10. 开放所有端口"
                         echo "------------------------------------------------"
                         bbr_on
@@ -7116,9 +6979,6 @@ EOF
             99)
                 clear
                 server_reboot
-                ;;
-            101)
-                echo "NEW"
                 ;;
             0)
                 honeok
@@ -7510,7 +7370,7 @@ servertest_script() {
 
 # =============== 节点搭建脚本START ===============
 node_create() {
-    if [[ "$(curl -s -k -L --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
+    if [[ "$country" == "CN" ]];then
         clear
         _red "时刻铭记上网三要素:不评政治、不谈宗教、不碰黄賭毒，龙的传人需自律"
         _red "本功能所提供的内容已触犯你的IP所在地相关法律法规请绕行！"
@@ -7649,7 +7509,7 @@ node_create() {
                 ;;
             41)
                 clear
-                rm -fr /home/mtproxy > /dev/null 2>&1
+                rm -fr /home/mtproxy >/dev/null 2>&1
                 mkdir /home/mtproxy && cd /home/mtproxy
                 curl -fsSL -o mtproxy.sh https://github.com/ellermister/mtproxy/raw/master/mtproxy.sh && chmod +x mtproxy.sh && bash mtproxy.sh
                 sleep 1
@@ -7691,7 +7551,7 @@ oracle_script() {
         echo "3. DD重装系统脚本"
         echo "4. R探长开机脚本"
         echo "-------------------------"
-        echo "5. 开启ROOT密码登录模式"
+        echo "5. 开启root密码登录模式"
         echo "6. IPV6恢复工具"
         echo "-------------------------"
         echo "0. 返回主菜单"
@@ -7888,7 +7748,7 @@ honeok() {
         clear
         print_logo
         _purple "适配Ubuntu/Debian/CentOS/Alpine/Kali/Arch/RedHat/Fedora/Alma/Rocky系统"
-        echo -e "${cyan}Author: honeok${white}  ${yellow}${honeok_v} ($submit_time)${white}"
+        echo -e "${cyan}Author: honeok${white}  ${yellow}${honeok_v}${white}"
         echo "------------------------"
         echo "1. 系统信息查询"
         echo "2. 系统更新"
@@ -7941,8 +7801,7 @@ honeok() {
                 wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh [option] [license/url/token]
                 ;;
             8)
-                #linux_ldnmp
-                _orange "修复中，敬请期待！"
+                linux_ldnmp
                 ;;
             13)
                 linux_system_tools
