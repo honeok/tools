@@ -2,7 +2,7 @@
 #
 # Description: A lightweight shell scripting toolbox designed for more convenient operations.
 #
-# Copyright (C) 2021-2024 honeok <honeok@duck.com>
+# Copyright (C) 2021 - 2024 honeok <honeok@duck.com>
 # Blog: www.honeok.com
 # https://github.com/honeok/Tools/blob/master/honeok.sh
 #
