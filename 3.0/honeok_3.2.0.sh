@@ -7406,22 +7406,22 @@ node_create() {
         echo "7. Fscarmen ArgoX"
         echo "8. WL一键Argo哪吒脚本"
         echo "9. Fscarmen Argo+Sing-box"
-        echo "10. 甬哥 Sing-box一键四协议共存"
+        echo "10. 甬哥Sing-box一键四协议共存"
+        echo "11. vveg26 Reality Hysteria2二合一"
         echo "-------------------------------"
         _yellow "单协议/面板"
-        echo "25. Brutal Reality"
-        echo "26. Vaxilu xui面板"
-        echo "27. FranzKafkaYu xui面板"
-        echo "28. Alireza0 xui面板"
-        echo "29. MHSanaei 伊朗3xui面板"
-        echo "30. Xeefei 中文版3xui面板"
-        echo "31. jonssonyan Hysteria2面板"
+        echo "26. Vaxilu x-ui面板"
+        echo "27. FranzKafkaYu x-ui面板"
+        echo "28. Alireza0 x-ui面板"
+        echo "29. MHSanaei 伊朗3x-ui面板"
+        echo "30. Xeefei 中文版3x-ui面板"
+        echo "31. Jonssonyan Hysteria2面板"
         echo "32. 极光面板"
         echo "-------------------------------"
         echo "40. OpenVPN一键安装脚本"
         echo "41. 一键搭建TG代理"
         echo "-------------------------------"
-        _yellow "中转一键脚本"
+        _yellow "中转搭建一键脚本"
         echo "50. Multi EasyGost"
         echo "51. EZgost一键脚本（EasyGost改版）"
         echo "52. Realm一键安装脚本"
@@ -7470,24 +7470,9 @@ node_create() {
                 clear
                 bash <(curl -Ls https://gitlab.com/rwkgyg/sing-box-yg/raw/main/sb.sh)
                 ;;
-            25)
+            11)
                 clear
-                _yellow "安装Tcp-Brutal-Reality需要内核高于5.8，不符合请手动升级5.8内核以上再安装"
-                
-                current_kernel_version=$(uname -r | cut -d'-' -f1 | awk -F'.' '{print $1 * 100 + $2}')
-                target_kernel_version=508
-                
-                # 比较内核版本
-                if [ "$current_kernel_version" -lt "$target_kernel_version" ]; then
-                    _red "当前系统内核版本小于 $target_kernel_version，请手动升级内核后重试，正在退出"
-                    sleep 2
-                    honeok
-                else
-                    _yellow "当前系统内核版本 $current_kernel_version，符合安装要求"
-                    sleep 1
-                    bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/tcp-brutal-reality.sh)
-                    sleep 1
-                fi
+                bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/install.sh)
                 ;;
             26)
                 clear
