@@ -355,11 +355,11 @@ system_info() {
     # local current_time=$(date +"%Y-%m-%d %H:%M:%S")
 
     # 获取北京时间
-    local east8_time
+    local china_time
     if [[ "$($get_cmd --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
-        east8_time=$(date -d @$(($($get_cmd https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
+        china_time=$(date -d @$(($($get_cmd https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
     else
-        east8_time=$($get_cmd "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
+        china_time=$($get_cmd "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
     fi
 
     echo "系统信息查询"
@@ -390,7 +390,7 @@ system_info() {
     echo "-------------------------"
     echo "地理位置          : ${location}"
     echo "系统时区          : ${system_time}"
-    echo "北京时间          : ${east8_time}"
+    echo "北京时间          : ${china_time}"
     echo "-------------------------"
     echo ""
 }
