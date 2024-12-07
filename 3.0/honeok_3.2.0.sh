@@ -332,13 +332,13 @@ system_info() {
 
     # 获取运营商信息
     local isp_info
-    isp_info=$(curl -fskL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' || curl -fskL --connect-timeout 5 "https://ipinfo.io/$(curl -fskL ifconfig.co)/json" | grep -oP '"org":\s*"\K[^"]+')
+    isp_info=$(curl -fskL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' || curl -fskL --connect-timeout 5 http://ip-api.com/line | tail -n 2 | head -n 1)
 
     # 获取IP地址
     ip_address
 
     # 获取地理位置
-    local location=$(curl -fskL --connect-timeout 5 https://ipinfo.io/city || curl -fskL --connect-timeout 5 "https://ipinfo.io/$(curl -fskL ifconfig.co)/json" | grep -oP '"city":\s*"\K[^"]+')
+    local location=$(curl -fskL --connect-timeout 5 https://ipinfo.io/city || curl -fskL --connect-timeout 5 http://ip-api.com/json | grep -o '"city":"[^"]*' | sed 's/"city":"//')
 
     # 获取系统时区
     if grep -q 'Alpine' /etc/issue; then
