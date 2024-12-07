@@ -399,10 +399,8 @@ system_info() {
 ip_address() {
     local ipv4_services=("ipv4.ip.sb" "ipv4.icanhazip.com" "v4.ident.me")
     local ipv6_services=("ipv6.ip.sb" "ipv6.icanhazip.com" "v6.ident.me")
-
     ipv4_address=""
     ipv6_address=""
-
     for service in "${ipv4_services[@]}"; do
         ipv4_address=$(curl -fskL4 -m 3 "$service")
         if [[ "$ipv4_address" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
