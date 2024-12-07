@@ -45,7 +45,6 @@ _info_msg() { echo -e "$info_msg $@"; }
 _err_msg() { echo -e "$err_msg $@"; }
 _suc_msg() { echo -e "$suc_msg $@"; }
 
-cd /root >/dev/null 2>&1
 honeok_pid="/tmp/honeok.pid"
 if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
@@ -54,6 +53,10 @@ fi
 
 # 将当前进程的PID写入文件
 echo $$ > "$honeok_pid"
+
+if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
+    cd /root >/dev/null 2>&1
+fi
 
 # export LANG=en_US.UTF-8
 export DEBIAN_FRONTEND=noninteractive # Debian或Ubuntu非交互安装
