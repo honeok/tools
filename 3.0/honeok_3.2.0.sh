@@ -450,7 +450,7 @@ cdn_check() {
     geo_check
 
     if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
-        $(curl -fsSkL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
+        $(curl -fskL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
         exec_ok=0  # 0 表示允许执行命令
         github_proxy="https://gh-proxy.com/"
     else
@@ -2008,7 +2008,7 @@ ldnmp_install_certbot() {
     cert_cron="0 0 * * * $globle_script_dir/cert_renewal.sh >/dev/null 2>&1"
     # 检查是否已有定时任务
     if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
-        curl -fsSkL -o "$globle_script_dir/cert_renewal.sh" "${github_proxy}github.com/honeok/Tools/raw/master/InvScripts/docker_certbot.sh"
+        curl -fskL -o "$globle_script_dir/cert_renewal.sh" "${github_proxy}github.com/honeok/Tools/raw/master/InvScripts/docker_certbot.sh"
         chmod a+x $globle_script_dir/cert_renewal.sh
 
         # 添加定时任务
@@ -2079,7 +2079,7 @@ ldnmp_install_ngx_logrotate() {
         return 1
     fi
 
-    curl -fsSkL -o "$rotate_script" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh" || {
+    curl -fskL -o "$rotate_script" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh" || {
         _red "脚本下载失败，请检查网络连接或脚本URL"
         return 1
     }
@@ -2123,9 +2123,9 @@ install_ldnmp_conf() {
     mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$nginx_dir/certs" "$web_dir/redis" "$web_dir/mysql"
 
     # 下载配置文件
-    curl -fsSkL -o "$nginx_dir/nginx.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
-    curl -fsSkL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-    curl -fsSkL -o "$web_dir/docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/ldnmp/stable-ldnmp-docker-compose.yml"
+    curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
+    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/ldnmp/stable-ldnmp-docker-compose.yml"
 
     default_server_ssl
 
@@ -2175,7 +2175,7 @@ install_ldnmp_wordpress() {
     ldnmp_certs_status
     ldnmp_add_db
 
-    curl -fsSkL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
+    curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
     sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
 
     nginx_http_on
@@ -2183,8 +2183,8 @@ install_ldnmp_wordpress() {
     wordpress_dir="$nginx_dir/html/$domain"
     [ ! -d "$wordpress_dir" ] && mkdir -p "$wordpress_dir"
     cd "$wordpress_dir"
-    # curl -fsSkL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
-    curl -fsSkL -o latest.zip "${github_proxy}github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
+    # curl -fskL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
+    curl -fskL -o latest.zip "${github_proxy}github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
 
     # 配置WordPress
     wp_sample_config="$wordpress_dir/wordpress/wp-config-sample.php"
@@ -2525,7 +2525,7 @@ fail2ban_install_sshd() {
 
     [ ! -d "$fail2ban_dir" ] && mkdir -p "$fail2ban_dir" && cd "$fail2ban_dir"
 
-    curl -fsSkL -o "docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
+    curl -fskL -o "docker-compose.yml" "${github_proxy}raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
 
     docker_compose start
 
