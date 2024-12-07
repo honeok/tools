@@ -153,7 +153,7 @@ system_info() {
     # 获取虚拟化类型
     virt_check
 
-    local get_cmd=$(command -v curl >/dev/null 2>&1 && echo "curl -fsSkL" || echo "wget -qO-")
+    install curl >/dev/null 2>&1
 
     # 获取CPU型号
     local cpu_model=$(grep -i 'model name' /proc/cpuinfo | head -n 1 | awk -F': ' '{print $2}') 
@@ -332,13 +332,13 @@ system_info() {
 
     # 获取运营商信息
     local isp_info
-    isp_info=$($get_cmd https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' || $get_cmd http://ip-api.com/line | tail -n 2 | head -n 1)
+    isp_info=$(curl -fskL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' || curl -fskL --connect-timeout 5 "https://ipinfo.io/$(curl -fskL ifconfig.co)/json" | grep -oP '"org":\s*"\K[^"]+')
 
     # 获取IP地址
     ip_address
 
     # 获取地理位置
-    local location=$($get_cmd https://ipinfo.io/city || $get_cmd http://ip-api.com/json | grep -o '"city":"[^"]*' | sed 's/"city":"//')
+    local location=$(curl -fskL --connect-timeout 5 https://ipinfo.io/city || curl -fskL --connect-timeout 5 "https://ipinfo.io/$(curl -fskL ifconfig.co)/json" | grep -oP '"city":\s*"\K[^"]+')
 
     # 获取系统时区
     if grep -q 'Alpine' /etc/issue; then
@@ -356,11 +356,7 @@ system_info() {
 
     # 获取北京时间
     local china_time
-    if [[ "$($get_cmd --connect-timeout 5 ipinfo.io/country)" == "CN" ]]; then
-        china_time=$(date -d @$(($($get_cmd https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
-    else
-        china_time=$($get_cmd "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
-    fi
+    china_time=$(date -d @$(($(curl -fskL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
 
     echo "系统信息查询"
     echo "-------------------------"
@@ -398,8 +394,8 @@ system_info() {
 # =============== 通用函数START ===============
 # 获取公网IP地址
 ip_address() {
-    local ipv4_services=("ipv4.ip.sb" "ipv4.icanhazip.com" "v4.ident.me" "api.ipify.org")
-    local ipv6_services=("ipv6.ip.sb" "ipv6.icanhazip.com" "v6.ident.me" "api6.ipify.org")
+    local ipv4_services=("ipv4.ip.sb" "ipv4.icanhazip.com" "v4.ident.me")
+    local ipv6_services=("ipv6.ip.sb" "ipv6.icanhazip.com" "v6.ident.me")
 
     ipv4_address=""
     ipv6_address=""
