@@ -3881,18 +3881,11 @@ bak_dns() {
     local dns_config="/etc/resolv.conf"
     local backupdns_config="/etc/resolv.conf.bak"
 
-    # 检查源文件是否存在
-    if [[ -f "$dns_config" ]]; then
-        # 备份文件
-        cp -f "$dns_config" "$backupdns_config"
+    # 检查源文件是否存在并执行备份
+    [[ -f "$dns_config" ]] && cp -f "$dns_config" "$backupdns_config" || _red "DNS配置文件不存在"
 
-        # 检查备份是否成功
-        if [[ $? -ne 0 ]]; then
-            _red "备份DNS配置文件失败"
-        fi
-    else
-        _red "DNS配置文件不存在"
-    fi
+    # 检查备份是否成功
+    [[ $? -ne 0 ]] && _red "备份DNS配置文件失败"
 }
 
 set_dns() {
@@ -3935,33 +3928,20 @@ rollbak_dns() {
     local dns_config="/etc/resolv.conf"
     local backupdns_config="/etc/resolv.conf.bak"
 
-    # 查找备份文件
+    # 查找备份文件并执行恢复操作
     if [[ -f "$backupdns_config" ]]; then
-        # 恢复备份文件
-        cp "$backupdns_config" "$dns_config"
-        
-        if [[ $? -ne 0 ]]; then
-            _red "恢复DNS配置文件失败"
-        else
-            # 删除备份文件
-            rm "$backupdns_config"
-            if [[ $? -ne 0 ]]; then
-                _red "删除备份文件失败"
-            fi
-        fi
+        cp -f "$backupdns_config" "$dns_config" && rm -f "$backupdns_config" || _red "恢复或删除文件失败"
     else
         _red "未找到DNS配置文件备份"
     fi
 }
 
-lock_dns() {
-    chattr +i /etc/resolv.conf
-    _green "DNS 文件已锁定，防止其他服务修改"
-}
-
-unlock_dns() {
-    chattr -i /etc/resolv.conf
-    _green "DNS文件已解锁，可以被修改"
+dns_lock() {
+    if lsattr /etc/resolv.conf | grep -qi 'i'; then
+        chattr -i /etc/resolv.conf && _green "DNS文件已解锁，可以被修改" || _red "解锁DNS文件失败"
+    else
+        chattr +i /etc/resolv.conf && _green "DNS 文件已锁定，防止其他服务修改" || _red "锁定DNS文件失败"
+    fi
 }
 
 lock_dns_status() {
@@ -3987,7 +3967,7 @@ reinstall_system() {
         curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh"
     }
 
-    dd_xitong_1() {
+    reinstall_linux_MollyLau() {
         echo -e "重装后初始用户名: ${yellow}root${white} 初始密码: ${yellow}LeitboGi0ro${white} 初始端口: ${yellow}${current_sshport}${white}"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
@@ -3995,7 +3975,7 @@ reinstall_system() {
         script_MollyLau
     }
 
-    dd_xitong_2() {
+    reinstall_win_MollyLau() {
         echo -e "重装后初始用户名: ${yellow}Administrator${white} 初始密码: ${yellow}Teddysun.com${white} 初始端口: ${yellow}3389${white}"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
@@ -4003,14 +3983,14 @@ reinstall_system() {
         script_MollyLau
     }
 
-    dd_xitong_3() {
+    reinstall_linux_bin456789() {
         echo -e "重装后初始用户名: ${yellow}root${white} 初始密码: ${yellow}123@@@${white} 初始端口: ${yellow}22${white}"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
         script_bin456789
     }
 
-    dd_xitong_4() {
+    reinstall_win_bin456789() {
         echo -e "重装后初始用户名: ${yellow}Administrator${white} 初始密码: ${yellow}123@@@${white} 初始端口: ${yellow}3389${white}"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
@@ -4036,16 +4016,17 @@ reinstall_system() {
         echo "21. Rocky Linux 9             22. Rocky Linux 8"
         echo "23. Alma Linux 9              24. Alma Linux 8"
         echo "25. Oracle Linux 9            26. Oracle Linux 8"
-        echo "27. Fedora Linux 40           28. Fedora Linux 39"
+        echo "27. Fedora Linux 41           28. Fedora Linux 40"
         echo "29. CentOS 9                  30. CentOS 7"
         echo "-------------------------"
         echo "31. Alpine Linux              32. Arch Linux"
         echo "33. Kali Linux                34. openEuler"
-        echo "35. openSUSE Tumbleweed"
+        echo "35. openSUSE Tumbleweed       36. gentoo"
         echo "-------------------------"
         echo "41. Windows 11                42. Windows 10"
         echo "43. Windows 7                 44. Windows Server 2022"
         echo "45. Windows Server 2019       46. Windows Server 2016"
+        echo "47. Windows 11 ARM"
         echo "-------------------------"
         echo "0. 返回上一级菜单"
         echo "-------------------------"
@@ -4055,182 +4036,194 @@ reinstall_system() {
 
         case "$choice" in
             1)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -debian 12
                 reboot
                 exit
                 ;;
             2)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -debian 11
                 reboot
                 exit
                 ;;
             3)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -debian 10
                 reboot
                 exit
                 ;;
             4)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -debian 9
                 reboot
                 exit
                 ;;
             11)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -ubuntu 24.04
                 reboot
                 exit
                 ;;
             12)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -ubuntu 22.04
                 reboot
                 exit
                 ;;
             13)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -ubuntu 20.04
                 reboot
                 exit
                 ;;
             14)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -ubuntu 18.04
                 reboot
                 exit
                 ;;
             21)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh rocky 9
                 reboot
                 exit
                 ;;
             22)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh rocky 8
                 reboot
                 exit
                 ;;
             23)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh almalinux 9
                 reboot
                 exit
                 ;;
             24)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh almalinux 8
                 reboot
                 exit
                 ;;
             25)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh oracle 9
                 reboot
                 exit
                 ;;
             26)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh oracle 8
                 reboot
                 exit
                 ;;
             27)
-                dd_xitong_3
-                bash reinstall.sh fedora 40
+                reinstall_linux_bin456789
+                bash reinstall.sh fedora 41
                 reboot
                 exit
                 ;;
             28)
-                dd_xitong_3
-                bash reinstall.sh fedora 39
+                reinstall_linux_bin456789
+                bash reinstall.sh fedora 40
                 reboot
                 exit
                 ;;
             29)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh centos 9
                 reboot
                 exit
                 ;;
             30)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -centos 7
                 reboot
                 exit
                 ;;
             31)
-                dd_xitong_1
+                reinstall_linux_MollyLau
                 bash InstallNET.sh -alpine
                 reboot
                 exit
                 ;;
             32)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh arch
                 reboot
                 exit
                 ;;
             33)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh kali
                 reboot
                 exit
                 ;;
             34)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh openeuler
                 reboot
                 exit
                 ;;
             35)
-                dd_xitong_3
+                reinstall_linux_bin456789
                 bash reinstall.sh opensuse
                 reboot
                 exit
                 ;;
+            36)
+                reinstall_linux_bin456789
+                bash reinstall.sh gentoo
+                reboot
+                exit
+                ;;
             41)
-                dd_xitong_2
+                reinstall_win_MollyLau
                 bash InstallNET.sh -windows 11 -lang "cn"
                 reboot
                 exit
                 ;;
             42)
-                dd_xitong_2
+                reinstall_win_MollyLau
                 bash InstallNET.sh -windows 10 -lang "cn"
                 reboot
                 exit
                 ;;
             43)
-                dd_xitong_4
-                URL="https://massgrave.dev/windows_7_links"
-                web_content=$(wget -q -O - "$URL")
-                iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_7[^"]*professional[^"]*x64[^"]*\.iso')
+                reinstall_win_bin456789
+                local url="https://massgrave.dev/windows_7_links"
+                local web_content=$(wget -q -O - "$url")
+                local iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_7[^"]*professional[^"]*x64[^"]*\.iso')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows 7 PROFESSIONAL'
                 reboot
                 exit
                 ;;
             44)
-                dd_xitong_4
-                URL="https://massgrave.dev/windows_server_links"
-                web_content=$(wget -q -O - "$URL")
-                iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_server[^"]*2022[^"]*x64[^"]*\.iso')
+                reinstall_win_bin456789
+                local url="https://massgrave.dev/windows_server_links"
+                local web_content=$(wget -q -O - "$url")
+                local iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_server[^"]*2022[^"]*x64[^"]*\.iso')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows Server 2022 SERVERDATACENTER'
                 reboot
                 exit
                 ;;
             45)
-                dd_xitong_2
+                reinstall_win_MollyLau
                 bash InstallNET.sh -windows 2019 -lang "cn"
                 reboot
                 exit
                 ;;
             46)
-                dd_xitong_2
+                reinstall_win_MollyLau
                 bash InstallNET.sh -windows 2016 -lang "cn"
+                reboot
+                exit
+                ;;
+            47)
+                reinstall_win_bin456789
+                bash reinstall.sh dd --img https://r2.hotdog.eu.org/win11-arm-with-pagefile-15g.xz
                 reboot
                 exit
                 ;;
@@ -6038,7 +6031,7 @@ EOF
                             ( command -v vim >/dev/null 2>&1 && vim /etc/resolv.conf ) || vi /etc/resolv.conf
                             ;;
                         4)
-                            ( lsattr /etc/resolv.conf | grep -qi 'i' && unlock_dns ) || lock_dns
+                            dns_lock
                             ;;
                         0)
                             break
