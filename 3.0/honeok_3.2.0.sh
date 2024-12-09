@@ -10,7 +10,7 @@
 #       @kejilion <https://github.com/kejilion>
 #       @teddysun <https://github.com/teddysun>
 
-honeok_v="v3.2.0 (2024.12.6)"
+honeok_v="v3.2.0 (2024.12.9)"
 
 yellow='\033[93m'
 red='\033[31m'
@@ -45,6 +45,9 @@ _info_msg() { echo -e "$info_msg $@"; }
 _err_msg() { echo -e "$err_msg $@"; }
 _suc_msg() { echo -e "$suc_msg $@"; }
 
+export DEBIAN_FRONTEND=noninteractive
+os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
+
 honeok_pid="/tmp/honeok.pid"
 if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
@@ -57,10 +60,6 @@ echo $$ > "$honeok_pid"
 if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
     cd /root >/dev/null 2>&1
 fi
-
-# export LANG=en_US.UTF-8
-export DEBIAN_FRONTEND=noninteractive # Debian或Ubuntu非交互安装
-
 # ============== 脚本退出执行相关 ==============
 # 终止信号捕获，意外中断时能优雅地处理
 trap _exit SIGINT SIGQUIT SIGTERM SIGHUP
@@ -81,7 +80,6 @@ global_exit() {
 }
 
 print_logo() {
-    local os_info=$(grep '^PRETTY_NAME=' /etc/os-release | cut -d '"' -f 2 | sed 's/ (.*)//')
 echo -e "${yellow}   __                      __     💀
   / /  ___  ___  ___ ___  / /__
  / _ \/ _ \/ _ \/ -_) _ \/  '_/
@@ -90,7 +88,6 @@ echo -e "${yellow}   __                      __     💀
     local os_text="当前操作系统: ${os_info}"
     _green "${os_text}"
 }
-
 # =============== 系统信息START ===============
 # 获取虚拟化类型
 virt_check() {
@@ -221,7 +218,7 @@ system_info() {
     local mem_usage=$(free -b | awk 'NR==2{printf "%.2f/%.2f MB (%.2f%%)", $3/1024/1024, $2/1024/1024, $3*100/$2}')
 
     # 交换分区
-    local swap_usage=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {print "No Swap"} else {percentage=used*100/total; printf "%dMB/%dMB (%d%%)", used, total, percentage}}')
+    local swap_usage=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {print "[ no swap partition ]"} else {percentage=used*100/total; printf "%dMB/%dMB (%d%%)", used, total, percentage}}')
 
     # 获取并格式化磁盘空间使用情况
     local disk_info=$(df -h | grep -E "^/dev/" | grep -vE "tmpfs|devtmpfs|overlay|swap|loop")
@@ -362,7 +359,12 @@ system_info() {
 
     # 获取北京时间
     local china_time
-    china_time=$(date -d @$(($(curl -fskL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
+    if [ "$country" == "CN" ];then
+        china_time=$(date -d @$(($(curl -fskL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
+        # china_time=$(date -d @$(($(curl -sL https://f.m.suning.com/api/ct.do | awk -F'"currentTime": ' '{print $2}' | cut -d ',' -f1) / 1000)) +"%Y-%m-%dT%H:%M:%S")
+    else
+        china_time=$(curl -fskL --max-time 2 "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
+    fi
 
     echo "系统信息查询"
     echo "-------------------------"
@@ -398,7 +400,6 @@ system_info() {
 }
 
 # =============== 通用函数START ===============
-# 获取公网IP地址
 ip_address() {
     local ipv4_services=("ipv4.ip.sb" "ipv4.icanhazip.com" "v4.ident.me")
     local ipv6_services=("ipv6.ip.sb" "ipv6.icanhazip.com" "v6.ident.me")
@@ -418,7 +419,6 @@ ip_address() {
     done
 }
 
-# 获取服务器地区
 geo_check() {
     local response
     local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
@@ -469,9 +469,7 @@ exec_cmd() {
     fi
 }
 
-# 环境启动预检
-geo_check
-cdn_check
+cdn_check # 此函数调用ip_address和geo_check函数并声明全局服务器IP和所在地
 
 # 安装软件包
 install() {
@@ -700,8 +698,10 @@ set_script_dir() {
 # =============== 系统更新START ===============
 # 修复dpkg中断问题
 fix_dpkg() {
-    pkill -f -9 'apt|dpkg'
-    rm -f /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend >/dev/null 2>&1
+    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
+    for i in /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend; do
+        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
+    done
     dpkg --configure -a
 }
 
@@ -787,7 +787,7 @@ linux_clean() {
 linux_tools() {
     while true; do
         clear
-        echo "▶ 常用工具"
+        echo "▶ 基础工具"
         echo "-------------------------"
         echo "1. curl 下载工具                      2. wget下载工具"
         echo "3. sudo 超级管理权限工具              4. socat 通信连接工具"
@@ -810,7 +810,7 @@ linux_tools() {
         echo "-------------------------"
         echo "0. 返回主菜单"
         echo "-------------------------"
-        
+
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
 
@@ -3872,7 +3872,6 @@ add_sshpasswd() {
     rm -fr /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/* >/dev/null 2>&1
 
     restart_ssh
-
     _green "root登录设置完毕！"
 }
 
@@ -3885,7 +3884,7 @@ bak_dns() {
     # 检查源文件是否存在
     if [[ -f "$dns_config" ]]; then
         # 备份文件
-        cp "$dns_config" "$backupdns_config"
+        cp -f "$dns_config" "$backupdns_config"
 
         # 检查备份是否成功
         if [[ $? -ne 0 ]]; then
@@ -3935,7 +3934,7 @@ rollbak_dns() {
     # 定义源文件和备份文件的位置
     local dns_config="/etc/resolv.conf"
     local backupdns_config="/etc/resolv.conf.bak"
-    
+
     # 查找备份文件
     if [[ -f "$backupdns_config" ]]; then
         # 恢复备份文件
@@ -3974,7 +3973,6 @@ lock_dns_status() {
 }
 
 reinstall_system() {
-    local os_info=$(grep '^PRETTY_NAME=' /etc/os-release | cut -d '"' -f 2 | sed 's/ (.*)//')
     local os_text="当前操作系统: ${os_info}"
 
     local current_sshport
@@ -7753,14 +7751,14 @@ honeok() {
         echo "1. 系统信息查询"
         echo "2. 系统更新"
         echo "3. 系统清理"
-        echo "4. 常用工具 ▶"
+        echo "4. 基础工具 ▶"
         echo "5. BBR管理 ▶"
         echo "6. Docker管理 ▶"
         echo "7. WARP管理 ▶"
         echo "8. LDNMP建站 ▶"
         echo "13. 系统工具 ▶"
         echo "14. 我的工作区 ▶"
-        echo "15. VPS测试脚本合集 ▶"
+        echo "15. 测试脚本合集 ▶"
         echo "16. 节点搭建脚本合集 ▶"
         echo "17. 甲骨文云脚本合集 ▶"
         echo "------------------------"
@@ -7774,62 +7772,23 @@ honeok() {
         read -r choice
 
         case "$choice" in
-            1)
-                clear
-                system_info
-                ;;
-            2)
-                clear
-                linux_update
-                ;;
-            3)
-                clear
-                linux_clean
-                ;;
-            4)
-                linux_tools
-                ;;
-            5)
-                linux_bbr
-                ;;
-            6)
-                docker_manager
-                ;;
-            7)
-                clear
-                install wget
-                wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh [option] [license/url/token]
-                ;;
-            8)
-                linux_ldnmp
-                ;;
-            13)
-                linux_system_tools
-                ;;
-            14)
-                linux_workspace
-                ;;
-            15)
-                servertest_script
-                ;;
-            16)
-                node_create
-                ;;
-            17)
-                oracle_script
-                ;;
-            p)
-                palworld_script
-                ;;
-            0)
-                _orange "Bye!" && sleep 1
-                clear
-                global_exit
-                exit 0
-                ;;
-            *)
-                _red "无效选项，请重新输入"
-                ;;
+            1) clear; system_info ;;
+            2) clear; linux_update ;;
+            3) clear; linux_clean ;;
+            4) linux_tools ;;
+            5) linux_bbr ;;
+            6) docker_manager ;;
+            7) clear; install wget; wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh [option] [license/url/token] ;;
+            8) linux_ldnmp ;;
+            13) linux_system_tools ;;
+            14) linux_workspace ;;
+            15) servertest_script ;;
+            16) node_create ;;
+            17) oracle_script ;;
+            p) palworld_script ;;
+            0) _orange "Bye!"&& sleep 1 && clear && global_exit
+               exit 0 ;;
+            *) _red "无效选项，请重新输入" ;;
         esac
         end_of
     done
@@ -7837,5 +7796,3 @@ honeok() {
 
 # 脚本入口
 honeok
-global_exit
-exit 0
