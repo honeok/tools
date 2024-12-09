@@ -338,7 +338,7 @@ system_info() {
     fi
 
     # 获取IP地址
-    # ip_address
+    ip_address
 
     # 获取地理位置
     local location=$(curl -fskL --connect-timeout 5 https://ipinfo.io/city || curl -fskL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | grep -oP '"city":\s*"\K[^"]+')
