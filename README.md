@@ -4,7 +4,7 @@
 
 A lightweight Shell script toolbox designed for more convenient operations.
 
-## 🚀 项目亮点
+## 项目亮点
 
 - **轻量级**：基于Shell脚本，执行快速，资源占用低。
 
@@ -13,7 +13,7 @@ A lightweight Shell script toolbox designed for more convenient operations.
 - **高可扩展性**：可以根据需求自由定制和扩展功能，灵活满足各种使用场景。
 - **代理支持**：支持通过国内外不同镜像源下载和执行，适配不同网络环境。
 
-## 📦 一键安装与使用
+## 一键安装与使用
 
 **支持在Linux系统上运行所有功能**
 
@@ -45,7 +45,7 @@ bash <(wget -qO- https://gh.611611.best/https://github.com/honeok/Tools/raw/mast
 curl -sL -O https://gh.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
 ```
 
-## 💻 支持的系统
+## 支持的系统
 
 | 系统                                                                                                                                                                                                                                                        |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -61,7 +61,7 @@ curl -sL -O https://gh.611611.best/https://github.com/honeok/Tools/raw/master/ho
 | <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                            |
 | <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                           |
 
-## 📜 License
+## License
 
 This project is licensed under the GPL-3.0 License. See the [LICENSE](./LICENSE) file for more details.
 
@@ -77,4 +77,4 @@ This project is licensed under the GPL-3.0 License. See the [LICENSE](./LICENSE)
 
 
 
-感谢你的支持！如果你喜欢这个项目，欢迎给我们一个 ⭐ Star！
+感谢你的支持！如果你喜欢这个项目，欢迎给我一个⭐Star！
