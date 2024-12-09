@@ -74,6 +74,4 @@ This project is licensed under the GPL-3.0 License. See the [LICENSE](./LICENSE)
 - 秋水逸冰：[https://github.com/teddysun/across](https://github.com/teddysun/across)
 - spiritLHLS：[https://github.com/spiritLHLS/ecs](https://github.com/spiritLHLS/ecs)
 
-
-
 感谢你的支持！如果你喜欢这个项目，欢迎给我一个⭐Star！
