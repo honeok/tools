@@ -7,7 +7,6 @@ A lightweight Shell script toolbox designed for more convenient operations.
 ## 项目亮点
 
 - **轻量级**：基于Shell脚本，执行快速，资源占用低。
-
 - **跨平台支持**：支持多种Linux发行版，轻松在不同环境中部署和管理。
 - **自动化管理**：简化操作，自动化处理常见的服务器运维任务。
 - **高可扩展性**：可以根据需求自由定制和扩展功能，灵活满足各种使用场景。
