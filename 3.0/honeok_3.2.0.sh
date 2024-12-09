@@ -3964,7 +3964,7 @@ reinstall_system() {
     }
 
     script_bin456789() {
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh"
+        curl -sL -O "${github_proxy}https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh" && chmod +x reinstall.sh
     }
 
     reinstall_linux_MollyLau() {
