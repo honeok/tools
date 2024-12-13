@@ -5,8 +5,8 @@
 [![LICENSE](https://img.shields.io/github/license/honeok/Tools.svg?style=flat)](./LICENSE)
 [![Commit](https://img.shields.io/github/last-commit/honeok/Tools)](https://github.com/honeok/Tools)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/honeok/Tools.svg)](https://github.com/honeok/Tools)
+[![GitHub Stars](https://img.shields.io/github/stars/honeok/Tools?style=flat)](https://github.com/honeok/Tools)
 [![Issues](https://img.shields.io/github/issues/honeok/Tools.svg)](https://img.shields.io/github/issues/honeok/Tools.svg)
-[![Stars](https://img.shields.io/github/stars/honeok/Tools.svg)](https://img.shields.io/github/stars/honeok/Tools.svg)
 
 A lightweight Shell script toolbox designed for more convenient operations.
 
