@@ -1,39 +1,43 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Description: openssh high risk vulnerability repair.
+#
+# Forked and modified from Kejilion's script.
+# Copyright (C) 2024 honeok <honeok@duck.com>
 
-# 设置OpenSSH的版本号
-OPENSSH_VERSION="9.9p1"
+export DEBIAN_FRONTEND=noninteractive
 
+separator() { printf "%-15s\n" "-" | sed 's/\s/-/g'; }
 
-# 检测系统类型
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-else
-    echo "无法检测操作系统类型。"
-    exit 1
+if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
+    cd /root >/dev/null 2>&1
 fi
 
-# 等待并检查锁文件
-wait_for_lock() {
-    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
-        echo "等待dpkg锁释放..."
-        sleep 1
+# 期望的ssh版本
+desired_ssh_version="9.9p1"
+
+# 清理dpkg锁文件
+fix_dpkg() {
+    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
+    for i in /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend; do
+        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
     done
+    dpkg --configure -a
 }
 
-# 修复dpkg中断问题
-fix_dpkg() {
-    DEBIAN_FRONTEND=noninteractive dpkg --configure -a
-}
+# 获取操作系统类型
+if [ -f /etc/os-release ]; then
+    . /etc/os-release && system_id=$ID
+else
+    echo "无法检测操作系统类型" && exit 1
+fi
 
 # 安装依赖包
-install_dependencies() {
-    case $OS in
+install_depend() {
+    case $system_id in
         ubuntu|debian)
-            wait_for_lock
             fix_dpkg
-            DEBIAN_FRONTEND=noninteractive apt update
-            DEBIAN_FRONTEND=noninteractive apt install -y build-essential zlib1g-dev libssl-dev libpam0g-dev wget ntpdate -o Dpkg::Options::="--force-confnew"
+            apt update && apt install -y build-essential zlib1g-dev libssl-dev libpam0g-dev wget ntpdate -o Dpkg::Options::="--force-confnew"
             ;;
         centos|rhel|almalinux|rocky|fedora)
             yum install -y epel-release
@@ -44,26 +48,22 @@ install_dependencies() {
             apk add build-base zlib-dev openssl-dev pam-dev wget ntpdate
             ;;
         *)
-            echo "不支持的操作系统：$OS"
+            echo "不支持的操作系统: $system_id"
             exit 1
             ;;
     esac
 }
 
-
-# 下载、编译和安装OpenSSH
 install_openssh() {
-    wget --no-check-certificate https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${OPENSSH_VERSION}.tar.gz
-    tar -xzf openssh-${OPENSSH_VERSION}.tar.gz
-    cd openssh-${OPENSSH_VERSION}
-    ./configure
-    make
-    make install
+    wget --no-check-certificate -q https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-${desired_ssh_version}.tar.gz && \
+    tar -xzvf openssh-${desired_ssh_version}.tar.gz && \
+    cd openssh-${desired_ssh_version} && \
+    ./configure && make && make install && \
+    cd .. && rm -rf openssh-${desired_ssh_version} openssh-${desired_ssh_version}.tar.gz
 }
 
-# 重启SSH服务
 restart_ssh() {
-    case $OS in
+    case $system_id in
         ubuntu|debian)
             systemctl restart ssh
             ;;
@@ -74,7 +74,7 @@ restart_ssh() {
             rc-service sshd restart
             ;;
         *)
-            echo "不支持的操作系统：$OS"
+            echo "不支持的操作系统：$system_id"
             exit 1
             ;;
     esac
@@ -82,74 +82,59 @@ restart_ssh() {
 
 # 设置路径优先级
 set_path_priority() {
-    NEW_SSH_PATH=$(which sshd)  # 假设新版本的sshd和ssh在同一个目录
-    NEW_SSH_DIR=$(dirname "$NEW_SSH_PATH")
+    local new_ssh_dir=$(dirname "$(which sshd)")
 
-    if [[ ":$PATH:" != *":$NEW_SSH_DIR:"* ]]; then
-        export PATH="$NEW_SSH_DIR:$PATH"
-        echo "export PATH=\"$NEW_SSH_DIR:\$PATH\"" >> ~/.bashrc
+    if [[ ":$PATH:" != *":$new_ssh_dir:"* ]]; then
+        export PATH="$new_ssh_dir:$PATH"
+        echo "export PATH=\"$new_ssh_dir:\$PATH\"" >> ~/.bashrc
     fi
 }
 
-# 验证更新
 verify_installation() {
-    echo "SSH版本信息："
+    separator
+    echo "ssh版本信息:"
+    separator
     ssh -V
+    separator
     sshd -V
 }
 
-# 清理下载的文件
-clean_up() {
-    cd ..
-    rm -rf openssh-${OPENSSH_VERSION}*
-}
-
-
-# 标题
-check_openssh_test() {
-echo "SSH高危漏洞修复工具"
-echo "视频介绍: https://www.bilibili.com/video/BV1dm421G7dy?t=0.1"
-echo "--------------------------"
-}
-
 # 检查OpenSSH版本
-check_openssh_version() {
-    current_version=$(ssh -V 2>&1 | awk '{print $1}' | cut -d_ -f2 | cut -d'p' -f1)
+main() {
+    local choice
+    local current_version=$(ssh -V 2>&1 | awk '{print $1}' | cut -d_ -f2 | cut -d'p' -f1)
 
     # 版本范围
-    min_version=8.5
-    max_version=9.7
+    local min_version="8.5"
+    local max_version="9.7"
 
-    if awk -v ver="$current_version" -v min="$min_version" -v max="$max_version" 'BEGIN{if(ver>=min && ver<=max) exit 0; else exit 1}'; then
-      check_openssh_test
-      echo "SSH版本: $current_version  在8.5到9.7之间，需要修复。"
-      read -p "确定继续吗？(Y/N): " choice
-          case "$choice" in
-            [Yy])
-              install_dependencies
-              install_openssh
-              restart_ssh
-              set_path_priority
-              verify_installation
-              clean_up
+    if awk -v ver="$current_version" -v min="$min_version" -v max="$max_version" \
+        'BEGIN { if (ver >= min && ver <= max) exit 0; else exit 1 }'; then
+        echo "当前ssh版本: $current_version 在8.5到9.7之间，需要修复！"
+        echo -n "请输入(Y/n)并按回车键确认: "
+        read -r choice
 
-              ;;
-            [Nn])
-              echo "已取消"
-              exit 1
-              ;;
+        case "$choice" in
+            [yY][eE][sS] | [yY])
+                install_depend
+                install_openssh
+                restart_ssh
+                set_path_priority
+                verify_installation
+                ;;
+            [nN][oO] | [nN])
+                echo "已取消"
+                exit 1
+                ;;
             *)
-              echo "无效的选择，请输入 Y 或 N。"
-              exit 1
-              ;;
-          esac
+                echo "无效选项，请重新输入"
+                exit 1
+                ;;
+        esac
     else
-      check_openssh_test
-      echo "SSH版本: $current_version  不在8.5到9.7之间，无需修复。"
-      exit 1
+        echo "当前ssh版本: $current_version 不在8.5到9.7之间，无需修复"
+        exit 1
     fi
-
 }
 
-
-check_openssh_version
+main
