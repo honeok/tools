@@ -5765,7 +5765,8 @@ cloudflare_ddns() {
                 read -r CFTTL
                 CFTTL=${CFTTL:-60}
 
-                curl -fskL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}https://raw.githubusercontent.com/yulewang/cloudflare-api-v4-ddns/master/cf-v4-ddns.sh"
+                # curl -fskL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}https://raw.githubusercontent.com/yulewang/cloudflare-api-v4-ddns/master/cf-v4-ddns.sh"
+                curl -fskL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/cf-v4-ddns.sh"
 
                 sed -i "/^CFKEY=$/s/CFKEY=$/CFKEY=$CFKEY/" ${global_script_dir}/cf-v4-ddns.sh
                 sed -i "/^CFUSER=$/s/CFUSER=$/CFUSER=$CFUSER/" ${global_script_dir}/cf-v4-ddns.sh
