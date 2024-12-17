@@ -7,8 +7,9 @@
 # https://github.com/honeok/Tools
 #
 # Acks:
-#       @kejilion <https://github.com/kejilion>
-#       @teddysun <https://github.com/teddysun>
+#       @kejilion   <https://github.com/kejilion>
+#       @teddysun   <https://github.com/teddysun>
+#       @spiritLHLS <https://github.com/spiritLHLS>
 
 honeok_v="v3.2.0 (2024.12.17)"
 
