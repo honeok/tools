@@ -77,11 +77,12 @@ global_exit() {
     [ -f "$honeok_pid" ] && rm -f "$honeok_pid"
     [ -f "$HOME/get-docker.sh" ] && rm -f "$HOME/get-docker.sh"
     [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
-    [ -f "xanmod_check.sh" ] && rm -f xanmod_check.sh*
+    [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
+    [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "check_x86-64_psabi.sh*"
 }
 
 print_logo() {
-echo -e "${yellow}   __                      __     💀
+echo -e "${yellow}   __                      __     ™️
   / /  ___  ___  ___ ___  / /__
  / _ \/ _ \/ _ \/ -_) _ \/  '_/
 /_//_/\___/_//_/\__/\___/_/\_\ 
