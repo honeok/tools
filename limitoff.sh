@@ -1,4 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Description: Automatically shuts down the server when rate-limiting is triggered.
+#
+# Forked and modified from Kejilion's script.
+# Copyright (C) 2024 honeok <honeok@duck.com>
 
 # 获取总的接收流量
 rx_output=$(awk 'BEGIN { rx_total = 0 }
