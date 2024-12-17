@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# Description: A lightweight shell scripting toolbox designed for more convenient operations.
+# Description: lightweight shell scripting toolbox.
 #
-# Copyright (C) 2021 - 2024 honeok <honeok@duck.com>
+# Copyright (C) 2021-2024 honeok <honeok@duck.com>
 # Blog: www.honeok.com
-# https://github.com/honeok/Tools/blob/master/honeok.sh
+# https://github.com/honeok/Tools
 #
 # Acks:
 #       @kejilion <https://github.com/kejilion>
 #       @teddysun <https://github.com/teddysun>
 
-honeok_v="v3.2.0 (2024.12.9)"
+honeok_v="v3.2.0 (2024.12.17)"
 
 yellow='\033[93m'
 red='\033[31m'
@@ -689,9 +689,9 @@ set_script_dir() {
     # 判断路径是否存在
     if [ ! -d "$script_dir" ]; then
         mkdir "$script_dir" -p >/dev/null 2>&1
-        globle_script_dir="$script_dir"
+        global_script_dir="$script_dir"
     else
-        globle_script_dir="$script_dir"
+        global_script_dir="$script_dir"
     fi
 }
 
@@ -1042,7 +1042,7 @@ linux_bbr() {
     else
         install wget
         wget --no-check-certificate -O tcpx.sh "${github_proxy}https://raw.githubusercontent.com/ylx2016/Linux-NetSpeed/master/tcpx.sh" && chmod +x tcpx.sh && ./tcpx.sh
-        rm tcpx.sh
+        rm -f tcpx.sh
     fi
 }
 
@@ -2008,11 +2008,11 @@ ldnmp_install_certbot() {
     check_crontab_installed
 
     # 设置定时任务
-    cert_cron="0 0 * * * $globle_script_dir/cert_renewal.sh >/dev/null 2>&1"
+    cert_cron="0 0 * * * $global_script_dir/cert_renewal.sh >/dev/null 2>&1"
     # 检查是否已有定时任务
     if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
-        curl -fskL -o "$globle_script_dir/cert_renewal.sh" "${github_proxy}github.com/honeok/Tools/raw/master/InvScripts/docker_certbot.sh"
-        chmod a+x $globle_script_dir/cert_renewal.sh
+        curl -fskL -o "$global_script_dir/cert_renewal.sh" "${github_proxy}github.com/honeok/Tools/raw/master/InvScripts/docker_certbot.sh"
+        chmod a+x $global_script_dir/cert_renewal.sh
 
         # 添加定时任务
         (crontab -l 2>/dev/null; echo "$cert_cron") | crontab - >/dev/null 2>&1
@@ -2035,7 +2035,7 @@ ldnmp_uninstall_certbot() {
         done <<< "$certbot_image_ids"
     fi
 
-    cert_cron="0 0 * * * $globle_script_dir/cert_renewal.sh >/dev/null 2>&1"
+    cert_cron="0 0 * * * $global_script_dir/cert_renewal.sh >/dev/null 2>&1"
 
     # 检查并删除定时任务
     if crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
@@ -2046,8 +2046,8 @@ ldnmp_uninstall_certbot() {
     fi
 
     # 删除脚本文件
-    if [ -f "$globle_script_dir/cert_renewal.sh" ]; then
-        rm -f "$globle_script_dir/cert_renewal.sh"
+    if [ -f "$global_script_dir/cert_renewal.sh" ]; then
+        rm -f "$global_script_dir/cert_renewal.sh"
         _green "续签脚本文件已删除"
     fi
 
@@ -3724,7 +3724,7 @@ linux_ldnmp() {
                             docker exec "$ldnmp_pods" mkdir -p /usr/local/bin/
                             docker cp /usr/local/bin/install-php-extensions "$ldnmp_pods":/usr/local/bin/
                             docker exec "$ldnmp_pods" chmod +x /usr/local/bin/install-php-extensions
-                            rm /usr/local/bin/install-php-extensions >/dev/null 2>&1
+                            rm -f /usr/local/bin/install-php-extensions >/dev/null 2>&1
 
                             docker exec "$ldnmp_pods" sh -c "\
                                 apk add --no-cache imagemagick imagemagick-dev \
@@ -4866,50 +4866,50 @@ telegram_bot() {
             install tmux bc jq
             check_crontab_installed
 
-            if [ -f "${globle_script_dir}/TG-check-notify.sh" ]; then
-                chmod +x "${globle_script_dir}/TG-check-notify.sh"
-                vim "${globle_script_dir}/TG-check-notify.sh"
+            if [ -f "${global_script_dir}/TG-check-notify.sh" ]; then
+                chmod +x "${global_script_dir}/TG-check-notify.sh"
+                vim "${global_script_dir}/TG-check-notify.sh"
             else
-                curl -fskL -o "${globle_script_dir}/TG-check-notify.sh" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/TG-check-notify.sh"
+                curl -fskL -o "${global_script_dir}/TG-check-notify.sh" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/TG-check-notify.sh"
                 # 计算文件哈希
-                TG_check_notify=$(sha256sum "${globle_script_dir}/TG-check-notify.sh" | awk '{ print $1 }')
+                TG_check_notify=$(sha256sum "${global_script_dir}/TG-check-notify.sh" | awk '{ print $1 }')
 
                 # 校验哈希值
                 if [ "$TG_check_notify" != "$TG_check_notify_hash" ]; then
                     _red "文件哈希校验失败，脚本可能被篡改"
                     sleep 1
-                    rm -f "${globle_script_dir}/TG-check-notify.sh"
+                    rm -f "${global_script_dir}/TG-check-notify.sh"
                     linux_system_tools # 返回系统工具菜单
                 else
-                    chmod +x "${globle_script_dir}/TG-check-notify.sh"
-                    vim "${globle_script_dir}/TG-check-notify.sh"
+                    chmod +x "${global_script_dir}/TG-check-notify.sh"
+                    vim "${global_script_dir}/TG-check-notify.sh"
                 fi
             fi
 
             tmux kill-session -t TG-check-notify >/dev/null 2>&1
-            tmux new -d -s TG-check-notify "${globle_script_dir}/TG-check-notify.sh"
-            crontab -l | grep -v "${globle_script_dir}/TG-check-notify.sh" | crontab - >/dev/null 2>&1
-            (crontab -l ; echo "@reboot tmux new -d -s TG-check-notify '${globle_script_dir}/TG-check-notify.sh'") | crontab - >/dev/null 2>&1
+            tmux new -d -s TG-check-notify "${global_script_dir}/TG-check-notify.sh"
+            crontab -l | grep -v "${global_script_dir}/TG-check-notify.sh" | crontab - >/dev/null 2>&1
+            (crontab -l ; echo "@reboot tmux new -d -s TG-check-notify '${global_script_dir}/TG-check-notify.sh'") | crontab - >/dev/null 2>&1
 
-            curl -fskL -o "${globle_script_dir}/TG-SSH-check-notify.sh" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/TG-SSH-check-notify.sh"
+            curl -fskL -o "${global_script_dir}/TG-SSH-check-notify.sh" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/TG-SSH-check-notify.sh"
             # 计算文件哈希
-            TG_SSH_check_notify=$(sha256sum "${globle_script_dir}/TG-SSH-check-notify.sh" | awk '{ print $1 }')
+            TG_SSH_check_notify=$(sha256sum "${global_script_dir}/TG-SSH-check-notify.sh" | awk '{ print $1 }')
 
             # 校验哈希值
             if [ "$TG_SSH_check_notify" != "$TG_SSH_check_notify_hash" ]; then
                 _red "文件哈希校验失败,脚本可能被篡改"
                 sleep 1
-                rm -f "${globle_script_dir}/TG-SSH-check-notify.sh"
+                rm -f "${global_script_dir}/TG-SSH-check-notify.sh"
                 linux_system_tools # 返回系统工具菜单
             else
-                sed -i "3i$(grep '^TELEGRAM_BOT_TOKEN=' "${globle_script_dir}/TG-check-notify.sh")" "${globle_script_dir}/TG-SSH-check-notify.sh"
-                sed -i "4i$(grep '^CHAT_ID=' "${globle_script_dir}/TG-check-notify.sh")" "${globle_script_dir}/TG-SSH-check-notify.sh"
-                chmod +x "${globle_script_dir}/TG-SSH-check-notify.sh"
+                sed -i "3i$(grep '^TELEGRAM_BOT_TOKEN=' "${global_script_dir}/TG-check-notify.sh")" "${global_script_dir}/TG-SSH-check-notify.sh"
+                sed -i "4i$(grep '^CHAT_ID=' "${global_script_dir}/TG-check-notify.sh")" "${global_script_dir}/TG-SSH-check-notify.sh"
+                chmod +x "${global_script_dir}/TG-SSH-check-notify.sh"
             fi
 
             # 添加到~/.profile文件中
-            if ! grep -q "bash ${globle_script_dir}/TG-SSH-check-notify.sh" ~/.profile >/dev/null 2>&1; then
-                echo "bash ${globle_script_dir}/TG-SSH-check-notify.sh" >> ~/.profile
+            if ! grep -q "bash ${global_script_dir}/TG-SSH-check-notify.sh" ~/.profile >/dev/null 2>&1; then
+                echo "bash ${global_script_dir}/TG-SSH-check-notify.sh" >> ~/.profile
                 if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
                     echo 'source ~/.profile' >> ~/.bashrc
                 fi
@@ -4919,7 +4919,7 @@ telegram_bot() {
 
             clear
             _green "TG-bot预警系统已启动"
-            _yellow "你还可以将${globle_script_dir}目录中的TG-check-notify.sh预警文件放到其他机器上直接使用！"
+            _yellow "你还可以将${global_script_dir}目录中的TG-check-notify.sh预警文件放到其他机器上直接使用！"
             ;;
         [Nn])
             _yellow "已取消"
@@ -5675,7 +5675,7 @@ cloudflare_ddns() {
         clear
         echo "Cloudflare ddns解析"
         echo "-------------------------"
-        if [ -f /usr/local/bin/cf-ddns.sh ] || [ -f ${globle_script_dir}/cf-v4-ddns.sh ]; then
+        if [ -f /usr/local/bin/cf-ddns.sh ] || [ -f ${global_script_dir}/cf-v4-ddns.sh ]; then
             echo -e "${white}Cloudflare ddns: ${green}已安装${white}"
             crontab -l | grep "/usr/local/bin/cf-ddns.sh"
         else
@@ -5751,17 +5751,17 @@ cloudflare_ddns() {
                 read -r CFTTL
                 CFTTL=${CFTTL:-60}
 
-                curl -fskL -o ${globle_script_dir}/cf-v4-ddns.sh "${github_proxy}raw.githubusercontent.com/yulewang/cloudflare-api-v4-ddns/master/cf-v4-ddns.sh"
+                curl -fskL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}raw.githubusercontent.com/yulewang/cloudflare-api-v4-ddns/master/cf-v4-ddns.sh"
 
-                sed -i "/^CFKEY=$/s/CFKEY=$/CFKEY=$CFKEY/" ${globle_script_dir}/cf-v4-ddns.sh
-                sed -i "/^CFUSER=$/s/CFUSER=$/CFUSER=$CFUSER/" ${globle_script_dir}/cf-v4-ddns.sh
-                sed -i "/^CFZONE_NAME=$/s/CFZONE_NAME=$/CFZONE_NAME=$CFZONE_NAME/" ${globle_script_dir}/cf-v4-ddns.sh
-                sed -i "/^CFRECORD_NAME=$/s/CFRECORD_NAME=$/CFRECORD_NAME=$CFRECORD_NAME/" ${globle_script_dir}/cf-v4-ddns.sh
-                sed -i "/^CFRECORD_TYPE=A$/s/CFRECORD_TYPE=A/CFRECORD_TYPE=$CFRECORD_TYPE/" ${globle_script_dir}/cf-v4-ddns.sh
-                sed -i "/^CFTTL=120$/s/CFTTL=120/CFTTL=$CFTTL/" ${globle_script_dir}/cf-v4-ddns.sh
+                sed -i "/^CFKEY=$/s/CFKEY=$/CFKEY=$CFKEY/" ${global_script_dir}/cf-v4-ddns.sh
+                sed -i "/^CFUSER=$/s/CFUSER=$/CFUSER=$CFUSER/" ${global_script_dir}/cf-v4-ddns.sh
+                sed -i "/^CFZONE_NAME=$/s/CFZONE_NAME=$/CFZONE_NAME=$CFZONE_NAME/" ${global_script_dir}/cf-v4-ddns.sh
+                sed -i "/^CFRECORD_NAME=$/s/CFRECORD_NAME=$/CFRECORD_NAME=$CFRECORD_NAME/" ${global_script_dir}/cf-v4-ddns.sh
+                sed -i "/^CFRECORD_TYPE=A$/s/CFRECORD_TYPE=A/CFRECORD_TYPE=$CFRECORD_TYPE/" ${global_script_dir}/cf-v4-ddns.sh
+                sed -i "/^CFTTL=120$/s/CFTTL=120/CFTTL=$CFTTL/" ${global_script_dir}/cf-v4-ddns.sh
 
                 # 复制脚本并设置权限
-                cp ${globle_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod a+x /usr/local/bin/cf-ddns.sh
+                cp ${global_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod a+x /usr/local/bin/cf-ddns.sh
 
                 check_crontab_installed
 
@@ -5776,7 +5776,7 @@ cloudflare_ddns() {
                 ;;
             2)
                 if [ -f /usr/local/bin/cf-ddns.sh ]; then
-                    sudo rm /usr/local/bin/cf-ddns.sh
+                    sudo rm -f /usr/local/bin/cf-ddns.sh
                 else
                     _red "/usr/local/bin/cf-ddns.sh文件不存在"
                 fi
@@ -5794,8 +5794,8 @@ cloudflare_ddns() {
                     _red "定时任务中未找到与'/usr/local/bin/cf-ddns.sh'相关的任务"
                 fi
 
-                if [ -f ${globle_script_dir}/cf-v4-ddns.sh ]; then
-                    rm -f ${globle_script_dir}/cf-v4-ddns.sh
+                if [ -f ${global_script_dir}/cf-v4-ddns.sh ]; then
+                    rm -f ${global_script_dir}/cf-v4-ddns.sh
                 fi
 
                 _green "Cloudflare ddns卸载完成"
@@ -6489,7 +6489,7 @@ EOF
                                 ;;
                             99)
                                 remove iptables-persistent
-                                rm /etc/iptables/rules.v4
+                                rm -f /etc/iptables/rules.v4
                                 break
                                 ;;
                             0)
@@ -6523,7 +6523,7 @@ EOF
                                 clear
                                 iptables_open
                                 remove iptables-persistent ufw
-                                rm /etc/iptables/rules.v4
+                                rm -f /etc/iptables/rules.v4
 
                                 apt update -y && apt install -y iptables-persistent
 
@@ -6742,10 +6742,10 @@ EOF
                     echo "$output"
 
                     # 检查是否存在 Limiting_Shut_down.sh 文件
-                    if [ -f ${globle_script_dir}/Limiting_Shut_down.sh ]; then
+                    if [ -f ${global_script_dir}/Limiting_Shut_down.sh ]; then
                         # 获取 threshold_gb 的值
-                        rx_threshold_gb=$(grep -oP 'rx_threshold_gb=\K\d+' ${globle_script_dir}/Limiting_Shut_down.sh)
-                        tx_threshold_gb=$(grep -oP 'tx_threshold_gb=\K\d+' ${globle_script_dir}/Limiting_Shut_down.sh)
+                        rx_threshold_gb=$(grep -oP 'rx_threshold_gb=\K\d+' ${global_script_dir}/Limiting_Shut_down.sh)
+                        tx_threshold_gb=$(grep -oP 'tx_threshold_gb=\K\d+' ${global_script_dir}/Limiting_Shut_down.sh)
                         _yellow "当前设置的进站限流阈值为: ${rx_threshold_gb}GB"
                         _yellow "当前设置的出站限流阈值为: ${tx_threshold_gb}GB"
                     else
@@ -6770,23 +6770,23 @@ EOF
                             read -r cz_day
                             cz_day=${cz_day:-1}
 
-                            cd ${globle_script_dir}
+                            cd ${global_script_dir}
                             curl -fskL -o "Limiting_Shut_down.sh" "${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/Limiting_Shut_down1.sh"
-                            chmod +x ${globle_script_dir}/Limiting_Shut_down.sh
-                            sed -i "s/110/$rx_threshold_gb/g" ${globle_script_dir}/Limiting_Shut_down.sh
-                            sed -i "s/120/$tx_threshold_gb/g" ${globle_script_dir}/Limiting_Shut_down.sh
+                            chmod +x ${global_script_dir}/Limiting_Shut_down.sh
+                            sed -i "s/110/$rx_threshold_gb/g" ${global_script_dir}/Limiting_Shut_down.sh
+                            sed -i "s/120/$tx_threshold_gb/g" ${global_script_dir}/Limiting_Shut_down.sh
                             check_crontab_installed
-                            crontab -l | grep -v '${globle_script_dir}/Limiting_Shut_down.sh' | crontab -
-                            (crontab -l ; echo "* * * * * ${globle_script_dir}/Limiting_Shut_down.sh") | crontab - >/dev/null 2>&1
+                            crontab -l | grep -v '${global_script_dir}/Limiting_Shut_down.sh' | crontab -
+                            (crontab -l ; echo "* * * * * ${global_script_dir}/Limiting_Shut_down.sh") | crontab - >/dev/null 2>&1
                             crontab -l | grep -v 'reboot' | crontab -
                             (crontab -l ; echo "0 1 $cz_day * * reboot") | crontab - >/dev/null 2>&1
                             _green "限流关机已开启"
                             ;;
                         2)
                             check_crontab_installed
-                            crontab -l | grep -v '${globle_script_dir}/Limiting_Shut_down.sh' | crontab -
+                            crontab -l | grep -v '${global_script_dir}/Limiting_Shut_down.sh' | crontab -
                             crontab -l | grep -v 'reboot' | crontab -
-                            rm -f ${globle_script_dir}/Limiting_Shut_down.sh
+                            rm -f ${global_script_dir}/Limiting_Shut_down.sh
                             _green "限流关机已卸载"
                             ;;
                         *)
@@ -7676,12 +7676,13 @@ oracle_script() {
 }
 
 # =============== 幻兽帕鲁START ===============
-palworld_script() {
+palworld() {
     need_root
+    set_script_dir
     while true; do
         clear
 
-        if [ -f ~/palworld.sh ]; then
+        if [ -f ${global_script_dir}/palworld.sh ]; then
             echo -e "${white}幻兽帕鲁脚本: ${green}已安装${white}"
         else
             echo -e "${white}幻兽帕鲁脚本: ${yellow}未安装${white}"
@@ -7689,7 +7690,7 @@ palworld_script() {
 
         echo ""
         echo "幻兽帕鲁管理"
-        echo "Author: kejilion"
+        echo "作者: kejilion"
         echo "-------------------------"
         echo "1. 安装脚本     2. 卸载脚本     3. 运行脚本"
         echo "-------------------------"
@@ -7702,24 +7703,24 @@ palworld_script() {
         case $choice in
             1)
                 cd ~
-                curl -fskL -o ./palworld.sh ${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/palworld.sh
-                chmod a+x ./palworld.sh
+                curl -fskL -o ${global_script_dir}/palworld.sh ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/InvScripts/palworld.sh
+                chmod +x ${global_script_dir}/palworld.sh
                 ;;
             2)
-                [ -f ~/palworld.sh ] && rm ~/palworld.sh
-                [ -L /usr/local/bin/p ] && rm /usr/local/bin/p
+                [ -f ${global_script_dir}/palworld.sh ] && rm -f ${global_script_dir}/palworld.sh
+                [ -L /usr/local/bin/p ] && rm -f /usr/local/bin/p
 
-                if [ ! -f ~/palworld.sh ] && [ ! -L /usr/local/bin/p ]; then
+                if [ ! -f ${global_script_dir}/palworld.sh ] && [ ! -L /usr/local/bin/p ]; then
                     _red "幻兽帕鲁开服脚本未安装"
                 fi
                 ;;
             3)
-                if [ -f ~/palworld.sh ]; then
-                    bash ~/palworld.sh
+                if [ -f ${global_script_dir}/palworld.sh ]; then
+                    bash ${global_script_dir}/palworld.sh
                 else
-                    curl -fskL -o palworld.sh ${github_proxy}raw.githubusercontent.com/honeok/Tools/master/InvScripts/palworld.sh
-                    chmod a+x palworld.sh
-                    bash palworld.sh
+                    curl -fskL -o ${global_script_dir}/palworld.sh ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/InvScripts/palworld.sh
+                    chmod +x ${global_script_dir}/palworld.sh
+                    bash ${global_script_dir}/palworld.sh
                 fi
                 ;;
             0)
@@ -7778,7 +7779,7 @@ honeok() {
             15) servertest_script ;;
             16) node_create ;;
             17) oracle_script ;;
-            p) palworld_script ;;
+            p) palworld ;;
             0) _orange "Bye!"&& sleep 1 && clear && global_exit
                exit 0 ;;
             *) _red "无效选项，请重新输入" ;;
