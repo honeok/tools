@@ -78,7 +78,8 @@ global_exit() {
     [ -f "$HOME/get-docker.sh" ] && rm -f "$HOME/get-docker.sh"
     [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
     [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
-    [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "check_x86-64_psabi.sh*"
+    [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh*"
+    [ -f "$HOME/upgrade_openssh9.8p1.sh" ] && rm -f "$HOME/upgrade_openssh9.8p1.sh"
 }
 
 print_logo() {
