@@ -39,15 +39,15 @@ curl -sL -O https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./h
 
 国内服务器：
 ```shell
-bash <(curl -sL https://gh.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
+bash <(curl -sL https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
 ```
 或
 ```shell
-bash <(wget -qO- https://gh.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
+bash <(wget -qO- https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
 ```
 或
 ```shell
-curl -sL -O https://gh.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
+curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
 ```
 
 ## 支持的系统
