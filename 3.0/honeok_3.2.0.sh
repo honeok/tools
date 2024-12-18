@@ -87,7 +87,7 @@ global_exit() {
     [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
     [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
     [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh*"
-    [ -f "$HOME/upgrade_openssh9.8p1.sh" ] && rm -f "$HOME/upgrade_openssh9.8p1.sh"
+    [ -f "$HOME/upgrade_ssh.sh" ] && rm -f "$HOME/upgrade_ssh.sh"
 }
 
 print_logo() {
@@ -6824,7 +6824,7 @@ EOF
             26)
                 need_root
                 cd ~
-                curl -fskL -o "upgrade_openssh.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/upgrade_openssh9.8p1.sh"
+                curl -fskL -o "upgrade_openssh.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/upgrade_ssh.sh"
                 chmod +x upgrade_openssh.sh
                 ./upgrade_openssh.sh
                 rm -f upgrade_openssh.sh
