@@ -49,6 +49,14 @@ _suc_msg() { echo -e "$suc_msg $@"; }
 export DEBIAN_FRONTEND=noninteractive
 os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
 
+short_separator() {
+    printf "%-20s\n" "-" | sed 's/\s/-/g'
+}
+
+long_separator() {
+    printf "%-40s\n" "-" | sed 's/\s/-/g'
+}
+
 honeok_pid="/tmp/honeok.pid"
 if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
@@ -373,7 +381,7 @@ system_info() {
     fi
 
     echo "系统信息查询"
-    echo "-------------------------"
+    short_separator
     echo "CPU 型号          : ${cpu_model}"
     echo "CPU 核心数        : ${cpu_cores}"
     echo "CPU 频率          : ${cpu_frequency}"
@@ -393,15 +401,15 @@ system_info() {
     echo "网络接收数据量    : $(bytes_to_gb $total_recv_bytes)"
     echo "网络发送数据量    : $(bytes_to_gb $total_sent_bytes)"
     echo "虚拟化架构        : ${virt_type}"
-    echo "-------------------------"
+    short_separator
     echo "运营商            : ${isp_info}"
     [ ! -z "${ipv4_address}" ] && echo "公网IPv4地址      : ${ipv4_address}"
     [ ! -z "${ipv6_address}" ] && echo "公网IPv6地址      : ${ipv6_address}"
-    echo "-------------------------"
+    short_separator
     echo "地理位置          : ${location}"
     echo "系统时区          : ${system_time}"
     echo "北京时间          : ${china_time}"
-    echo "-------------------------"
+    short_separator
     echo ""
 }
 
@@ -802,28 +810,28 @@ linux_tools() {
     while true; do
         clear
         echo "▶ 基础工具"
-        echo "-------------------------"
+        short_separator
         echo "1. curl 下载工具                      2. wget下载工具"
         echo "3. sudo 超级管理权限工具              4. socat 通信连接工具"
         echo "5. htop 系统监控工具                  6. iftop 网络流量监控工具"
         echo "7. unzip ZIP压缩解压工具              8. tar GZ压缩解压工具"
         echo "9. tmux 多路后台运行工具              10. ffmpeg 视频编码直播推流工具"
-        echo "-------------------------"
+        short_separator
         echo "11. btop 现代化监控工具               12. ranger 文件管理工具"
         echo "13. Gdu 磁盘占用查看工具              14. fzf 全局搜索工具"
         echo "15. Vim文本编辑器                     16. nano文本编辑器"
-        echo "-------------------------"
+        short_separator
         echo "21. 黑客帝国屏保                      22. 跑火车屏保"
         echo "26. 俄罗斯方块小游戏                  27. 贪吃蛇小游戏"
         echo "28. 太空入侵者小游戏"
-        echo "-------------------------"
+        short_separator
         echo "31. 全部安装                          32. 全部安装（不含屏保和游戏）"
         echo "33. 全部卸载"
-        echo "-------------------------"
+        short_separator
         echo "41. 安装指定工具                      42. 卸载指定工具"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "-------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -1027,11 +1035,11 @@ linux_bbr() {
 
             echo ""
             echo "BBR管理"
-            echo "-------------------------"
+            short_separator
             echo "1. 开启BBRv3              2. 关闭BBRv3（会重启）"
-            echo "-------------------------"
+            short_separator
             echo "0. 返回上一级选单"
-            echo "-------------------------"
+            short_separator
 
             echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
             read -r choice
@@ -1070,7 +1078,7 @@ docker_global_status() {
     local volume_count=$(docker volume ls -q 2>/dev/null | wc -l)
 
     if command -v docker >/dev/null 2>&1; then
-        echo "-------------------------"
+        short_separator
         echo -e "${green}环境已经安装${white}  容器: ${green}${container_count}${white}  镜像: ${green}${image_count}${white}  网络: ${green}${network_count}${white}  卷: ${green}${volume_count}${white}"
     fi
 }
@@ -1450,19 +1458,19 @@ docker_ps() {
         docker ps -a
         echo ""
         echo "容器操作"
-        echo "------------------------"
+        short_separator
         echo "1. 创建新的容器"
-        echo "------------------------"
+        short_separator
         echo "2. 启动指定容器             6. 启动所有容器"
         echo "3. 停止指定容器             7. 停止所有容器"
         echo "4. 删除指定容器             8. 删除所有容器"
         echo "5. 重启指定容器             9. 重启所有容器"
-        echo "------------------------"
+        short_separator
         echo "11. 进入指定容器            12. 查看容器日志"
         echo "13. 查看容器网络            14. 查看容器占用"
-        echo "------------------------"
+        short_separator
         echo "0. 返回上一级选单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -1531,7 +1539,7 @@ docker_ps() {
             13)
                 echo ""
                 container_ids=$(docker ps -q)
-                echo "------------------------------------------------------------"
+                long_separator
                 printf "%-25s %-25s %-25s\n" "容器名称" "网络名称" "IP地址"
                 for container_id in $container_ids; do
                     container_info=$(docker inspect --format '{{ .Name }}{{ range $network, $config := .NetworkSettings.Networks }} {{ $network }} {{ $config.IPAddress }}{{ end }}' "$container_id")
@@ -1566,12 +1574,12 @@ docker_image() {
         docker image ls
         echo ""
         echo "镜像操作"
-        echo "------------------------"
+        short_separator
         echo "1. 获取指定镜像             3. 删除指定镜像"
         echo "2. 更新指定镜像             4. 删除所有镜像"
-        echo "------------------------"
+        short_separator
         echo "0. 返回上一级选单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -1634,29 +1642,29 @@ docker_manager() {
         clear
         echo "▶ Docker管理"
         docker_global_status
-        echo "-------------------------"
+        short_separator
         echo "1. 安装更新Docker环境"
-        echo "-------------------------"
+        short_separator
         echo "2. 查看Docker全局状态"
-        echo "-------------------------"
+        short_separator
         echo "3. Docker容器管理 ▶"
         echo "4. Docker镜像管理 ▶"
         echo "5. Docker网络管理 ▶"
         echo "6. Docker卷管理 ▶"
-        echo "-------------------------"
+        short_separator
         echo "7. 清理无用的docker容器和镜像网络数据卷"
-        echo "------------------------"
+        short_separator
         echo "8. 更换Docker源"
         echo "9. 编辑Docker配置文件"
-        echo "10. Docker配置文件一键优化（CN提供镜像加速）"
-        echo "------------------------"
+        echo "10. Docker配置文件一键优化(CN提供镜像加速)"
+        short_separator
         echo "11. 开启Docker-ipv6访问"
         echo "12. 关闭Docker-ipv6访问"
-        echo "------------------------"
+        short_separator
         echo "20. 卸载Docker环境"
-        echo "------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -1727,10 +1735,10 @@ docker_manager() {
                 while true; do
                     clear
                     echo "Docker网络列表"
-                    echo "------------------------------------------------------------"
+                    long_separator
                     docker network ls
                     echo ""
-                    echo "------------------------------------------------------------"
+                    long_separator
                     container_ids=$(docker ps -q)
                     printf "%-25s %-25s %-25s\n" "容器名称" "网络名称" "IP地址"
 
@@ -1749,14 +1757,14 @@ docker_manager() {
 
                     echo ""
                     echo "网络操作"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 创建网络"
                     echo "2. 加入网络"
                     echo "3. 退出网络"
                     echo "4. 删除网络"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级选单"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -1809,13 +1817,13 @@ docker_manager() {
                     docker volume ls
                     echo ""
                     echo "卷操作"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 创建新卷"
                     echo "2. 删除指定卷"
                     echo "3. 删除所有卷"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级选单"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -2307,7 +2315,7 @@ ldnmp_version() {
         echo -e "     Redis: ${red}NONE${white}"
     fi
 
-    echo "------------------------"
+    short_separator
     echo ""
 }
 
@@ -2573,7 +2581,7 @@ linux_ldnmp() {
     while true; do
         clear
         echo "▶ LDNMP建站"
-        echo "------------------------"
+        short_separator
         echo "1. 安装LDNMP环境"
         echo "2. 安装WordPress"
         echo "3. 安装Discuz论坛"
@@ -2583,26 +2591,26 @@ linux_ldnmp() {
         echo "7. 安装Flarum论坛网站"
         echo "8. 安装Typecho轻量博客网站"
         echo "20. 自定义动态站点"
-        echo "------------------------"
+        short_separator
         echo "21. 仅安装Nginx"
         echo "22. 站点重定向"
         echo "23. 站点反向代理-IP+端口"
         echo "24. 站点反向代理-域名"
         echo "25. 自定义静态站点"
-        echo "------------------------"
+        short_separator
         echo "31. 站点数据管理"
         echo "32. 备份全站数据"
         echo "33. 定时远程备份"
         echo "34. 还原全站数据"
-        echo "------------------------"
+        short_separator
         echo "35. 站点防御程序"
-        echo "------------------------"
+        short_separator
         echo "36. 优化LDNMP环境"
         echo "37. 更新LDNMP环境"
         echo "38. 卸载LDNMP环境"
-        echo "------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -2703,7 +2711,7 @@ linux_ldnmp() {
                 echo "数据库地址: mysql"
                 echo "数据库端口: 3306"
                 echo "表前缀: mac_"
-                echo "------------------------"
+                short_separator
                 echo "安装成功后登录后台地址"
                 echo "https://$domain/vip.php"
                 ;;
@@ -2741,10 +2749,10 @@ linux_ldnmp() {
                 echo ""
                 echo "网站url: https://$domain"
                 echo "后台登录路径: /admin"
-                echo "------------------------"
+                short_separator
                 echo "用户名: admin"
                 echo "密码: admin"
-                echo "------------------------"
+                short_separator
                 echo "后台登录出现0err或者其他登录异常问题"
                 echo "使用命令: sed -i 's/ADMIN_HTTPS=false/ADMIN_HTTPS=true/g' $djsk_dir/dujiaoka/.env"
                 ;;
@@ -2831,7 +2839,7 @@ linux_ldnmp() {
 
                 clear
                 echo -e "[${yellow}1/6${white}] 上传PHP源码"
-                echo "-------------"
+                short_separator
                 echo "目前只允许上传zip格式的源码包，请将源码包放到$dyna_dir目录下"
                 echo -n "也可以输入下载链接远程下载源码包，直接回车将跳过远程下载:"
                 read -r url_download
@@ -2845,7 +2853,7 @@ linux_ldnmp() {
 
                 clear
                 echo -e "[${yellow}2/6${white}] index.php所在路径"
-                echo "-------------"
+                short_separator
                 find "$(realpath .)" -name "index.php" -print
 
                 echo -n "请输入index.php的路径，如($nginx_dir/html/$domain/wordpress/):"
@@ -2856,7 +2864,7 @@ linux_ldnmp() {
 
                 clear
                 echo -e "[${yellow}3/6${white}] 请选择PHP版本"
-                echo "-------------"
+                short_separator
                 echo -n "1. php最新版 | 2. php7.4:" 
                 read -r php_v
 
@@ -2876,7 +2884,7 @@ linux_ldnmp() {
 
                 clear
                 echo -e "[${yellow}4/6${white}] 安装指定扩展"
-                echo "-------------"
+                short_separator
                 echo "已经安装的扩展"
                 docker exec php php -m
 
@@ -2888,14 +2896,14 @@ linux_ldnmp() {
 
                 clear
                 echo -e "[${yellow}5/6${white}] 编辑站点配置"
-                echo "-------------"
+                short_separator
                 echo "按任意键继续，可以详细设置站点配置，如伪静态等内容"
                 read -n 1 -s -r -p ""
                 vim "$nginx_dir/conf.d/$domain.conf"
 
                 clear
                 echo -e "[${yellow}6/6${white}] 数据库管理"
-                echo "-------------"
+                short_separator
                 echo -n "1. 我搭建新站        2. 我搭建老站有数据库备份:"
                 read -r use_db
                 case $use_db in
@@ -3043,7 +3051,7 @@ linux_ldnmp() {
 
                 clear
                 echo -e "[${yellow}1/2${white}] 上传静态源码"
-                echo "-------------"
+                short_separator
                 echo "目前只允许上传zip格式的源码包，请将源码包放到$static_dir目录下"
                 echo -n "也可以输入下载链接远程下载源码包，直接回车将跳过远程下载:"
                 read -r url_download
@@ -3057,7 +3065,7 @@ linux_ldnmp() {
 
                 clear
                 echo -e "[${yellow}2/6${white}] index.html所在路径"
-                echo "-------------"
+                short_separator
                 find "$(realpath .)" -name "index.html" -print
 
                 echo -n "请输入index.html的路径，如($nginx_dir/html/$domain/index/):"
@@ -3083,11 +3091,11 @@ linux_ldnmp() {
                     clear
                     echo "LDNMP站点管理"
                     echo "LDNMP环境"
-                    echo "------------------------"
+                    short_separator
                     ldnmp_version
 
                     echo "站点信息                      证书到期时间"
-                    echo "------------------------"
+                    short_separator
                     for cert_file in /data/docker_data/web/nginx/certs/*_cert.pem; do
                         if [ -f "$cert_file" ]; then
                             domain=$(basename "$cert_file" | sed 's/_cert.pem//')
@@ -3098,33 +3106,33 @@ linux_ldnmp() {
                             fi
                         fi
                     done
-                    echo "------------------------"
+                    short_separator
                     echo ""
                     echo "数据库信息"
-                    echo "------------------------"
+                    short_separator
                     if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
                         DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
                         docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2> /dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys"
                     else
                         _red "NONE"
                     fi
-                    echo "------------------------"
+                    short_separator
                     echo ""
                     echo "站点目录"
-                    echo "------------------------"
+                    short_separator
                     echo "数据目录: $nginx_dir/html     证书目录: $nginx_dir/certs     配置文件目录: $nginx_dir/conf.d"
-                    echo "------------------------"
+                    short_separator
                     echo ""
                     echo "操作"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 申请/更新域名证书               2. 修改域名"
                     echo "3. 清理站点缓存                    4. 查看站点分析报告"
                     echo "5. 编辑全局配置                    6. 编辑站点配置"
-                    echo "------------------------"
+                    short_separator
                     echo "7. 删除指定站点                    8. 删除指定数据库"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级选单"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -3307,7 +3315,7 @@ linux_ldnmp() {
                 sed -i "s/0.0.0.0/$useip/g" "${useip}_backup.sh"
                 sed -i "s/123456/$usepasswd/g" "${useip}_backup.sh"
 
-                echo "------------------------"
+                short_separator
                 echo "1. 每周备份                 2. 每天备份"
 
                 echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
@@ -3361,21 +3369,21 @@ linux_ldnmp() {
                     while true; do
                         clear
                         echo "服务器防御程序已启动"
-                        echo "------------------------"
+                        short_separator
                         echo "1. 开启SSH防暴力破解              2. 关闭SSH防暴力破解"
                         echo "3. 开启网站保护                   4. 关闭网站保护"
-                        echo "------------------------"
+                        short_separator
                         echo "5. 查看SSH拦截记录                6. 查看网站拦截记录"
                         echo "7. 查看防御规则列表               8. 查看日志实时监控"
-                        echo "------------------------"
+                        short_separator
                         echo "11. 配置拦截参数"
-                        echo "------------------------"
+                        short_separator
                         echo "21. cloudflare模式                22. 高负载开启5秒盾"
-                        echo "------------------------"
+                        short_separator
                         echo "9. 卸载防御程序"
-                        echo "------------------------"
+                        short_separator
                         echo "0. 退出"
-                        echo "------------------------"
+                        short_separator
 
                         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                         read -r choice
@@ -3402,30 +3410,30 @@ linux_ldnmp() {
                                 fail2ban_status
                                 ;;
                             5)
-                                echo "------------------------"
+                                short_separator
                                 fail2ban_sshd
-                                echo "------------------------"
+                                short_separator
                                 ;;
                             6)
-                                echo "------------------------"
+                                short_separator
                                 jail_name=fail2ban-nginx-cc
                                 fail2ban_status_jail
-                                echo "------------------------"
+                                short_separator
                                 jail_name=docker-nginx-bad-request
                                 fail2ban_status_jail
-                                echo "------------------------"
+                                short_separator
                                 jail_name=docker-nginx-botsearch
                                 fail2ban_status_jail
-                                echo "------------------------"
+                                short_separator
                                 jail_name=docker-nginx-http-auth
                                 fail2ban_status_jail
-                                echo "------------------------"
+                                short_separator
                                 jail_name=docker-nginx-limit-req
                                 fail2ban_status_jail
-                                echo "------------------------"
+                                short_separator
                                 jail_name=docker-php-url-fopen
                                 fail2ban_status_jail
-                                echo "------------------------"
+                                short_separator
                                 ;;
                             7)
                                 docker exec fail2ban fail2ban-client status
@@ -3497,7 +3505,7 @@ linux_ldnmp() {
                                 ;;
                             22)
                                 echo "网站每5分钟自动检测，当达检测到高负载会自动开盾，低负载也会自动关闭5秒盾"
-                                echo "------------------------"
+                                short_separator
 
                                 # 获取CFUSER
                                 while true; do
@@ -3605,11 +3613,11 @@ linux_ldnmp() {
                 while true; do
                     clear
                     echo "优化LDNMP环境"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 标准模式              2. 高性能模式（推荐2H2G以上）"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 退出"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -3682,14 +3690,14 @@ linux_ldnmp() {
                 while true; do
                     clear
                     echo "更新LDNMP环境"
-                    echo "------------------------"
+                    short_separator
                     ldnmp_version
                     echo "1. 更新Nginx     2. 更新MySQL（建议不做更新）     3. 更新PHP     4. 更新Redis"
-                    echo "------------------------"
+                    short_separator
                     echo "5. 更新完整环境"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -4018,32 +4026,32 @@ reinstall_system() {
         clear
         echo -e "${red}注意: ${white}重装有风险失联，不放心者慎用重装预计花费15分钟，请提前备份数据！"
         _blue "感谢MollyLau大佬和bin456789大佬的脚本支持！"
-        echo "-------------------------"
+        short_separator
         _yellow "${os_text}"
-        echo "-------------------------"
+        short_separator
         echo "1. Debian 12                  2. Debian 11"
         echo "3. Debian 10                  4. Debian 9"
-        echo "-------------------------"
+        short_separator
         echo "11. Ubuntu 24.04              12. Ubuntu 22.04"
         echo "13. Ubuntu 20.04              14. Ubuntu 18.04"
-        echo "-------------------------"
+        short_separator
         echo "21. Rocky Linux 9             22. Rocky Linux 8"
         echo "23. Alma Linux 9              24. Alma Linux 8"
         echo "25. Oracle Linux 9            26. Oracle Linux 8"
         echo "27. Fedora Linux 41           28. Fedora Linux 40"
         echo "29. CentOS 9                  30. CentOS 7"
-        echo "-------------------------"
+        short_separator
         echo "31. Alpine Linux              32. Arch Linux"
         echo "33. Kali Linux                34. openEuler"
         echo "35. openSUSE Tumbleweed       36. gentoo"
-        echo "-------------------------"
+        short_separator
         echo "41. Windows 11                42. Windows 10"
         echo "43. Windows 7                 44. Windows Server 2022"
         echo "45. Windows Server 2019       46. Windows Server 2016"
         echo "47. Windows 11 ARM"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回上一级菜单"
-        echo "-------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -4367,11 +4375,11 @@ set_default_qdisc() {
     # 提供用户选择菜单
     while true; do
         echo "请选择要设置的队列规则"
-        echo "-------------------------"
+        short_separator
         echo "1. fq （默认值）: 基本的公平排队算法，旨在确保每个流获得公平的带宽分配，防止某个流占用过多带宽"
         echo "2. fq_pie      : 将FQ和PI（Proportional Integral）控制结合在一起，旨在改善延迟和带宽利用率"
         echo "3. fq_codel    : 结合了公平排队和控制延迟的算法，通过主动丢包和公平分配带宽来减少延迟并提高多流的性能"
-        echo "-------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认（回车使用默认值 fq）: ${white}"
         read -r choice
@@ -4451,11 +4459,11 @@ xanmod_bbr3() {
 
             echo ""
             echo "内核管理"
-            echo "-------------------------"
+            short_separator
             echo "1. 更新BBRv3内核              2. 卸载BBRv3内核"
-            echo "-------------------------"
+            short_separator
             echo "0. 返回上一级选单"
-            echo "-------------------------"
+            short_separator
 
             echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
             read -r choice
@@ -4499,11 +4507,11 @@ xanmod_bbr3() {
         # 未安装则安装
         clear
         echo "请备份数据，将为你升级Linux内核开启XanMod BBR3"
-        echo "------------------------------------------------"
+        long_separator
         echo "仅支持Debian/Ubuntu并且仅支持x86_64架构"
         echo "请备份数据，将为你升级Linux内核开启BBR3！"
         echo "VPS是512M内存的，请提前添加1G虚拟内存，防止因内存不足失联！"
-        echo "------------------------------------------------"
+        long_separator
 
         echo -n -e "${yellow}确定继续吗?(y/n)${white}"
         read -r choice
@@ -4573,11 +4581,11 @@ linux_mirror() {
         clear
         echo "选择更新源区域"
         echo "接入LinuxMirrors切换系统更新源"
-        echo "-------------------------"
+        short_separator
         echo "1. 中国大陆【默认】          2. 中国大陆【教育网】          3. 海外地区"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回上一级"
-        echo "-------------------------"
+        short_separator
     
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -4706,16 +4714,16 @@ cron_manager() {
         check_crontab_installed
         clear
         echo "定时任务列表"
-        echo "-------------------------"
+        short_separator
         crontab -l
-        echo "-------------------------"
+        short_separator
         echo "操作"
-        echo "-------------------------"
+        short_separator
         echo "1. 添加定时任务              2. 删除定时任务"
         echo "3. 编辑定时任务              4. 删除所有定时任务"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回上一级选单"
-        echo "-------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -4724,10 +4732,10 @@ cron_manager() {
             1)
                 echo -n -e "${yellow}请输入新任务的执行命令:${white}"
                 read -r newquest
-                echo "-------------------------"
+                short_separator
                 echo "1. 每月任务                 2. 每周任务"
                 echo "3. 每天任务                 4. 每小时任务"
-                echo "-------------------------"
+                short_separator
 
                 echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                 read -r dingshi
@@ -4841,9 +4849,9 @@ add_sshkey() {
     # 获取 IP 地址
     ip_address
     echo -e "私钥信息已生成务必复制保存，可保存为${yellow}${ipv4_address}_ssh.key${white}文件，用于以后的SSH登录"
-    echo "--------------------------------"
+    short_separator
     cat ~/.ssh/sshkey
-    echo "--------------------------------"
+    short_separator
 
     # 修改 sshd 配置，禁止密码登录，仅允许公钥登录
     sed -i -e 's/^\s*#\?\s*PermitRootLogin .*/PermitRootLogin prohibit-password/' \
@@ -4866,10 +4874,10 @@ telegram_bot() {
     local TG_SSH_check_notify_hash="61813dc31c2a3d335924a5d24bf212350848dc748c4811e362c06a9b313167c1"
 
     echo "TG-bot监控预警功能"
-    echo "----------------------------"
+    short_separator
     echo "您需要配置TG机器人API和接收预警的用户ID，即可实现本机CPU/内存/硬盘/流量/SSH登录的实时监控预警"
     echo "到达阈值后会向用户发预警消息，流量重启服务器将重新计算"
-    echo "----------------------------"
+    short_separator
                 
     echo -n -e "${yellow}确定继续吗?(y/n):${white}"
     read -r choice
@@ -4993,11 +5001,11 @@ redhat_kernel_update() {
 
             echo ""
             echo "内核管理"
-            echo "------------------------"
+            short_separator
             echo "1. 更新elrepo内核     2. 卸载elrepo内核"
-            echo "------------------------"
+            short_separator
             echo "0. 返回上一级选单"
-            echo "------------------------"
+            short_separator
 
             echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
             read -r choice
@@ -5026,10 +5034,10 @@ redhat_kernel_update() {
     else
         clear
         _yellow "请备份数据，将为你升级Linux内核"
-        echo "------------------------------------------------"
+        long_separator
         echo "仅支持红帽系列发行版CentOS/RedHat/Alma/Rocky/oracle"
         echo "升级Linux内核可提升系统性能和安全，建议有条件的尝试，生产环境谨慎升级！"
-        echo "------------------------------------------------"
+        long_separator
 
         echo -n -e "${yellow}确定继续吗(y/n):${white}"
         read -r choice
@@ -5219,14 +5227,14 @@ clamav_antivirus() {
     while true; do
         clear
         echo "clamav病毒扫描工具"
-        echo "------------------------"
+        short_separator
         echo "clamav是一个开源的防病毒软件工具，主要用于检测和删除各种类型的恶意软件"
         echo "包括病毒,特洛伊木马,间谍软件，恶意脚本和其他有害软件"
-        echo "------------------------"
+        short_separator
         echo "1. 全盘扫描     2. 重要目录扫描     3. 自定义目录扫描"
-        echo "------------------------"
+        short_separator
         echo "0. 返回上一级选单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -5270,23 +5278,23 @@ file_manage() {
     while true; do
         clear
         echo "文件管理器"
-        echo "------------------------"
+        short_separator
         echo "当前路径"
         echo "$(dirname "$(realpath "$0")")"
-        echo "------------------------"
+        short_separator
         ls --color=auto -x
-        echo "------------------------"
+        short_separator
         echo "1.  进入目录           2.  创建目录             3.  修改目录权限         4.  重命名目录"
         echo "5.  删除目录           6.  返回上一级目录"
-        echo "------------------------"
+        short_separator
         echo "11. 创建文件           12. 编辑文件             13. 修改文件权限         14. 重命名文件"
         echo "15. 删除文件"
-        echo "------------------------"
+        short_separator
         echo "21. 压缩文件目录       22. 解压文件目录         23. 移动文件目录         24. 复制文件目录"
         echo "25. 传文件至其他服务器"
-        echo "------------------------"
+        short_separator
         echo "0.  返回上一级"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -5497,11 +5505,11 @@ linux_language() {
     need_root
     while true; do
         echo "当前系统语言: $LANG"
-        echo "------------------------"
+        short_separator
         echo "1. 英文          2. 简体中文          3. 繁体中文"
-        echo "------------------------"
+        short_separator
         echo "0. 返回上一级"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -5549,7 +5557,7 @@ shell_colorchange() {
     while true; do
         clear
         echo "命令行美化工具"
-        echo "------------------------"
+        short_separator
         echo -e "1. \033[1;32mroot \033[1;34mlocalhost \033[1;31m~ \033[0m${white}#"
         echo -e "2. \033[1;35mroot \033[1;36mlocalhost \033[1;33m~ \033[0m${white}#"
         echo -e "3. \033[1;31mroot \033[1;32mlocalhost \033[1;34m~ \033[0m${white}#"
@@ -5557,9 +5565,9 @@ shell_colorchange() {
         echo -e "5. \033[1;37mroot \033[1;31mlocalhost \033[1;32m~ \033[0m${white}#"
         echo -e "6. \033[1;33mroot \033[1;34mlocalhost \033[1;35m~ \033[0m${white}#"
         echo -e "7. root localhost ~ #"
-        echo "------------------------"
+        short_separator
         echo "0. 返回上一级"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -5621,14 +5629,14 @@ linux_trash() {
         clear
         echo -e "当前回收站 ${trash_status}"
         echo "启用后rm删除的文件先进入回收站，防止误删重要文件！"
-        echo "------------------------------------------------"
+        long_separator
         ls -l --color=auto "$TRASH_DIR" 2>/dev/null || echo "回收站为空"
-        echo "------------------------"
+        short_separator
         echo "1. 启用回收站          2. 关闭回收站"
         echo "3. 还原内容            4. 清空回收站"
-        echo "------------------------"
+        short_separator
         echo "0. 返回上一级"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -5688,7 +5696,7 @@ cloudflare_ddns() {
     while true; do
         clear
         echo "Cloudflare ddns解析"
-        echo "-------------------------"
+        short_separator
         if [ -f /usr/local/bin/cf-ddns.sh ] || [ -f ${global_script_dir}/cf-v4-ddns.sh ]; then
             echo -e "${white}Cloudflare ddns: ${green}已安装${white}"
             crontab -l | grep "/usr/local/bin/cf-ddns.sh"
@@ -5698,11 +5706,11 @@ cloudflare_ddns() {
         fi
         [ ! -z "${ipv4_address}" ] && echo "公网IPV4地址: ${ipv4_address}"
         [ ! -z "${ipv6_address}" ] && echo "公网IPV6地址: ${ipv6_address}"
-        echo "-------------------------"
+        short_separator
         echo "1. 设置DDNS动态域名解析     2. 删除DDNS动态域名解析"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回上一级"
-        echo "-------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -5847,34 +5855,34 @@ linux_system_tools() {
     while true; do
         clear
         echo "▶ 系统工具"
-        echo "------------------------"
+        short_separator
         echo "2. 修改登录密码"
         echo "3. root密码登录模式                    4. 安装Python指定版本"
         echo "5. 开放所有端口                        6. 修改SSH连接端口"
         echo "7. 优化DNS地址                         8. 一键重装系统"
         echo "9. 禁用root账户创建新账户              10. 切换IPV4/IPV6优先"
-        echo "------------------------"
+        short_separator
         echo "11. 查看端口占用状态                   12. 修改虚拟内存大小"
         echo "13. 用户管理                           14. 用户/密码随机生成器"
         echo "15. 系统时区调整                       16. 设置XanMod BBR3"
         echo "17. 防火墙高级管理器                   18. 修改主机名"
         echo "19. 切换系统更新源                     20. 定时任务管理"
-        echo "------------------------"
+        short_separator
         echo "21. 本机host解析                       22. Fail2banSSH防御程序"
         echo "23. 限流自动关机                       24. root私钥登录模式"
         echo "25. TG-bot系统监控预警                 26. 修复OpenSSH高危漏洞（岫源）"
         echo "27. 红帽系Linux内核升级                28. Linux系统内核参数优化"
         echo "29. 病毒扫描工具                       30. 文件管理器"
-        echo "------------------------"
+        short_separator
         echo "31. 切换系统语言                       32. 命令行美化工具"
         echo "33. 设置系统回收站"
-        echo "------------------------"
+        short_separator
         echo "50. Cloudflare ddns解析                51. 一条龙系统调优"
-        echo "------------------------"
+        short_separator
         echo "99. 重启服务器"
-        echo "------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -5891,14 +5899,14 @@ linux_system_tools() {
             4)
                 need_root
                 echo "Python版本管理"
-                echo "------------------------"
+                short_separator
                 echo "该功能可无缝安装Python官方支持的任何版本！"
                 VERSION=$(python3 -V 2>&1 | awk '{print $2}')
                 echo -e "当前python版本号: ${yellow}$VERSION${white}"
-                echo "------------------------"
+                short_separator
                 echo "推荐版本:  3.12    3.11    3.10    3.9    3.8    2.7"
                 echo "查询更多版本: https://www.python.org/downloads/"
-                echo "------------------------"
+                short_separator
 
                 echo -n -e "${yellow}请输入选项并按回车键确认（0退出）: ${white}"
                 read -r py_new_v
@@ -5983,7 +5991,7 @@ EOF
 
                     # 打印当前的SSH端口号
                     echo -e "当前的SSH端口号是: ${yellow}$current_port${white}"
-                    echo "------------------------"
+                    short_separator
                     echo "端口号范围10000到65535之间的数字（按0退出）"
 
                     # 提示用户输入新的SSH端口号
@@ -6011,24 +6019,24 @@ EOF
                 while true; do
                     clear
                     echo "优化DNS地址"
-                    echo "------------------------"
+                    short_separator
                     echo "当前DNS地址"
                     cat /etc/resolv.conf
-                    echo "------------------------"
+                    short_separator
                     echo "国外DNS优化: "
                     echo "v4: 1.1.1.1 8.8.8.8"
                     echo "v6: 2606:4700:4700::1111 2001:4860:4860::8888"
                     echo "国内DNS优化: "
                     echo "v4: 223.5.5.5 183.60.83.19"
                     echo "v6: 2400:3200::1 2400:da00::6666"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 设置DNS优化"
                     echo "2. 恢复DNS原有配置"
                     echo "3. 手动编辑DNS配置"
                     echo -e "4. 锁定/解锁DNS文件 当前状态$(lock_dns_status)"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -6105,7 +6113,7 @@ EOF
                 while true; do
                     clear
                     echo "设置v4/v6优先级"
-                    echo "------------------------"
+                    short_separator
                     ipv6_disabled=$(sysctl -n net.ipv6.conf.all.disable_ipv6)
 
                     if [ "$ipv6_disabled" -eq 1 ]; then
@@ -6114,9 +6122,9 @@ EOF
                         echo -e "当前网络优先级设置:${yellow}IPv6${white}优先"
                     fi
                     echo ""
-                    echo "------------------------"
+                    short_separator
                     echo "1. IPv4 优先          2. IPv6 优先          3. IPv6 修复工具          0. 退出"
-                    echo "------------------------"
+                    short_separator
                     echo -n "选择优先的网络:"
                     read -r choice
 
@@ -6157,9 +6165,9 @@ EOF
                     swap_info=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {percentage=0} else {percentage=used*100/total}; printf "%dMB/%dMB (%d%%)", used, total, percentage}')
 
                     _yellow "当前虚拟内存: ${swap_info}"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 分配1024MB         2. 分配2048MB         3. 自定义大小         0. 退出"
-                    echo "------------------------"
+                    short_separator
                     
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -6196,7 +6204,7 @@ EOF
                 while true; do
                     need_root
                     echo "用户列表"
-                    echo "----------------------------------------------------------------------------"
+                    long_separator
                     printf "%-24s %-34s %-20s %-10s\n" "用户名" "用户权限" "用户组" "sudo权限"
                     while IFS=: read -r username _ userid groupid _ _ homedir shell; do
                         groups=$(groups "$username" | cut -d : -f 2)
@@ -6206,15 +6214,15 @@ EOF
 
                     echo ""
                     echo "账户操作"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 创建普通账户             2. 创建高级账户"
-                    echo "------------------------"
+                    short_separator
                     echo "3. 赋予最高权限             4. 取消最高权限"
-                    echo "------------------------"
+                    short_separator
                     echo "5. 删除账号"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级选单"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -6274,7 +6282,7 @@ EOF
             14)
                 clear
                 echo "随机用户名"
-                echo "------------------------"
+                short_separator
                 for i in {1..5}; do
                     username="user$(< /dev/urandom tr -dc _a-z0-9 | head -c6)"
                     echo "随机用户名 $i: $username"
@@ -6282,7 +6290,7 @@ EOF
 
                 echo ""
                 echo "随机姓名"
-                echo "------------------------"
+                short_separator
                 first_names=("John" "Jane" "Michael" "Emily" "David" "Sophia" "William" "Olivia" "James" "Emma" "Ava" "Liam" "Mia" "Noah" "Isabella")
                 last_names=("Smith" "Johnson" "Brown" "Davis" "Wilson" "Miller" "Jones" "Garcia" "Martinez" "Williams" "Lee" "Gonzalez" "Rodriguez" "Hernandez")
 
@@ -6296,7 +6304,7 @@ EOF
 
                 echo ""
                 echo "随机UUID"
-                echo "------------------------"
+                short_separator
                 for i in {1..5}; do
                     uuid=$(cat /proc/sys/kernel/random/uuid)
                     echo "随机UUID $i: $uuid"
@@ -6304,7 +6312,7 @@ EOF
 
                 echo ""
                 echo "16位随机密码"
-                echo "------------------------"
+                short_separator
                 for i in {1..5}; do
                     password=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c16)
                     echo "随机密码 $i: $password"
@@ -6312,7 +6320,7 @@ EOF
 
                 echo ""
                 echo "32位随机密码"
-                echo "------------------------"
+                short_separator
                 for i in {1..5}; do
                     password=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)
                     echo "随机密码 $i: $password"
@@ -6354,11 +6362,10 @@ EOF
                     echo "------------非洲------------"
                     echo "31. 南非约翰内斯堡时间       32. 埃及开罗时间"
                     echo "33. 摩洛哥拉巴特时间         34. 尼日利亚拉各斯时间"
-                    echo "----------------------------"
+                    short_separator
                     echo "0. 返回上一级选单"
-                    echo "----------------------------"
+                    short_separator
 
-                    # 提示用户输入选项
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
@@ -6408,23 +6415,23 @@ EOF
                     if dpkg -l | grep -q iptables-persistent; then
                         clear
                         echo "高级防火墙管理"
-                        echo "------------------------"
+                        short_separator
                         iptables -L INPUT
                         echo ""
                         echo "防火墙管理"
-                        echo "------------------------"
+                        short_separator
                         echo "1. 开放指定端口                 2.  关闭指定端口"
                         echo "3. 开放所有端口                 4.  关闭所有端口"
-                        echo "------------------------"
+                        short_separator
                         echo "5. IP白名单                    6.  IP黑名单"
                         echo "7. 清除指定IP"
-                        echo "------------------------"
+                        short_separator
                         echo "11. 允许PING                  12. 禁止PING"
-                        echo "------------------------"
+                        short_separator
                         echo "99. 卸载防火墙"
-                        echo "------------------------"
+                        short_separator
                         echo "0. 返回上一级选单"
-                        echo "------------------------"
+                        short_separator
                         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                         read -r choice
 
@@ -6516,7 +6523,7 @@ EOF
                     else
                         clear
                         echo "将为你安装防火墙，该防火墙仅支持Debian/Ubuntu"
-                        echo "---------------------------------------------"
+                        short_separator
                         echo -n -e "${yellow}确定继续吗?(y/n)${white}"
                         read -r choice
 
@@ -6573,7 +6580,7 @@ EOF
                     clear
                     current_hostname=$(hostname)
                     echo -e "当前主机名: $current_hostname"
-                    echo "------------------------"
+                    short_separator
                     echo -n "请输入新的主机名（输入0退出）:"
                     read -r new_hostname
 
@@ -6624,11 +6631,11 @@ EOF
                     cat /etc/hosts
                     echo ""
                     echo "操作"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 添加新的解析              2. 删除解析地址"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级选单"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r host_dns
@@ -6661,23 +6668,23 @@ EOF
                     if docker inspect fail2ban >/dev/null 2>&1 ; then
                     	clear
                     	echo "SSH防御程序已启动"
-                    	echo "------------------------"
+                    	short_separator
                     	echo "1. 查看SSH拦截记录"
                     	echo "2. 查看日志实时监控"
-                    	echo "------------------------"
+                    	short_separator
                     	echo "9. 卸载防御程序"
-                    	echo "------------------------"
+                    	short_separator
                     	echo "0. 退出"
-                    	echo "------------------------"
+                    	short_separator
 
                     	echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     	read -r choice
 
                     	case $choice in
                     		1)
-                                echo "------------------------"
+                                short_separator
                                 fail2ban_sshd
-                                echo "------------------------"
+                                short_separator
                                 end_of
                                 ;;
                     		2)
@@ -6719,9 +6726,9 @@ EOF
                     	clear
                     	echo "fail2ban是一个SSH防止暴力破解工具"
                     	echo "官网介绍: https://github.com/fail2ban/fail2ban"
-                    	echo "------------------------------------------------"
+                    	long_separator
                     	echo "工作原理:研判非法IP恶意高频访问SSH端口，自动进行IP封锁"
-                    	echo "------------------------------------------------"
+                    	long_separator
                     	echo -n -e "${yellow}确定继续吗?(y/n)${white}"
                     	read -r choice
 
@@ -6750,7 +6757,7 @@ EOF
                 while true; do
                     clear
                     echo "限流关机功能"
-                    echo "------------------------------------------------"
+                    long_separator
                     echo "当前流量使用情况，重启服务器流量计算会清零！"
                     output_status
                     echo "$output"
@@ -6766,10 +6773,11 @@ EOF
                         _red "当前未启用限流关机功能"
                     fi
                     echo ""
-                    echo "------------------------------------------------"
+                    long_separator
                     echo "系统每分钟会检测实际流量是否到达阈值，到达后会自动关闭服务器！"
-
-                    echo -n "1. 开启限流关机功能    2. 停用限流关机功能    0. 退出 :"
+                    echo "1. 开启限流关机功能    2. 停用限流关机功能    0. 退出"
+                    long_separator
+                    echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
                     case "$choice" in
@@ -6811,7 +6819,7 @@ EOF
             24)
                 need_root
                 echo "root私钥登录模式"
-                echo "------------------------------------------------"
+                long_separator
                 echo "将会生成密钥对，更安全的方式SSH登录"
                 echo -n -e "${yellow}确定继续吗?(y/n)${white}"
                 read -r choice
@@ -6848,19 +6856,19 @@ EOF
                 while true; do
                     clear
                     echo "Linux系统内核参数优化"
-                    echo "------------------------------------------------"
+                    long_separator
                     echo "提供多种系统参数调优模式,用户可以根据自身使用场景进行选择切换"
                     _yellow "生产环境请谨慎使用!"
-                    echo "--------------------"
+                    short_separator
                     echo "1. 高性能优化模式   :     最大化系统性能，优化文件描述符、虚拟内存、网络设置、缓存管理和CPU设置"
                     echo "2. 均衡优化模式     :     在性能与资源消耗之间取得平衡，适合日常使用"
                     echo "3. 网站优化模式     :     针对网站服务器进行优化，提高并发连接处理能力，响应速度和整体性能"
                     echo "4. 直播优化模式     :     针对直播推流的特殊需求进行优化，减少延迟，提高传输性能"
                     echo "5. 游戏服优化模式   :     针对游戏服务器进行优化，提高并发处理能力和响应速度"
                     echo "6. 还原默认设置     :     将系统设置还原为默认配置"
-                    echo "--------------------"
+                    short_separator
                     echo "0. 返回上一级"
-                    echo "--------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
@@ -6930,7 +6938,7 @@ EOF
             51)
                 need_root
                 echo "一条龙系统调优"
-                echo "------------------------------------------------"
+                long_separator
                 echo "将对以下内容进行操作与优化"
                 echo "1. 更新系统到最新"
                 echo "2. 清理系统垃圾文件"
@@ -6942,7 +6950,7 @@ EOF
                 echo -e "8. 自动优化DNS地址${yellow}海外: 1.1.1.1 8.8.8.8  国内: 223.5.5.5 ${white}"
                 echo -e "9. 安装常用工具${yellow}docker wget sudo tar unzip socat btop nano vim${white}"
                 echo -e "10. Linux系统内核参数优化切换到${yellow}均衡优化模式${white}"
-                echo "------------------------------------------------"
+                long_separator
 
                 echo -n -e "${yellow}确定一键调优吗?[y/n]${white}"
                 read -r choice
@@ -6950,39 +6958,39 @@ EOF
                 case "$choice" in
                     [Yy])
                         clear
-                        echo "------------------------------------------------"
+                        long_separator
                         linux_update
                         echo -e "[${green}OK${white}] 1/10. 更新系统到最新"
-                        echo "------------------------------------------------"
+                        long_separator
                         linux_clean
                         echo -e "[${green}OK${white}] 2/10. 清理系统垃圾文件"
-                        echo "------------------------------------------------"
+                        long_separator
                         new_swap=1024
                         add_swap
                         echo -e "[${green}OK${white}] 3/10. 设置虚拟内存${yellow}1G${white}"
-                        echo "------------------------------------------------"
+                        long_separator
                         new_port=22166
                         new_ssh_port
                         echo -e "[${green}OK${white}] 4/10. 设置SSH端口号为${yellow}${new_port}${white}"
-                        echo "------------------------------------------------"
+                        long_separator
                         iptables_open
                         remove iptables-persistent ufw firewalld iptables-services >/dev/null 2>&1
                         echo -e "[${green}OK${white}] 5/10. 开放所有端口"
-                        echo "------------------------------------------------"
+                        long_separator
                         bbr_on
                         echo -e "[${green}OK${white}] 6/10. 开启${yellow}BBR${white}加速"
-                        echo "------------------------------------------------"
+                        long_separator
                         set_timedate Asia/Shanghai
                         echo -e "[${green}OK${white}] 7/10. 设置时区到${yellow}上海${white}"
-                        echo "------------------------------------------------"
+                        long_separator
                         bak_dns
                         set_dns
                         echo -e "[${green}OK${white}] 8/10. 自动优化DNS地址${yellow}${white}"
-                        echo "------------------------------------------------"
+                        long_separator
                         install_docker
                         install wget sudo tar unzip socat btop nano vim
                         echo -e "[${green}OK${white}] 9/10. 安装常用工具${yellow}docker wget sudo tar unzip socat btop${white}"
-                        echo "------------------------------------------------"
+                        long_separator
                         optimize_balanced
                         echo -e "[${green}OK${white}] 10/10. Linux系统内核参数优化"
                         echo -e "${green}一条龙系统调优已完成${white}"
@@ -7049,7 +7057,7 @@ linux_workspace() {
         echo "系统将为你提供可以后台常驻运行的工作区，你可以用来执行长时间的任务"
         echo "即使你断开SSH，工作区中的任务也不会中断，后台常驻任务"
         echo "提示: 进入工作区后使用Ctrl+b再单独按d，退出工作区！"
-        echo "------------------------"
+        short_separator
         echo "1. 1号工作区"
         echo "2. 2号工作区"
         echo "3. 3号工作区"
@@ -7060,12 +7068,12 @@ linux_workspace() {
         echo "8. 8号工作区"
         echo "9. 9号工作区"
         echo "10. 10号工作区"
-        echo "------------------------"
+        short_separator
         echo "98. SSH常驻模式"
         echo "99. 工作区管理"
-        echo "------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -7141,11 +7149,11 @@ linux_workspace() {
                     fi
                     echo -e "SSH常驻模式 ${tmux_sshd_status}"
                     echo "开启后SSH连接后会直接进入常驻模式，直接回到之前的工作状态"
-                    echo "------------------------"
+                    short_separator
                     echo "1. 开启            2. 关闭"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r gongzuoqu_del
@@ -7175,15 +7183,15 @@ linux_workspace() {
                 while true; do
                     clear
                     echo "当前已存在的工作区列表"
-                    echo "------------------------"
+                    short_separator
                     tmux list-sessions
-                    echo "------------------------"
+                    short_separator
                     echo "1. 创建/进入工作区"
                     echo "2. 注入命令到后台工作区"
                     echo "3. 删除指定工作区"
-                    echo "------------------------"
+                    short_separator
                     echo "0. 返回上一级"
-                    echo "------------------------"
+                    short_separator
 
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r gongzuoqu_del
@@ -7230,7 +7238,7 @@ servertest_script() {
     while true; do
         clear
         echo "▶ 测试脚本合集"
-        echo "------------------------"
+        short_separator
         _yellow "IP及解锁状态检测"
         echo "1. ChatGPT 解锁状态检测"
         echo "2. Lmc999 流媒体解锁测试（最常用）"
@@ -7238,7 +7246,7 @@ servertest_script() {
         echo "4. Xykt 流媒体解锁检测（原生检测）"
         echo "5. Xykt IP质量体检"
         echo "6. 1-stream 流媒体解锁检测（准确度最高）"
-        echo "------------------------"
+        short_separator
         _yellow "网络线路测速"
         echo "12. Besttrace 三网回程延迟路由测试"
         echo "13. Mtr trace 三网回程线路测试"
@@ -7248,19 +7256,19 @@ servertest_script() {
         echo "17. Ludashi2020 三网线路测试"
         echo "18. i-abc 多功能测速脚本"
         echo "19. Chennhaoo 回程详细测试"
-        echo "------------------------"
+        short_separator
         _yellow "硬件性能测试"
         echo "20. Yabs 性能测试"
         echo "21. Icu/gb5 CPU性能测试脚本"
-        echo "------------------------"
+        short_separator
         _yellow "综合性测试"
         echo "30. Bench 性能测试"
         echo "31. Spiritysdx 融合怪测评"
         echo "32. LemonBench 综合测试"
         echo "33. NodeBench VPS聚合测试"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回菜单"
-        echo "-------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -7314,7 +7322,7 @@ servertest_script() {
                 clear
                 echo "Nxtrace指定IP回程测试脚本"
                 echo "可参考的IP列表"
-                echo "-------------------------"
+                short_separator
                 echo "北京电信: 219.141.136.12"
                 echo "北京联通: 202.106.50.1"
                 echo "北京移动: 221.179.155.161"
@@ -7330,7 +7338,7 @@ servertest_script() {
                 echo "湖南电信: 36.111.200.100"
                 echo "湖南联通: 42.48.16.100"
                 echo "湖南移动: 39.134.254.6"
-                echo "-------------------------"
+                short_separator
 
                 echo -n -e "${yellow}输入一个指定IP:${white}"
                 read -r testip
@@ -7401,7 +7409,7 @@ node_create() {
     while true; do
         clear
         echo "▶ 节点搭建脚本合集"
-        echo "-------------------------------"
+        short_separator
         _yellow "Sing-box多合一脚本/Argo隧道"
         echo "1. Fscarmen Sing-box"
         echo "3. FranzKafkaYu Sing-box"
@@ -7412,7 +7420,7 @@ node_create() {
         echo "9. Fscarmen Argo+Sing-box"
         echo "10. 甬哥Sing-box一键四协议共存"
         echo "11. vveg26 Reality Hysteria2二合一"
-        echo "-------------------------------"
+        short_separator
         _yellow "单协议/面板"
         echo "26. Vaxilu x-ui面板"
         echo "27. FranzKafkaYu x-ui面板"
@@ -7421,17 +7429,17 @@ node_create() {
         echo "30. Xeefei 中文版3x-ui面板"
         echo "31. Jonssonyan Hysteria2面板"
         echo "32. 极光面板"
-        echo "-------------------------------"
+        short_separator
         echo "40. OpenVPN一键安装脚本"
         echo "41. 一键搭建TG代理"
-        echo "-------------------------------"
+        short_separator
         _yellow "中转搭建一键脚本"
         echo "50. Multi EasyGost"
         echo "51. EZgost一键脚本（EasyGost改版）"
         echo "52. Realm一键安装脚本"
-        echo "-------------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "-------------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -7548,18 +7556,18 @@ oracle_script() {
     while true; do
         clear
         echo "▶ 甲骨文云脚本合集"
-        echo "-------------------------"
+        short_separator
         echo "1. 安装闲置机器活跃脚本"
         echo "2. 卸载闲置机器活跃脚本"
-        echo "-------------------------"
+        short_separator
         echo "3. DD重装系统脚本"
         echo "4. R探长开机脚本"
-        echo "-------------------------"
+        short_separator
         echo "5. 开启root密码登录模式"
         echo "6. IPV6恢复工具"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -7624,7 +7632,7 @@ oracle_script() {
             3)
                 clear
                 _yellow "重装系统"
-                echo "-------------------------"
+                short_separator
                 _yellow "注意: 重装有风险失联，不放心者慎用，重装预计花费15分钟，请提前备份数据！"
                 
                 echo -n -e "${yellow}确定继续吗?(y/n):${white}"
@@ -7704,11 +7712,11 @@ palworld() {
         echo ""
         echo "幻兽帕鲁管理"
         echo "作者: kejilion"
-        echo "-------------------------"
+        short_separator
         echo "1. 安装脚本     2. 卸载脚本     3. 运行脚本"
-        echo "-------------------------"
+        short_separator
         echo "0. 返回主菜单"
-        echo "-------------------------"
+        short_separator
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
@@ -7754,7 +7762,7 @@ honeok() {
         print_logo
         _purple "适配Ubuntu/Debian/CentOS/Alpine/Kali/Arch/RedHat/Fedora/Alma/Rocky系统"
         echo -e "${cyan}Author: honeok${white}  ${yellow}${honeok_v}${white}"
-        echo "------------------------"
+        short_separator
         echo "1.   系统信息查询"
         echo "2.   系统更新"
         echo "3.   系统清理"
@@ -7768,11 +7776,11 @@ honeok() {
         echo "15.  测试脚本合集 ▶"
         echo "16.  节点搭建脚本合集 ▶"
         echo "17.  甲骨文云脚本合集 ▶"
-        echo "------------------------"
+        short_separator
         echo "p.   幻兽帕鲁开服脚本 ▶"
-        echo "------------------------"
+        short_separator
         echo "0.   退出脚本"
-        echo "------------------------"
+        short_separator
         echo ""
 
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
