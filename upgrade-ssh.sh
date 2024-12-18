@@ -3,6 +3,7 @@
 # Description: openssh high risk vulnerability repair.
 #
 # Forked and modified from Kejilion's script.
+#
 # Copyright (C) 2024 honeok <honeok@duck.com>
 
 export DEBIAN_FRONTEND=noninteractive
@@ -16,21 +17,21 @@ fi
 # 期望的ssh版本
 desired_ssh_version="9.9p1"
 
-# 清理dpkg锁文件
-fix_dpkg() {
-    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for i in /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend; do
-        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
-    done
-    dpkg --configure -a
-}
-
 # 获取操作系统类型
 if [ -f /etc/os-release ]; then
     . /etc/os-release && system_id=$ID
 else
     echo "无法检测操作系统类型" && exit 1
 fi
+
+# 清理dpkg锁文件
+fix_dpkg() {
+    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
+    for i in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
+        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
+    done
+    dpkg --configure -a
+}
 
 # 安装依赖包
 install_depend() {
