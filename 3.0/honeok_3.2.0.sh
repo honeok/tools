@@ -5685,8 +5685,8 @@ cloudflare_ddns() {
             echo -e "${white}Cloudflare ddns: ${yellow}未安装${white}"
             echo "使用动态解析之前请解析一个域名，如ddns.cloudflare.com到你的当前公网IP"
         fi
-        [ ! -z "${ipv4_address}" ] && echo "公网IPV4地址: ${ipv4_address}"
-        [ ! -z "${ipv6_address}" ] && echo "公网IPV6地址: ${ipv6_address}"
+        [ ! -z "${ipv4_address}" ] && echo "公网IPv4地址: ${ipv4_address}"
+        [ ! -z "${ipv6_address}" ] && echo "公网IPv6地址: ${ipv6_address}"
         short_separator
         echo "1. 设置DDNS动态域名解析     2. 删除DDNS动态域名解析"
         short_separator
