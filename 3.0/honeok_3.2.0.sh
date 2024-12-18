@@ -713,7 +713,7 @@ set_script_dir() {
 # 修复dpkg中断问题
 fix_dpkg() {
     pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for i in /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend; do
+    for i in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
         [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
     done
     dpkg --configure -a
