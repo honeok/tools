@@ -2021,7 +2021,7 @@ ldnmp_install_certbot() {
     # 检查是否已有定时任务
     if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
         curl -fskL -o "$global_script_dir/cert_renewal.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker_certbot.sh"
-        chmod a+x $global_script_dir/cert_renewal.sh
+        chmod +x $global_script_dir/cert_renewal.sh
 
         # 添加定时任务
         (crontab -l 2>/dev/null; echo "$cert_cron") | crontab - >/dev/null 2>&1
@@ -2096,7 +2096,7 @@ ldnmp_install_ngx_logrotate() {
         return 1
     }
 
-    chmod a+x "$rotate_script"
+    chmod +x "$rotate_script"
 
     # 检查并添加crontab任务
     local crontab_entry="0 0 * * 0 $rotate_script >/dev/null 2>&1"
@@ -5764,7 +5764,7 @@ cloudflare_ddns() {
                 sed -i "/^CFTTL=120$/s/CFTTL=120/CFTTL=$CFTTL/" ${global_script_dir}/cf-v4-ddns.sh
 
                 # 复制脚本并设置权限
-                cp ${global_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod a+x /usr/local/bin/cf-ddns.sh
+                cp ${global_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod +x /usr/local/bin/cf-ddns.sh
 
                 check_crontab_installed
 
