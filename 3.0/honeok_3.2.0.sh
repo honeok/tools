@@ -761,7 +761,7 @@ linux_clean() {
         dnf clean all
         dnf makecache
         journalctl --rotate
-        journalctl --vacuum-time=3d # 删除所有早于7天前的日志
+        journalctl --vacuum-time=3d # 删除所有早于3天前的日志
         journalctl --vacuum-size=200M
     elif command -v yum >/dev/null 2>&1; then
         yum autoremove -y
@@ -1019,24 +1019,19 @@ linux_tools() {
 
 # =============== BBR START ===============
 linux_bbr() {
+    local choice
     clear
     if [ -f "/etc/alpine-release" ]; then
         while true; do
             clear
-            # 使用局部变量
-            local congestion_algorithm
-            local queue_algorithm
-            local choice
-
-            congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
-            queue_algorithm=$(sysctl -n net.core.default_qdisc)
-
-            _yellow "当前TCP阻塞算法:$congestion_algorithm $queue_algorithm"
+            local congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
+            local queue_algorithm=$(sysctl -n net.core.default_qdisc)
+            _yellow "当前TCP阻塞算法: "$congestion_algorithm" "$queue_algorithm""
 
             echo ""
             echo "BBR管理"
             short_separator
-            echo "1. 开启BBRv3              2. 关闭BBRv3（会重启）"
+            echo "1. 开启BBRv3              2. 关闭BBRv3(会重启)"
             short_separator
             echo "0. 返回上一级选单"
             short_separator
@@ -4421,28 +4416,22 @@ set_default_qdisc() {
 
 bbr_on() {
     local congestion_control="net.ipv4.tcp_congestion_control"
-    local congestion_bbr="bbr"
     local config_file="/etc/sysctl.conf"
     local current_value
 
-    # 使用grep查找现有配置，忽略等号周围的空格，排除注释行
-    if grep -q "^[^#]*${congestion_control}\s*=" "${config_file}"; then
-        # 存在该设置项，检查其值
-        current_value=$(grep "^[^#]*${congestion_control}\s*=" "${config_file}" | sed -E "s/^[^#]*${congestion_control}\s*=\s*(.*)/\1/")
-        
-        if [ "$current_value" = "$congestion_bbr" ]; then
-            # 如果当前值已经是bbr，则跳过
-            return
-        else
-            # 如果当前值不是bbr，则替换为bbr
-            sed -i -E "s|^[^#]*${congestion_control}\s*=\s*.*|${congestion_control}=${congestion_bbr}|" "${config_file}"
-            sysctl -p
-        fi
+    current_value=$(awk -F '=' -v key="$congestion_control" '!/^#/ && $1 ~ key {gsub(/ /, "", $2); print $2}' "${config_file}")
+
+    if [ "$current_value" == "bbr" ]; then
+        return
+    elif [ -n "$current_value" ]; then
+        sed -i -E "s|^[^#]*${congestion_control}\s*=\s*.*|${congestion_control}=bbr|" "${config_file}"
     else
-        # 如果没有找到该设置项，则新增
-        echo "${congestion_control}=${congestion_bbr}" >> "${config_file}"
-        sysctl -p
+        echo "${congestion_control}=bbr" >> "${config_file}"
     fi
+
+    sysctl -p
+    current_value=$(sysctl -n "${congestion_control}")
+    [ "$current_value" != "bbr" ] && return 1
 }
 
 xanmod_bbr3() {
