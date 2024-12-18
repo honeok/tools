@@ -3,3 +3,4 @@ https://hub.littlediary.cn
 https://hub.rat.dev
 https://h.ysicing.net
 https://docker.zhai.cm
+https://docker.1ms.run
