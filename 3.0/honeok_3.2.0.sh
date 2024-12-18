@@ -46,9 +46,6 @@ _info_msg() { echo -e "$info_msg $@"; }
 _err_msg() { echo -e "$err_msg $@"; }
 _suc_msg() { echo -e "$suc_msg $@"; }
 
-export DEBIAN_FRONTEND=noninteractive
-os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
-
 short_separator() {
     printf "%-20s\n" "-" | sed 's/\s/-/g'
 }
@@ -56,6 +53,9 @@ short_separator() {
 long_separator() {
     printf "%-40s\n" "-" | sed 's/\s/-/g'
 }
+
+export DEBIAN_FRONTEND=noninteractive
+os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
 
 honeok_pid="/tmp/honeok.pid"
 if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
@@ -1111,7 +1111,7 @@ docker_main_version() {
 install_docker_official() {
     if [[ "$country" == "CN" ]];then
         cd ~
-        # curl -fskL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
+        # curl -fskL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/docker/docker-install/master/install.sh" && chmod +x get-docker.sh
         curl -fskL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
         sh get-docker.sh --mirror Aliyun
         rm -f get-docker.sh
@@ -1288,7 +1288,7 @@ restart_docker_retry() {
             return 0  # 重启成功，返回
         fi
         (( attempt++ ))
-        echo -e "${red}重启Docker失败，正在重试（尝试次数: $attempt）${white}"
+        echo -e "${red}重启Docker失败，正在重试 (尝试次数: $attempt)${white}"
         sleep "$retry_delay"
     done
     _err_msg "$(_red '重启Docker失败，超过最大重试次数！')"
@@ -1476,22 +1476,22 @@ docker_ps() {
                 "$dockername"
                 ;;
             2)
-                echo -n "请输入容器名（多个容器名请用空格分隔）:"
+                echo -n "请输入容器名(多个容器名请用空格分隔): "
                 read -r dockername
                 docker start "$dockername"
                 ;;
             3)
-                echo -n "请输入容器名（多个容器名请用空格分隔）:"
+                echo -n "请输入容器名(多个容器名请用空格分隔): "
                 read -r dockername
                 docker stop "$dockername"
                 ;;
             4)
-                echo -n "请输入容器名（多个容器名请用空格分隔）:"
+                echo -n "请输入容器名(多个容器名请用空格分隔): "
                 read -r dockername
                 docker rm -f "$dockername"
                 ;;
             5)
-                echo -n "请输入容器名（多个容器名请用空格分隔）:"
+                echo -n "请输入容器名(多个容器名请用空格分隔): "
                 read -r dockername
                 docker restart "$dockername"
                 ;;
@@ -1580,7 +1580,7 @@ docker_image() {
         read -r choice
         case $choice in
             1)
-                echo -n "请输入镜像名（多个镜像名请用空格分隔）:"
+                echo -n "请输入镜像名(多个镜像名请用空格分隔): "
                 read -r imagenames
                 for name in $imagenames; do
                     echo -e "${yellow}正在获取镜像: $name${white}"
@@ -1588,7 +1588,7 @@ docker_image() {
                 done
                 ;;
             2)
-                echo -n "请输入镜像名（多个镜像名请用空格分隔）:"
+                echo -n "请输入镜像名(多个镜像名请用空格分隔): "
                 read -r imagenames
                 for name in $imagenames; do
                     echo -e "${yellow}正在更新镜像: $name${white}"
@@ -1596,7 +1596,7 @@ docker_image() {
                 done
                 ;;
             3)
-                echo -n "请输入镜像名（多个镜像名请用空格分隔）:"
+                echo -n "请输入镜像名(多个镜像名请用空格分隔): "
                 read -r imagenames
                 for name in $imagenames; do
                     docker rmi -f $name
@@ -1784,7 +1784,7 @@ docker_manager() {
                             echo -n "设置新网络名:"
                             read -r dockernetwork
 
-                            echo -n "哪些容器退出该网络（多个容器名请用空格分隔）:"
+                            echo -n "哪些容器退出该网络(多个容器名请用空格分隔): "
                             read -r dockernames
                             
                             for dockername in "$dockernames"; do
@@ -1830,7 +1830,7 @@ docker_manager() {
                             docker volume create "$dockerjuan"
                             ;;
                         2)
-                            echo -n "输入删除卷名（多个卷名请用空格分隔）:"
+                            echo -n "输入删除卷名(多个卷名请用空格分隔): "
                             read -r dockerjuans
 
                             for dockerjuan in $dockerjuans; do
@@ -2318,7 +2318,7 @@ add_domain() {
     ip_address
 
     echo -e "先将域名解析到本机IP: ${yellow}$ipv4_address  $ipv6_address${white}"
-    echo -n "请输入你解析的域名（输入0取消操作）:"
+    echo -n "请输入你解析的域名(输入0取消操作): "
     read -r domain
 
     if [[ "$domain" == "0" ]]; then
@@ -3319,7 +3319,7 @@ linux_ldnmp() {
                 case $choice in
                     1)
                         check_crontab_installed
-                        echo -n "选择每周备份的星期几（0-6,0代表星期日）:"
+                        echo -n "选择每周备份的星期几(0-6,0代表星期日): "
                         read -r weekday
                         (crontab -l ; echo "0 0 * * $weekday /data/script/${useip}_backup.sh >/dev/null 2>&1") | crontab -
                         ;;
@@ -3609,7 +3609,7 @@ linux_ldnmp() {
                     clear
                     echo "优化LDNMP环境"
                     short_separator
-                    echo "1. 标准模式              2. 高性能模式（推荐2H2G以上）"
+                    echo "1. 标准模式              2. 高性能模式(推荐2H2G以上)"
                     short_separator
                     echo "0. 退出"
                     short_separator
@@ -3687,7 +3687,7 @@ linux_ldnmp() {
                     echo "更新LDNMP环境"
                     short_separator
                     ldnmp_version
-                    echo "1. 更新Nginx     2. 更新MySQL（建议不做更新）     3. 更新PHP     4. 更新Redis"
+                    echo "1. 更新Nginx     2. 更新MySQL(建议不做更新)     3. 更新PHP     4. 更新Redis"
                     short_separator
                     echo "5. 更新完整环境"
                     short_separator
@@ -3711,7 +3711,7 @@ linux_ldnmp() {
                             ;;
                         2)
                             ldnmp_pods="mysql"
-                            echo -n "请输入${ldnmp_pods}版本号（如: 8.0 8.3 8.4 9.0）（回车获取最新版）:"
+                            echo -n "请输入${ldnmp_pods}版本号(如: 8.0 8.3 8.4 9.0) (回车获取最新版): "
                             read -r version
                             version=${version:-latest}
                             cd "$web_dir"
@@ -3725,7 +3725,7 @@ linux_ldnmp() {
                             ;;
                         3)
                             ldnmp_pods="php"
-                            echo -n "请输入${ldnmp_pods}版本号（如: 7.4 8.0 8.1 8.2 8.3）（回车获取最新版）:"
+                            echo -n "请输入${ldnmp_pods}版本号(如: 7.4 8.0 8.1 8.2 8.3) (回车获取最新版): "
                             read -r version
 
                             version=${version:-8.3}
@@ -4371,12 +4371,12 @@ set_default_qdisc() {
     while true; do
         echo "请选择要设置的队列规则"
         short_separator
-        echo "1. fq （默认值）: 基本的公平排队算法，旨在确保每个流获得公平的带宽分配，防止某个流占用过多带宽"
-        echo "2. fq_pie      : 将FQ和PI（Proportional Integral）控制结合在一起，旨在改善延迟和带宽利用率"
+        echo "1. fq (默认值): 基本的公平排队算法，旨在确保每个流获得公平的带宽分配，防止某个流占用过多带宽"
+        echo "2. fq_pie      : 将FQ和PI (Proportional Integral) 控制结合在一起，旨在改善延迟和带宽利用率"
         echo "3. fq_codel    : 结合了公平排队和控制延迟的算法，通过主动丢包和公平分配带宽来减少延迟并提高多流的性能"
         short_separator
 
-        echo -n -e "${yellow}请输入选项并按回车键确认（回车使用默认值 fq）: ${white}"
+        echo -n -e "${yellow}请输入选项并按回车键确认(回车使用默认值 fq): ${white}"
         read -r choice
 
         case "$choice" in
@@ -4731,7 +4731,7 @@ cron_manager() {
 
                 case $dingshi in
                     1)
-                        echo -n -e "${yellow}选择每月的几号执行任务?（1-30）:${white}"
+                        echo -n -e "${yellow}选择每月的几号执行任务?(1-30): ${white}"
                         read -r day
                         if [[ ! $day =~ ^[1-9]$|^[12][0-9]$|^30$ ]]; then
                             _red "无效的日期输入"
@@ -4742,7 +4742,7 @@ cron_manager() {
                         fi
                         ;;
                     2)
-                        echo -n -e "${yellow}选择周几执行任务?（0-6，0代表星期日）:${white}"
+                        echo -n -e "${yellow}选择周几执行任务?(0-6，0代表星期日): ${white}"
                         read -r weekday
                         if [[ ! $weekday =~ ^[0-6]$ ]]; then
                             _red "无效的星期输入"
@@ -4753,7 +4753,7 @@ cron_manager() {
                         fi
                         ;;
                     3)
-                        echo -n -e "${yellow}选择每天几点执行任务?（小时，0-23）:${white}"
+                        echo -n -e "${yellow}选择每天几点执行任务?(小时，0-23): ${white}"
                         read -r hour
                         if [[ ! $hour =~ ^[0-9]$|^[1][0-9]$|^[2][0-3]$ ]]; then
                             _red "无效的小时输入"
@@ -4961,10 +4961,10 @@ redhat_kernel_update() {
 
         # 根据系统版本安装对应的 ELRepo 仓库配置
         if [[ "$os_version" == 8 ]]; then
-            _yellow "安装ELRepo仓库配置（版本 8）"
+            _yellow "安装ELRepo仓库配置(版本 8)"
             yum install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm -y
         elif [[ "$os_version" == 9 ]]; then
-            _yellow "安装ELRepo仓库配置（版本 9）"
+            _yellow "安装ELRepo仓库配置(版本 9)"
             yum install https://www.elrepo.org/elrepo-release-9.el9.elrepo.noarch.rpm -y
         else
             _red "不支持的系统版本:$os_version"
@@ -5246,7 +5246,7 @@ clamav_antivirus() {
                 end_of
                 ;;
             3)
-                echo -n "请输入要扫描的目录，用空格分隔（例如: /etc /var /usr /home /root）:"
+                echo -n "请输入要扫描的目录，用空格分隔(例如: /etc /var /usr /home /root): "
                 read -r directories
 
                 install_docker
@@ -5290,31 +5290,31 @@ file_manage() {
 
         case $choice in
             1)  # 进入目录
-                echo -n "请输入目录名:"
+                echo -n "请输入目录名: "
                 read -r dirname
                 cd "$dirname" 2>/dev/null || _red "无法进入目录"
                 ;;
             2)  # 创建目录
-                echo -n "请输入要创建的目录名:"
+                echo -n "请输入要创建的目录名: "
                 read -r dirname
                 mkdir -p "$dirname" && _green "目录已创建" || _red "创建失败"
                 ;;
             3)  # 修改目录权限
-                echo -n "请输入目录名:"
+                echo -n "请输入目录名: "
                 read -r dirname
-                echo -n "请输入权限（如755）:"
+                echo -n "请输入权限(如755): "
                 read -r perm
                 chmod "$perm" "$dirname" && _green "权限已修改" || _red "修改失败"
                 ;;
             4)  # 重命名目录
-                echo -n "请输入当前目录名:"
+                echo -n "请输入当前目录名: "
                 read -r current_name
-                echo -n "请输入新目录名:"
+                echo -n "请输入新目录名: "
                 read -r new_name
                 mv "$current_name" "$new_name" && _green "目录已重命名" || _red "重命名失败"
                 ;;
             5)  # 删除目录
-                echo -n "请输入要删除的目录名:"
+                echo -n "请输入要删除的目录名: "
                 read -r dirname
                 rm -fr "$dirname" && _green "目录已删除" || _red "删除失败"
                 ;;
@@ -5322,56 +5322,56 @@ file_manage() {
                 cd ..
                 ;;
             11) # 创建文件
-                echo -n "请输入要创建的文件名:"
+                echo -n "请输入要创建的文件名: "
                 read -r filename
                 touch "$filename" && _green "文件已创建" || _red "创建失败"
                 ;;
             12) # 编辑文件
-                echo -n "请输入要编辑的文件名:"
+                echo -n "请输入要编辑的文件名: "
                 read -r filename
                 install vim
                 vim "$filename"
                 ;;
             13) # 修改文件权限
-                echo -n "请输入文件名:"
+                echo -n "请输入文件名: "
                 read -r filename
-                echo -n "请输入权限（如 755）:"
+                echo -n "请输入权限(如 755): "
                 read -r perm
                 chmod "$perm" "$filename" && _green "权限已修改" || _red "修改失败"
                 ;;
             14) # 重命名文件
-                echo -n "请输入当前文件名:"
+                echo -n "请输入当前文件名: "
                 read -r current_name
-                echo -n "请输入新文件名:"
+                echo -n "请输入新文件名: "
                 read -r new_name
                 mv "$current_name" "$new_name" && _green "文件已重命名" || _red "重命名失败"
                 ;;
             15) # 删除文件
-                echo -n "请输入要删除的文件名:"
+                echo -n "请输入要删除的文件名: "
                 read -r filename
                 rm -f "$filename" && _green "文件已删除" || _red "删除失败"
                 ;;
             21) # 压缩文件/目录
-                echo -n "请输入要压缩的文件/目录名:"
+                echo -n "请输入要压缩的文件/目录名: "
                 read -r name
                 install tar
                 tar -czvf "$name.tar.gz" "$name" &&  _green "已压缩为 $name.tar.gz" || _red "压缩失败"
                 ;;
             22) # 解压文件/目录
-                echo -n "请输入要解压的文件名（.tar.gz）:"
+                echo -n "请输入要解压的文件名(.tar.gz): "
                 read -r filename
                 install tar
                 tar -xzvf "$filename" && _green "已解压 $filename" || _red "解压失败"
                 ;;
             23) # 移动文件或目录
-                echo -n "请输入要移动的文件或目录路径:"
+                echo -n "请输入要移动的文件或目录路径: "
                 read -r src_path
                 if [ ! -e "$src_path" ]; then
                     _red "错误: 文件或目录不存在"
                     continue
                 fi
 
-                echo -n "请输入目标路径（包括新文件名或目录名）:"
+                echo -n "请输入目标路径(包括新文件名或目录名): "
                 read -r dest_path
                 if [ -z "$dest_path" ]; then
                     _red "错误: 请输入目标路径"
@@ -5381,14 +5381,14 @@ file_manage() {
                 mv "$src_path" "$dest_path" && _green "文件或目录已移动到 $dest_path" || _red "移动文件或目录失败"
                 ;;
             24) # 复制文件目录
-                echo -n "请输入要复制的文件或目录路径:"
+                echo -n "请输入要复制的文件或目录路径: "
                 read -r src_path
                 if [ ! -e "$src_path" ]; then
                     _red "错误: 文件或目录不存在"
                     continue
                 fi
 
-                echo -n "请输入目标路径（包括新文件名或目录名）:"
+                echo -n "请输入目标路径(包括新文件名或目录名): "
                 read -r dest_path
                 if [ -z "$dest_path" ]; then
                     _red "错误: 请输入目标路径"
@@ -5399,33 +5399,33 @@ file_manage() {
                 cp -r "$src_path" "$dest_path" && _green "文件或目录已复制到 $dest_path" || _red "复制文件或目录失败"
                 ;;
             25) # 传送文件至远端服务器
-                echo -n "请输入要传送的文件路径:"
+                echo -n "请输入要传送的文件路径: "
                 read -r file_to_transfer
                 if [ ! -f "$file_to_transfer" ]; then
                     _red "错误: 文件不存在"
                     continue
                 fi
 
-                echo -n "请输入远端服务器IP:"
+                echo -n "请输入远端服务器IP: "
                 read -r remote_ip
                 if [ -z "$remote_ip" ]; then
                     _red "错误: 请输入远端服务器IP"
                     continue
                 fi
 
-                echo -n "请输入远端服务器用户名（默认root）:"
+                echo -n "请输入远端服务器用户名(默认root): "
                 read -r remote_user
                 
                 remote_user=${remote_user:-root}
 
-                echo -n "请输入远端服务器密码:"
+                echo -n "请输入远端服务器密码: "
                 read -r -s remote_password
                 if [ -z "$remote_password" ]; then
                     _red "错误: 请输入远端服务器密码"
                     continue
                 fi
 
-                echo -n "请输入登录端口（默认22）:"
+                echo -n "请输入登录端口(默认22): "
                 read -r remote_port
                 remote_port=${remote_port:-22}
 
@@ -5732,7 +5732,7 @@ cloudflare_ddns() {
                 
                 # 获取CFZONE_NAME
                 while true; do
-                    echo -n "请输入你的顶级域名（如cloudflare.com）: "
+                    echo -n "请输入你的顶级域名 (如cloudflare.com): "
                     read -r CFZONE_NAME
                     if [[ "$CFZONE_NAME" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
                         break
@@ -5743,7 +5743,7 @@ cloudflare_ddns() {
 
                 # 获取CFRECORD_NAME
                 while true; do
-                    echo -n "请输入你的主域名（如ddns.cloudflare.com）: "
+                    echo -n "请输入你的主域名 (如ddns.cloudflare.com): "
                     read -r CFRECORD_NAME
                     if [[ -n "$CFRECORD_NAME" ]]; then
                         break
@@ -5753,12 +5753,12 @@ cloudflare_ddns() {
                 done
 
                 # 获取CFRECORD_TYPE
-                echo -n "请输入记录类型（A记录或AAAA记录，默认IPV4 A记录，回车使用默认值）:"
+                echo -n "请输入记录类型(A记录或AAAA记录，默认IPV4 A记录，回车使用默认值): "
                 read -r CFRECORD_TYPE
                 CFRECORD_TYPE=${CFRECORD_TYPE:-A}
 
                 # 获取CFTTL
-                echo -n "请输入TTL时间（120~86400秒，默认60秒,回车使用默认值）:"
+                echo -n "请输入TTL时间(120~86400秒，默认60秒,回车使用默认值): "
                 read -r CFTTL
                 CFTTL=${CFTTL:-60}
 
@@ -5859,7 +5859,7 @@ linux_system_tools() {
         short_separator
         echo "21. 本机host解析                       22. Fail2banSSH防御程序"
         echo "23. 限流自动关机                       24. root私钥登录模式"
-        echo "25. TG-bot系统监控预警                 26. 修复OpenSSH高危漏洞（岫源）"
+        echo "25. TG-bot系统监控预警                 26. 修复OpenSSH高危漏洞 (岫源)"
         echo "27. 红帽系Linux内核升级                28. Linux系统内核参数优化"
         echo "29. 病毒扫描工具                       30. 文件管理器"
         short_separator
@@ -5897,7 +5897,7 @@ linux_system_tools() {
                 echo "查询更多版本: https://www.python.org/downloads/"
                 short_separator
 
-                echo -n -e "${yellow}请输入选项并按回车键确认（0退出）: ${white}"
+                echo -n -e "${yellow}请输入选项并按回车键确认(0退出): ${white}"
                 read -r py_new_v
 
                 if [[ "$py_new_v" == "0" ]]; then
@@ -5981,7 +5981,7 @@ EOF
                     # 打印当前的SSH端口号
                     echo -e "当前的SSH端口号是: ${yellow}$current_port${white}"
                     short_separator
-                    echo "端口号范围10000到65535之间的数字（按0退出）"
+                    echo "端口号范围10000到65535之间的数字 (按0退出)"
 
                     # 提示用户输入新的SSH端口号
                     echo -n "请输入新的SSH端口号:"
@@ -6058,7 +6058,7 @@ EOF
                 ;;
             9)
                 need_root
-                echo -n "请输入新用户名（0退出）:"
+                echo -n "请输入新用户名 (0退出):"
                 read -r new_username
 
                 if [ "$new_username" == "0" ]; then
@@ -6570,7 +6570,7 @@ EOF
                     current_hostname=$(hostname)
                     echo -e "当前主机名: $current_hostname"
                     short_separator
-                    echo -n "请输入新的主机名（输入0退出）:"
+                    echo -n "请输入新的主机名(输入0退出): "
                     read -r new_hostname
 
                     if [ -n "$new_hostname" ] && [ "$new_hostname" != "0" ]; then
@@ -7230,11 +7230,11 @@ servertest_script() {
         short_separator
         _yellow "IP及解锁状态检测"
         echo "1. ChatGPT 解锁状态检测"
-        echo "2. Lmc999 流媒体解锁测试（最常用）"
+        echo "2. Lmc999 流媒体解锁测试 (最常用)"
         echo "3. Yeahwu 流媒体解锁检测"
-        echo "4. Xykt 流媒体解锁检测（原生检测）"
+        echo "4. Xykt 流媒体解锁检测 (原生检测)"
         echo "5. Xykt IP质量体检"
-        echo "6. 1-stream 流媒体解锁检测（准确度最高）"
+        echo "6. 1-stream 流媒体解锁检测 (准确度最高)"
         short_separator
         _yellow "网络线路测速"
         echo "12. Besttrace 三网回程延迟路由测试"
@@ -7424,7 +7424,7 @@ node_create() {
         short_separator
         _yellow "中转搭建一键脚本"
         echo "50. Multi EasyGost"
-        echo "51. EZgost一键脚本（EasyGost改版）"
+        echo "51. EZgost一键脚本 (EasyGost改版)"
         echo "52. Realm一键安装脚本"
         short_separator
         echo "0. 返回主菜单"
@@ -7578,20 +7578,20 @@ oracle_script() {
                         DEFAULT_MEM_UTIL=20
                         DEFAULT_SPEEDTEST_INTERVAL=120
 
-                        # 提示用户输入CPU核心数和占用百分比,如果回车则使用默认值
-                        echo -n -e "${yellow}请输入CPU核心数[默认:$DEFAULT_CPU_CORE]:${white}"
+                        # 提示用户输入CPU核心数和占用百分比，如果回车则使用默认值
+                        echo -n -e "${yellow}请输入CPU核心数[默认:$DEFAULT_CPU_CORE]: ${white}"
                         read -r cpu_core
                         cpu_core=${cpu_core:-$DEFAULT_CPU_CORE}
 
-                        echo -n -e "${yellow}请输入CPU占用百分比范围（例如10-20）[默认:$DEFAULT_CPU_UTIL]:${white}"
+                        echo -n -e "${yellow}请输入CPU占用百分比范围 (例如10-20) [默认:$DEFAULT_CPU_UTIL]: ${white}"
                         read -r cpu_util
                         cpu_util=${cpu_util:-$DEFAULT_CPU_UTIL}
 
-                        echo -n -e "${yellow}请输入内存占用百分比[默认:$DEFAULT_MEM_UTIL]:${white}"
+                        echo -n -e "${yellow}请输入内存占用百分比 [默认:$DEFAULT_MEM_UTIL]: ${white}"
                         read -r mem_util
                         mem_util=${mem_util:-$DEFAULT_MEM_UTIL}
 
-                        echo -n -e "${yellow}请输入Speedtest间隔时间（秒）[默认:$DEFAULT_SPEEDTEST_INTERVAL]:${white}"
+                        echo -n -e "${yellow}请输入Speedtest间隔时间 (秒) [默认:$DEFAULT_SPEEDTEST_INTERVAL]: ${white}"
                         read -r speedtest_interval
                         speedtest_interval=${speedtest_interval:-$DEFAULT_SPEEDTEST_INTERVAL}
 
