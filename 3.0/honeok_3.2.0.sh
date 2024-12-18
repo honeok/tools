@@ -6755,52 +6755,51 @@ EOF
                     output_status
                     echo "$output"
 
-                    # 检查是否存在 limit_shutdown.sh 文件
-                    if [ -f ${global_script_dir}/limit_shutdown.sh ]; then
-                        # 获取 threshold_gb 的值
-                        rx_threshold_gb=$(grep -oP 'rx_threshold_gb=\K\d+' ${global_script_dir}/limit_shutdown.sh)
-                        tx_threshold_gb=$(grep -oP 'tx_threshold_gb=\K\d+' ${global_script_dir}/limit_shutdown.sh)
-                        _yellow "当前设置的进站限流阈值为: ${rx_threshold_gb}GB"
-                        _yellow "当前设置的出站限流阈值为: ${tx_threshold_gb}GB"
+                    # 检查是否存在 limitoff.sh 文件
+                    if [ -f ${global_script_dir}/limitoff.sh ]; then
+                        # 获取threshold_gb的值
+                        local rx_threshold_gb=$(grep -oP 'rx_threshold_gb=\K\d+' ${global_script_dir}/limitoff.sh)
+                        local tx_threshold_gb=$(grep -oP 'tx_threshold_gb=\K\d+' ${global_script_dir}/limitoff.sh)
+                        echo -e "${green}当前设置的进站限流阈值为: ${yellow}${rx_threshold_gb}${green}GB${white}"
+                        echo -e "${green}当前设置的出站限流阈值为: ${yellow}${tx_threshold_gb}${green}GB${white}"
                     else
                         _red "当前未启用限流关机功能"
                     fi
-
                     echo ""
                     echo "------------------------------------------------"
                     echo "系统每分钟会检测实际流量是否到达阈值，到达后会自动关闭服务器！"
 
-                    echo -n "1. 开启限流关机功能    2. 停用限流关机功能    0. 退出"
+                    echo -n "1. 开启限流关机功能    2. 停用限流关机功能    0. 退出 :"
                     read -r choice
 
                     case "$choice" in
                         1)
                             echo "如果实际服务器就100G流量，可设置阈值为95G提前关机，以免出现流量误差或溢出"
-                            echo -n "请输入进站流量阈值（单位为GB）:"
+                            echo -n "请输入进站流量阈值(单位为GB): "
                             read -r rx_threshold_gb
-                            echo -n "请输入出站流量阈值（单位为GB）:"
+                            echo -n "请输入出站流量阈值(单位为GB): "
                             read -r tx_threshold_gb
-                            echo -n "请输入流量重置日期（默认每月1日重置）:"
-                            read -r cz_day
-                            cz_day=${cz_day:-1}
+                            echo -n "请输入流量重置日期(默认每月1日重置): "
+                            read -r reset_day
+                            reset_day=${reset_day:-1}
 
                             cd ${global_script_dir}
-                            curl -fskL -o "limit_shutdown.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/limit_shutdown.sh"
-                            chmod +x ${global_script_dir}/limit_shutdown.sh
-                            sed -i "s/110/$rx_threshold_gb/g" ${global_script_dir}/limit_shutdown.sh
-                            sed -i "s/120/$tx_threshold_gb/g" ${global_script_dir}/limit_shutdown.sh
+                            curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/limitoff.sh"
+                            chmod +x ${global_script_dir}/limitoff.sh
+                            sed -i "s/110/$rx_threshold_gb/g" ${global_script_dir}/limitoff.sh
+                            sed -i "s/120/$tx_threshold_gb/g" ${global_script_dir}/limitoff.sh
                             check_crontab_installed
-                            crontab -l | grep -v '${global_script_dir}/limit_shutdown.sh' | crontab -
-                            (crontab -l ; echo "* * * * * ${global_script_dir}/limit_shutdown.sh") | crontab - >/dev/null 2>&1
+                            crontab -l | grep -v '${global_script_dir}/limitoff.sh' | crontab -
+                            (crontab -l ; echo "* * * * * ${global_script_dir}/limitoff.sh") | crontab - >/dev/null 2>&1
                             crontab -l | grep -v 'reboot' | crontab -
-                            (crontab -l ; echo "0 1 $cz_day * * reboot") | crontab - >/dev/null 2>&1
+                            (crontab -l ; echo "0 1 $reset_day * * reboot") | crontab - >/dev/null 2>&1
                             _green "限流关机已开启"
                             ;;
                         2)
                             check_crontab_installed
-                            crontab -l | grep -v '${global_script_dir}/limit_shutdown.sh' | crontab -
+                            crontab -l | grep -v '${global_script_dir}/limitoff.sh' | crontab -
                             crontab -l | grep -v 'reboot' | crontab -
-                            rm -f ${global_script_dir}/limit_shutdown.sh
+                            rm -f ${global_script_dir}/limitoff.sh
                             _green "限流关机已卸载"
                             ;;
                         *)
