@@ -772,9 +772,9 @@ linux_clean() {
         journalctl --vacuum-size=200M
     elif command -v apk >/dev/null 2>&1; then
         apk cache clean
-        rm -fr /var/log/*
-        rm -fr /var/cache/apk/*
-        rm -fr /tmp/*
+        rm -rf /var/log/*
+        rm -rf /var/cache/apk/*
+        rm -rf /tmp/*
     elif command -v pacman >/dev/null 2>&1; then
         pacman -Rns $(pacman -Qdtq) --noconfirm
         pacman -Scc --noconfirm
@@ -788,8 +788,8 @@ linux_clean() {
         journalctl --vacuum-time=3d
         journalctl --vacuum-size=200M
     elif command -v opkg >/dev/null 2>&1; then
-        rm -fr /var/log/*
-        rm -fr /tmp/*
+        rm -rf /var/log/*
+        rm -rf /tmp/*
     else
         _red "未知的包管理器"
         return 1
@@ -1404,12 +1404,12 @@ uninstall_docker() {
     cleanup_files() {
         for pattern in "${docker_depend_files[@]}"; do
             for file in $pattern; do
-                [ -e "$file" ] && rm -fr "$file" >/dev/null 2>&1
+                [ -e "$file" ] && rm -rf "$file" >/dev/null 2>&1
             done
         done
 
         for file in "${docker_data_files[@]}" "${binary_files[@]}"; do
-            [ -e "$file" ] && rm -fr "$file" >/dev/null 2>&1
+            [ -e "$file" ] && rm -rf "$file" >/dev/null 2>&1
         done
     }
 
@@ -2062,7 +2062,7 @@ ldnmp_uninstall_certbot() {
 
     # 删除certbot目录及其内容
     if [ -d "$certbot_dir" ]; then
-        rm -fr "$certbot_dir"
+        rm -rf "$certbot_dir"
         _green "Certbot目录及其内容已删除"
     fi
 }
@@ -3203,16 +3203,16 @@ linux_ldnmp() {
                             read -r del_domain
 
                             # 删除站点数据目录和相关文件
-                            rm -fr "$nginx_dir/html/$del_domain"
+                            rm -rf "$nginx_dir/html/$del_domain"
                             rm -f "$nginx_dir/conf.d/$del_domain.conf" "$nginx_dir/certs/${del_domain}_key.pem" "$nginx_dir/certs/${del_domain}_cert.pem"
 
                             # 检查并删除证书目录
                             if [ -d "$cert_live_dir/$del_domain" ]; then
-                                rm -fr "$cert_live_dir/$del_domain"
+                                rm -rf "$cert_live_dir/$del_domain"
                             fi
 
                             if [ -d "$cert_archive_dir/$del_domain" ];then
-                                rm -fr "$cert_archive_dir/del_domain"
+                                rm -rf "$cert_archive_dir/del_domain"
                             fi
 
                             if [ -f "$cert_renewal_dir/$del_domain.conf" ]; then
@@ -3339,7 +3339,7 @@ linux_ldnmp() {
 
                 # 清理并创建必要的目录
                 web_dir="/data/docker_data/web"
-                [ -d "$web_dir" ] && rm -fr "$web_dir"
+                [ -d "$web_dir" ] && rm -rf "$web_dir"
                 mkdir -p "$web_dir"
 
                 cd "$web_dir"
@@ -3432,7 +3432,7 @@ linux_ldnmp() {
                                 cd /data/docker_data/fail2ban
                                 docker_compose down_all
 
-                                [ -d /data/docker_data/fail2ban ] && rm -fr /data/docker_data/fail2ban
+                                [ -d /data/docker_data/fail2ban ] && rm -rf /data/docker_data/fail2ban
                                 crontab -l | grep -v "CF-Under-Attack.sh" | crontab - 2>/dev/null
                                 _green "Fail2Ban防御程序已卸载"
                                 break
@@ -3568,7 +3568,7 @@ linux_ldnmp() {
                     case "$choice" in
                         [Yy])
                             remove fail2ban
-                            rm -fr /etc/fail2ban
+                            rm -rf /etc/fail2ban
                             _green "Fail2Ban防御程序已卸载"
                             ;;
                         [Nn])
@@ -3738,7 +3738,7 @@ linux_ldnmp() {
                             docker exec "$ldnmp_pods" sh -c "\
                                 apk add --no-cache imagemagick imagemagick-dev \
                                 && apk add --no-cache git autoconf gcc g++ make pkgconfig \
-                                && rm -fr /tmp/imagick \
+                                && rm -rf /tmp/imagick \
                                 && git clone https://github.com/Imagick/imagick /tmp/imagick \
                                 && cd /tmp/imagick \
                                 && phpize \
@@ -3746,7 +3746,7 @@ linux_ldnmp() {
                                 && make \
                                 && make install \
                                 && echo 'extension=imagick.so' > /usr/local/etc/php/conf.d/imagick.ini \
-                                && rm -fr /tmp/imagick"
+                                && rm -rf /tmp/imagick"
 
                             docker exec "$ldnmp_pods" install-php-extensions mysqli pdo_mysql gd intl zip exif bcmath opcache redis
 
@@ -3817,14 +3817,14 @@ linux_ldnmp() {
                             docker_compose down_all
                             ldnmp_uninstall_certbot
                             ldnmp_uninstall_ngx_logrotate
-                            rm -fr "$web_dir"
+                            rm -rf "$web_dir"
                             _green "LDNMP环境已卸载并清除相关依赖"
                         elif docker inspect "nginx" >/dev/null 2>&1 && [ -d "$nginx_dir" ]; then
                             cd "$web_dir" || { _red "无法进入目录 $web_dir"; return 1; }
                             docker_compose down_all
                             ldnmp_uninstall_certbot
                             ldnmp_uninstall_ngx_logrotate
-                            rm -fr "$web_dir"
+                            rm -rf "$web_dir"
                             _green "Nginx环境已卸载并清除相关依赖"
                         else
                             _red "未发现符合条件的LDNMP或Nginx环境"
@@ -3878,7 +3878,7 @@ add_sshpasswd() {
     fi
 
     # 清理不再使用的SSH配置文件目录
-    rm -fr /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/* >/dev/null 2>&1
+    rm -rf /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/* >/dev/null 2>&1
 
     restart_ssh
     _green "root登录设置完毕！"
@@ -4841,7 +4841,7 @@ add_sshkey() {
            -e 's/^\s*#\?\s*ChallengeResponseAuthentication .*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
 
     # 删除 sshd 和 ssh 配置文件中的无用文件夹
-    rm -fr /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/*
+    rm -rf /etc/ssh/sshd_config.d/* /etc/ssh/ssh_config.d/*
 
     _red "root私钥登录已开启，已关闭root密码登录重连将会生效"
 }
@@ -5308,7 +5308,7 @@ file_manage() {
             5)  # 删除目录
                 echo -n "请输入要删除的目录名: "
                 read -r dirname
-                rm -fr "$dirname" && _green "目录已删除" || _red "删除失败"
+                rm -rf "$dirname" && _green "目录已删除" || _red "删除失败"
                 ;;
             6)  # 返回上一级目录
                 cd ..
@@ -5947,8 +5947,8 @@ EOF
                 pyenv install $py_new_v
                 pyenv global $py_new_v
 
-                rm -fr /tmp/python-build.*
-                rm -fr $(pyenv root)/cache/*
+                rm -rf /tmp/python-build.*
+                rm -rf $(pyenv root)/cache/*
 
                 VERSION=$(python -V 2>&1 | awk '{print $2}')
                 echo -e "当前Python版本号: ${yellow}$VERSION${white}"
@@ -6676,7 +6676,7 @@ EOF
                                 cd /data/docker_data/fail2ban
                                 docker_compose down_all
 
-                                [ -d /data/docker_data/fail2ban ] && rm -fr /data/docker_data/fail2ban
+                                [ -d /data/docker_data/fail2ban ] && rm -rf /data/docker_data/fail2ban
                                 ;;
                     		0)
                                 break
@@ -6694,7 +6694,7 @@ EOF
                     	case "$choice" in
                     		[Yy])
                                 remove fail2ban
-                                rm -fr /etc/fail2ban
+                                rm -rf /etc/fail2ban
                                 _green "Fail2Ban防御程序已卸载"
                                 end_of
                                 ;;
@@ -7502,7 +7502,7 @@ node_create() {
                 ;;
             41)
                 clear
-                rm -fr /home/mtproxy >/dev/null 2>&1
+                rm -rf /home/mtproxy >/dev/null 2>&1
                 mkdir /home/mtproxy && cd /home/mtproxy
                 curl -fsSL -o mtproxy.sh https://github.com/ellermister/mtproxy/raw/master/mtproxy.sh && chmod +x mtproxy.sh && bash mtproxy.sh
                 sleep 1
