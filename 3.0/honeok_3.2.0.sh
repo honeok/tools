@@ -433,12 +433,10 @@ ip_address() {
 }
 
 geo_check() {
-    local response
     local cloudflare_api="https://dash.cloudflare.com/cdn-cgi/trace"
     local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
 
-    response=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api")
-    [ -n "$response" ] && country=$(echo "$response" | grep -oP 'loc=\K\w+')
+    country=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api" | grep -oP 'loc=\K\w+')
     [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
 }
 
