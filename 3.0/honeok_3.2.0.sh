@@ -434,14 +434,11 @@ ip_address() {
 
 geo_check() {
     local response
-    local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
+    local cloudflare_api="https://dash.cloudflare.com/cdn-cgi/trace"
     local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
-    # set -- "$cloudflare_api"
-    for url in $cloudflare_api; do
-        response=$(curl -A "$user_agent" -m 10 -s "$url")
-        [ -n "$response" ] && country=$(echo "$response" | grep -oP 'loc=\K\w+')
-        [ ! -z "$country" ] && break
-    done
+
+    response=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api")
+    [ -n "$response" ] && country=$(echo "$response" | grep -oP 'loc=\K\w+')
     [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
 }
 
@@ -483,7 +480,6 @@ exec_cmd() {
 }
 
 cdn_check # 此函数调用ip_address和geo_check函数并声明全局服务器IP和所在地
-statistics_runtime # 脚本当天及累计运行次数统计
 
 # 安装软件包
 install() {
