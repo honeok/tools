@@ -62,7 +62,7 @@ for cert_dir in $certs_directory*; do
         echo "证书将在${days_before_expiry}天内过期，正在进行自动续签"
 
         # 停止Nginx服务
-        docker stop nginx > /dev/null 2>&1
+        docker stop nginx >/dev/null 2>&1
 
         iptables_open 
 
@@ -73,8 +73,8 @@ for cert_dir in $certs_directory*; do
             certbot/certbot certonly --standalone -d $domain --email honeok@email.com \
             --agree-tos --no-eff-email --force-renewal --key-type ecdsa
 
-        \cp -rf /data/docker_data/certbot/cert/live/$domain/fullchain.pem /data/docker_data/web/nginx/certs/${domain}_cert.pem > /dev/null 2>&1
-        \cp -rf /data/docker_data/certbot/cert/live/$domain/privkey.pem /data/docker_data/web/nginx/certs/${domain}_key.pem > /dev/null 2>&1
+        \cp -rf /data/docker_data/certbot/cert/live/$domain/fullchain.pem /data/docker_data/web/nginx/certs/${domain}_cert.pem >/dev/null 2>&1
+        \cp -rf /data/docker_data/certbot/cert/live/$domain/privkey.pem /data/docker_data/web/nginx/certs/${domain}_key.pem >/dev/null 2>&1
 
         openssl rand -out "/data/docker_data/web/nginx/certs/ticket12.key" 48
         openssl rand -out "/data/docker_data/web/nginx/certs/ticket13.key" 80
