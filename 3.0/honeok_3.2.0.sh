@@ -2201,7 +2201,7 @@ install_ldnmp_wordpress() {
     sed -i "s#username_here#$DB_USER#g" "$wp_sample_config"
     sed -i "s#password_here#$DB_USER_PASSWD#g" "$wp_sample_config"
     sed -i "s#localhost#mysql#g" "$wp_sample_config"
-    cp -p "$wp_sample_config" "$wp_config"
+    \cp -rfp "$wp_sample_config" "$wp_config"
 
     ldnmp_restart
     ldnmp_display_success
@@ -2316,7 +2316,7 @@ add_domain() {
     if [[ $domain =~ $domain_regex ]]; then
         # 检查域名是否已存在
         if [ -e $nginx_dir/conf.d/$domain.conf ]; then
-            _red "当前域名${domain}已被使用，请前往31站点管理,删除站点后再部署！${webname}"
+            _red "当前域名${domain}已被使用，请前往31站点管理，删除站点后再部署！${webname}"
             end_of
             linux_ldnmp
         else
@@ -2393,8 +2393,8 @@ ldnmp_install_ssltls() {
         fi
     fi
 
-    cp "$certbot_dir/cert/live/$domain/fullchain.pem" "$nginx_dir/certs/${domain}_cert.pem" >/dev/null 2>&1
-    cp "$certbot_dir/cert/live/$domain/privkey.pem" "$nginx_dir/certs/${domain}_key.pem" >/dev/null 2>&1
+    \cp -rf "$certbot_dir/cert/live/$domain/fullchain.pem" "$nginx_dir/certs/${domain}_cert.pem" >/dev/null 2>&1
+    \cp -rf "$certbot_dir/cert/live/$domain/privkey.pem" "$nginx_dir/certs/${domain}_key.pem" >/dev/null 2>&1
 
     docker start nginx >/dev/null 2>&1
 }
@@ -2617,10 +2617,12 @@ linux_ldnmp() {
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/discuz.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
 
+                nginx_http_on
+
                 discuz_dir="$nginx_dir/html/$domain"
                 [ ! -d "$discuz_dir" ] && mkdir -p "$discuz_dir"
                 cd "$discuz_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/Discuz_X3.5_SC_UTF8_20240520.zip" && unzip latest.zip && rm latest.zip
+                curl -fskL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/Discuz_X3.5_SC_UTF8_20240520.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -2644,10 +2646,12 @@ linux_ldnmp() {
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/kdy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
 
+                nginx_http_on
+
                 kdy_dir="$nginx_dir/html/$domain"
                 [ ! -d "$kdy_dir" ] && mkdir -p "$kdy_dir"
                 cd "$kdy_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/refs/tags/1.50.02.zip" && unzip latest.zip && rm latest.zip
+                curl -fskL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/refs/tags/1.50.02.zip" && unzip latest.zip && rm -f latest.zip
                 mv "$kdy_dir/kodbox-*" "$kdy_dir/kodbox"
 
                 ldnmp_restart
@@ -2672,14 +2676,16 @@ linux_ldnmp() {
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/maccms.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
 
+                nginx_http_on
+
                 cms_dir="$nginx_dir/html/$domain"
                 [ ! -d "$cms_dir" ] && mkdir -p "$cms_dir"
                 cd "$cms_dir"
-                wget -q -L "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && rm -f maccms10.zip
+                curl -fskL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && rm -f maccms10.zip
                 cd "$cms_dir/template/"
-                wget -q -L "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
-                cp "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
-                cp "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
+                curl -fskL -o "DYXS2.zip" "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
+                \cp -rf "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
+                \cp -rf "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
                 mv "$cms_dir/admin.php" "$cms_dir/vip.php"
                 curl -fskL -o "$cms_dir/application/extra/maccms.php" "${github_proxy}https://raw.githubusercontent.com/kejilion/Website_source_code/main/maccms.php"
 
@@ -2709,10 +2715,12 @@ linux_ldnmp() {
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/dujiaoka.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
 
+                nginx_http_on
+
                 djsk_dir="$nginx_dir/html/$domain"
                 [ ! -d "$djsk_dir" ] && mkdir -p "$djsk_dir"
                 cd "$djsk_dir"
-                curl -fskL -O "${github_proxy}https://github.com/assimon/dujiaoka/releases/download/2.0.6/2.0.6-antibody.tar.gz" && tar xvf 2.0.6-antibody.tar.gz && rm 2.0.6-antibody.tar.gz
+                curl -fskL -O "${github_proxy}https://github.com/assimon/dujiaoka/releases/download/2.0.6/2.0.6-antibody.tar.gz" && tar zxvf 2.0.6-antibody.tar.gz && rm -f 2.0.6-antibody.tar.gz
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -2734,7 +2742,7 @@ linux_ldnmp() {
                 echo "用户名: admin"
                 echo "密码: admin"
                 short_separator
-                echo "后台登录出现0err或者其他登录异常问题"
+                echo "后台登录出现error0或者其他登录异常问题"
                 echo "使用命令: sed -i 's/ADMIN_HTTPS=false/ADMIN_HTTPS=true/g' $djsk_dir/dujiaoka/.env"
                 ;;
             7)
@@ -2749,6 +2757,8 @@ linux_ldnmp() {
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/flarum.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
 
+                nginx_http_on
+
                 flarum_dir="$nginx_dir/html/$domain"
                 [ ! -d "$flarum_dir" ] && mkdir -p "$flarum_dir"
                 cd "$flarum_dir"
@@ -2761,6 +2771,11 @@ linux_ldnmp() {
                 docker exec php composer create-project flarum/flarum /var/www/html/"$domain"
                 docker exec php sh -c "cd /var/www/html/$domain && composer require flarum-lang/chinese-simplified"
                 docker exec php sh -c "cd /var/www/html/$domain && composer require fof/polls"
+                docker exec php sh -c "cd /var/www/html/$domain && composer require fof/sitemap"
+                docker exec php sh -c "cd /var/www/html/$domain && composer require fof/oauth"
+                docker exec php sh -c "cd /var/www/html/$domain && composer require fof/best-answer:*"
+                docker exec php sh -c "cd /var/www/html/$domain && composer require v17development/flarum-seo"
+                docker exec php sh -c "cd /var/www/html/$domain && composer require clarkwinkelmann/flarum-ext-emojionearea"
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -2789,7 +2804,7 @@ linux_ldnmp() {
                 typecho_dir="$nginx_dir/html/$domain"
                 [ ! -d "$typecho_dir" ] && mkdir -p "$typecho_dir"
                 cd "$typecho_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/typecho/typecho/releases/latest/download/typecho.zip" && unzip latest.zip && rm latest.zip
+                curl -fskL -o latest.zip "${github_proxy}https://github.com/typecho/typecho/releases/latest/download/typecho.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -3885,7 +3900,7 @@ bak_dns() {
     local backupdns_config="/etc/resolv.conf.bak"
 
     # 检查源文件是否存在并执行备份
-    [[ -f "$dns_config" ]] && cp -f "$dns_config" "$backupdns_config" || _red "DNS配置文件不存在"
+    [[ -f "$dns_config" ]] && \cp -rf "$dns_config" "$backupdns_config" || _red "DNS配置文件不存在"
 
     # 检查备份是否成功
     [[ $? -ne 0 ]] && _red "备份DNS配置文件失败"
@@ -3933,7 +3948,7 @@ rollbak_dns() {
 
     # 查找备份文件并执行恢复操作
     if [[ -f "$backupdns_config" ]]; then
-        cp -f "$backupdns_config" "$dns_config" && rm -f "$backupdns_config" || _red "恢复或删除文件失败"
+        \cp -rf "$backupdns_config" "$dns_config" && rm -f "$backupdns_config" || _red "恢复或删除文件失败"
     else
         _red "未找到DNS配置文件备份"
     fi
@@ -4327,7 +4342,7 @@ set_timedate() {
     local timezone="$1"
     if grep -q 'Alpine' /etc/issue; then
         install tzdata
-        cp /usr/share/zoneinfo/${timezone} /etc/localtime
+        \cp -rf /usr/share/zoneinfo/${timezone} /etc/localtime
         hwclock --systohc
     else
         timedatectl set-timezone ${timezone}
@@ -4648,7 +4663,7 @@ new_ssh_port() {
     # 备份SSH配置文件,如果备份文件不存在,只取原始配置文件
     backup_file="/etc/ssh/sshd_config.bak"
     if [[ ! -f $backup_file ]]; then
-        cp /etc/ssh/sshd_config $backup_file
+        \cp -rf /etc/ssh/sshd_config $backup_file
     fi
 
     # 检查是否有未被注释的Port行
@@ -5382,7 +5397,7 @@ file_manage() {
                 fi
 
                 # 使用 -r 选项以递归方式复制目录
-                cp -r "$src_path" "$dest_path" && _green "文件或目录已复制到 $dest_path" || _red "复制文件或目录失败"
+                \cp -rf "$src_path" "$dest_path" && _green "文件或目录已复制到 $dest_path" || _red "复制文件或目录失败"
                 ;;
             25) # 传送文件至远端服务器
                 echo -n "请输入要传送的文件路径: "
@@ -5758,7 +5773,7 @@ cloudflare_ddns() {
                 sed -i "/^CFTTL=120$/s/CFTTL=120/CFTTL=$CFTTL/" ${global_script_dir}/cf-v4-ddns.sh
 
                 # 复制脚本并设置权限
-                cp ${global_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod +x /usr/local/bin/cf-ddns.sh
+                \cp -rf ${global_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod +x /usr/local/bin/cf-ddns.sh
 
                 check_crontab_installed
 
