@@ -2131,7 +2131,7 @@ install_ldnmp_conf() {
     # 下载配置文件
     curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
     curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/stable-ldnmp-docker-compose.yml"
+    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/ldnmp-docker-compose.yml"
 
     default_server_ssl
 
