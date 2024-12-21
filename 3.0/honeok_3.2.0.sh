@@ -2201,7 +2201,7 @@ install_ldnmp_wordpress() {
     sed -i "s#username_here#$DB_USER#g" "$wp_sample_config"
     sed -i "s#password_here#$DB_USER_PASSWD#g" "$wp_sample_config"
     sed -i "s#localhost#mysql#g" "$wp_sample_config"
-    \cp -rfp "$wp_sample_config" "$wp_config"
+    cp "$wp_sample_config" "$wp_config"
 
     ldnmp_restart
     ldnmp_display_success
@@ -2393,8 +2393,8 @@ ldnmp_install_ssltls() {
         fi
     fi
 
-    \cp -rf "$certbot_dir/cert/live/$domain/fullchain.pem" "$nginx_dir/certs/${domain}_cert.pem" >/dev/null 2>&1
-    \cp -rf "$certbot_dir/cert/live/$domain/privkey.pem" "$nginx_dir/certs/${domain}_key.pem" >/dev/null 2>&1
+    cp "$certbot_dir/cert/live/$domain/fullchain.pem" "$nginx_dir/certs/${domain}_cert.pem" >/dev/null 2>&1
+    cp "$certbot_dir/cert/live/$domain/privkey.pem" "$nginx_dir/certs/${domain}_key.pem" >/dev/null 2>&1
 
     docker start nginx >/dev/null 2>&1
 }
@@ -2684,8 +2684,8 @@ linux_ldnmp() {
                 curl -fskL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && rm -f maccms10.zip
                 cd "$cms_dir/template/"
                 curl -fskL -o "DYXS2.zip" "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
-                \cp -rf "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
-                \cp -rf "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
+                cp "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
+                cp "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
                 mv "$cms_dir/admin.php" "$cms_dir/vip.php"
                 curl -fskL -o "$cms_dir/application/extra/maccms.php" "${github_proxy}https://raw.githubusercontent.com/kejilion/Website_source_code/main/maccms.php"
 
@@ -3108,7 +3108,7 @@ linux_ldnmp() {
                     short_separator
                     if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
                         DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
-                        docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2> /dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys"
+                        docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys"
                     else
                         _red "NONE"
                     fi
@@ -3900,7 +3900,7 @@ bak_dns() {
     local backupdns_config="/etc/resolv.conf.bak"
 
     # 检查源文件是否存在并执行备份
-    [[ -f "$dns_config" ]] && \cp -rf "$dns_config" "$backupdns_config" || _red "DNS配置文件不存在"
+    [[ -f "$dns_config" ]] && cp "$dns_config" "$backupdns_config" || _red "DNS配置文件不存在"
 
     # 检查备份是否成功
     [[ $? -ne 0 ]] && _red "备份DNS配置文件失败"
@@ -3927,7 +3927,7 @@ set_dns() {
                 echo "nameserver $ali_ipv6"
                 echo "nameserver $tencent_ipv6"
             fi
-        } | tee /etc/resolv.conf > /dev/null
+        } | tee /etc/resolv.conf >/dev/null
     else
         {
             echo "nameserver $cloudflare_ipv4"
@@ -3936,7 +3936,7 @@ set_dns() {
                 echo "nameserver $cloudflare_ipv6"
                 echo "nameserver $google_ipv6"
             fi
-        } | tee /etc/resolv.conf > /dev/null
+        } | tee /etc/resolv.conf >/dev/null
     fi
 }
 
@@ -3948,7 +3948,7 @@ rollbak_dns() {
 
     # 查找备份文件并执行恢复操作
     if [[ -f "$backupdns_config" ]]; then
-        \cp -rf "$backupdns_config" "$dns_config" && rm -f "$backupdns_config" || _red "恢复或删除文件失败"
+        cp "$backupdns_config" "$dns_config" && rm -f "$backupdns_config" || _red "恢复或删除文件失败"
     else
         _red "未找到DNS配置文件备份"
     fi
@@ -4342,7 +4342,7 @@ set_timedate() {
     local timezone="$1"
     if grep -q 'Alpine' /etc/issue; then
         install tzdata
-        \cp -rf /usr/share/zoneinfo/${timezone} /etc/localtime
+        cp /usr/share/zoneinfo/${timezone} /etc/localtime
         hwclock --systohc
     else
         timedatectl set-timezone ${timezone}
@@ -4602,7 +4602,7 @@ linux_mirror() {
 
 check_crontab_installed() {
     if command -v crontab >/dev/null 2>&1; then
-        _green "Crontab已安装"
+        _green "crontab已安装！"
         return $?
     else
         install_crontab
@@ -4663,7 +4663,7 @@ new_ssh_port() {
     # 备份SSH配置文件,如果备份文件不存在,只取原始配置文件
     backup_file="/etc/ssh/sshd_config.bak"
     if [[ ! -f $backup_file ]]; then
-        \cp -rf /etc/ssh/sshd_config $backup_file
+        cp /etc/ssh/sshd_config $backup_file
     fi
 
     # 检查是否有未被注释的Port行
@@ -5397,7 +5397,7 @@ file_manage() {
                 fi
 
                 # 使用 -r 选项以递归方式复制目录
-                \cp -rf "$src_path" "$dest_path" && _green "文件或目录已复制到 $dest_path" || _red "复制文件或目录失败"
+                \cp -r "$src_path" "$dest_path" && _green "文件或目录已复制到 $dest_path" || _red "复制文件或目录失败"
                 ;;
             25) # 传送文件至远端服务器
                 echo -n "请输入要传送的文件路径: "
@@ -5773,7 +5773,7 @@ cloudflare_ddns() {
                 sed -i "/^CFTTL=120$/s/CFTTL=120/CFTTL=$CFTTL/" ${global_script_dir}/cf-v4-ddns.sh
 
                 # 复制脚本并设置权限
-                \cp -rf ${global_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod +x /usr/local/bin/cf-ddns.sh
+                cp ${global_script_dir}/cf-v4-ddns.sh /usr/local/bin/cf-ddns.sh && chmod +x /usr/local/bin/cf-ddns.sh
 
                 check_crontab_installed
 
