@@ -11,7 +11,7 @@
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
 
-honeok_v="v3.2.0 (2024.12.18)"
+honeok_v="v3.2.0 (2024.12.21)"
 
 yellow='\033[93m'
 red='\033[31m'
@@ -2011,11 +2011,11 @@ ldnmp_install_certbot() {
     check_crontab_installed
 
     # 设置定时任务
-    cert_cron="0 0 * * * $global_script_dir/cert_renewal.sh >/dev/null 2>&1"
+    cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
     # 检查是否已有定时任务
     if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
-        curl -fskL -o "$global_script_dir/cert_renewal.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker_certbot.sh"
-        chmod +x $global_script_dir/cert_renewal.sh
+        curl -fskL -o "$global_script_dir/certbot_renew.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/certbot_renew.sh"
+        chmod +x $global_script_dir/certbot_renew.sh
 
         # 添加定时任务
         (crontab -l 2>/dev/null; echo "$cert_cron") | crontab - >/dev/null 2>&1
@@ -2038,7 +2038,7 @@ ldnmp_uninstall_certbot() {
         done <<< "$certbot_image_ids"
     fi
 
-    cert_cron="0 0 * * * $global_script_dir/cert_renewal.sh >/dev/null 2>&1"
+    cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
 
     # 检查并删除定时任务
     if crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
@@ -2049,8 +2049,8 @@ ldnmp_uninstall_certbot() {
     fi
 
     # 删除脚本文件
-    if [ -f "$global_script_dir/cert_renewal.sh" ]; then
-        rm -f "$global_script_dir/cert_renewal.sh"
+    if [ -f "$global_script_dir/certbot_renew.sh" ]; then
+        rm -f "$global_script_dir/certbot_renew.sh"
         _green "续签脚本文件已删除"
     fi
 
