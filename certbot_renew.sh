@@ -83,9 +83,8 @@ for cert_dir in $certs_directory*; do
 
         echo "证书已成功续签"
     else
-        # 若未满足续签条件,则输出证书仍然有效
-        echo "证书仍然有效,距离过期还有${days_until_expiry}天"
+        # 若未满足续签条件，则输出证书仍然有效
+        echo "证书仍然有效，距离过期还有${days_until_expiry}天"
     fi
-
     short_separator
 done
