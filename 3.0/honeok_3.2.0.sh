@@ -2549,6 +2549,38 @@ clean_webcache_standalone() {
     redis_restart
 }
 
+nginx_waf() {
+    local mode=$1
+
+    if ! grep -q "honeok/nginx:alpine" "$web_dir/docker-compose.yml"; then
+        curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    fi
+
+    # 根据 mode 参数来决定开启或关闭 WAF
+    if [ "$mode" == "on" ]; then
+        # 开启WAF去掉注释
+        sed -i 's|# load_module /etc/nginx/modules/ngx_http_modsecurity_module.so;|load_module /etc/nginx/modules/ngx_http_modsecurity_module.so;|' "$nginx_dir/nginx.conf" >/dev/null 2>&1
+        sed -i 's|^\(\s*\)# modsecurity on;|\1modsecurity on;|' /home/web/nginx.conf >/dev/null 2>&1
+        sed -i 's|^\(\s*\)# modsecurity_rules_file /etc/nginx/modsec/modsecurity.conf;|\1modsecurity_rules_file /etc/nginx/modsec/modsecurity.conf;|' "$nginx_dir/nginx.conf" >/dev/null 2>&1
+    elif [ "$mode" == "off" ]; then
+        # 关闭WAF加上注释
+        sed -i 's|^load_module /etc/nginx/modules/ngx_http_modsecurity_module.so;|# load_module /etc/nginx/modules/ngx_http_modsecurity_module.so;|' "$nginx_dir/nginx.conf" >/dev/null 2>&1
+        sed -i 's|^\(\s*\)modsecurity on;|\1# modsecurity on;|' /home/web/nginx.conf >/dev/null 2>&1
+        sed -i 's|^\(\s*\)modsecurity_rules_file /etc/nginx/modsec/modsecurity.conf;|\1# modsecurity_rules_file /etc/nginx/modsec/modsecurity.conf;|' "$nginx_dir/nginx.conf" >/dev/null 2>&1
+    else
+        _red "无效选项，请重新输入"
+        return 1
+    fi
+
+    # 检查 nginx 镜像并根据情况处理
+    if grep -q "honeok/nginx:alpine" "$web_dir/docker-compose.yml"; then
+        docker restart nginx
+    else
+        sed -i 's|nginx:alpine|honeok/nginx:alpine|g' "$web_dir/docker-compose.yml"
+        nginx_upgrade
+    fi
+}
+
 ldnmp_site_manage() {
     need_root
     local domain expire_date formatted_date
@@ -2740,11 +2772,11 @@ ldnmp_site_manage() {
 fail2ban_status() {
     docker restart fail2ban >/dev/null 2>&1
 
-    # 初始等待5秒，确保容器有时间启动
-    sleep 5
+    # 初始等待3秒，确保容器有时间启动
+    sleep 3
 
     # 定义最大重试次数和每次检查的间隔时间
-    local retries=30  # 最多重试30次
+    local retries=5  # 最多重试5次
     local interval=1  # 每次检查间隔1秒
     local count=0
 
@@ -3141,7 +3173,7 @@ linux_ldnmp() {
                 echo "已经安装的扩展"
                 docker exec php php -m
 
-                echo -n "$(echo -e "输入需要安装的扩展名称，如 ${yellow}SourceGuardian imap ftp${white}等，直接回车将跳过安装: ")"
+                echo -n "$(echo -e "输入需要安装的扩展名称，如${yellow}SourceGuardian imap ftp${white}等，直接回车将跳过安装: ")"
                 read -r php_extensions
                 if [ -n "$php_extensions" ]; then
                     docker exec $PHP_Version install-php-extensions $php_extensions
@@ -3323,23 +3355,24 @@ linux_ldnmp() {
 
                 if docker ps --format '{{.Names}}' | grep -q '^ldnmp$'; then
                     cd $web_dir && docker_compose down
-                    cd .. && tar czvf web_$(date +"%Y%m%d%H%M%S").tar.gz web
+                    cd .. && tar czvf web_$(date +"%Y%m%d%H%M%S").tar.gz web/
 
                     while true; do
                         clear
-                        echo -n -e "${yellow}要传送文件到远程服务器吗?(y/n)${white}"
+                        echo "备份文件已创建: /data/docker_data/web_$(date +"%Y%m%d%H%M%S").tar.gz"
+                        echo -n -e "${yellow}要传送文件到远程服务器吗? (y/n): ${white}"
                         read -r choice
 
                         case "$choice" in
                             [Yy])
-                                echo -n "请输入远端服务器IP:"
+                                echo -n "请输入远端服务器IP: "
                                 read -r remote_ip
 
                                 if [ -z "$remote_ip" ]; then
-                                    _red "请正确输入远端服务器IP"
+                                    _err_msg "$(_red '请正确输入远端服务器IP')"
                                     continue
                                 fi
-                                latest_tar=$(ls -t $web_dir/*.tar.gz | head -1)
+                                local latest_tar=$(ls -t /data/docker_data/*.tar.gz | head -1)
                                 if [ -n "$latest_tar" ]; then
                                     ssh-keygen -f "/root/.ssh/known_hosts" -R "$remote_ip"
                                     sleep 2  # 添加等待时间
@@ -3364,19 +3397,19 @@ linux_ldnmp() {
                 ;;
             33)
                 clear
+                set_script_dir
+                check_crontab_installed
 
-                echo -n "输入远程服务器IP:"
+                echo -n "输入远程服务器IP: "
                 read -r useip
-                echo -n "输入远程服务器密码:"
+                echo -n "输入远程服务器密码: "
                 read -r usepasswd
 
-                [ ! -d /data/script ] && mkdir -p /data/script
-                cd /data/script || { _red "进入目录/data/script失败"; return 1; }
-                curl -fskL -o "${useip}_backup.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/web_backup.sh"
-                chmod +x "${useip}_backup.sh"
+                curl -fskL -o "${global_script_dir}/${useip}_backup.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/web_backup.sh"
+                chmod +x "${global_script_dir}/${useip}_backup.sh"
 
-                sed -i "s/0.0.0.0/$useip/g" "${useip}_backup.sh"
-                sed -i "s/123456/$usepasswd/g" "${useip}_backup.sh"
+                sed -i "s/0.0.0.0/$useip/g" "${global_script_dir}/${useip}_backup.sh"
+                sed -i "s/123456/$usepasswd/g" "${global_script_dir}/${useip}_backup.sh"
 
                 short_separator
                 echo "1. 每周备份                 2. 每天备份"
@@ -3384,21 +3417,19 @@ linux_ldnmp() {
                 echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                 read -r choice
 
-                case $choice in
+                case "$choice" in
                     1)
-                        check_crontab_installed
-                        echo -n "选择每周备份的星期几(0-6,0代表星期日): "
+                        echo -n "选择每周备份的星期几(0-6，0代表星期日): "
                         read -r weekday
-                        (crontab -l ; echo "0 0 * * $weekday /data/script/${useip}_backup.sh >/dev/null 2>&1") | crontab -
+                        (crontab -l ; echo "0 0 * * $weekday ${global_script_dir}/${useip}_backup.sh >/dev/null 2>&1") | crontab -
                         ;;
                     2)
-                        check_crontab_installed
-                        echo -n "选择每天备份的时间(小时,0-23):"
+                        echo -n "选择每天备份的时间(小时，0-23): "
                         read -r hour
-                        (crontab -l ; echo "0 $hour * * * /data/script/${useip}_backup.sh") | crontab - >/dev/null 2>&1
+                        (crontab -l ; echo "0 $hour * * * ${global_script_dir}/${useip}_backup.sh") | crontab - >/dev/null 2>&1
                         ;;
                     *)
-                        break  # 跳出
+                        break
                         ;;
                 esac
 
@@ -3408,30 +3439,54 @@ linux_ldnmp() {
                 need_root
 
                 ldnmp_restore_check
-                echo "请确认/opt目录中已经放置网站备份的gz压缩包，按任意键继续"
-                read -n 1 -s -r -p ""
-                _yellow "正在解压"
-                cd /opt && ls -t /opt/*.tar.gz | head -1 | xargs -I {} tar -xzf {}
+                echo "可用的站点备份"
+                short_separator
+                ls -lt /opt/*.tar.gz | awk '{print $NF}'
+                echo ""
+                echo -n "输入备份文件名还原指定备份 (回车还原最新备份，输入0退出): "
+                read -r filename
 
-                # 清理并创建必要的目录
-                web_dir="/data/docker_data/web"
-                [ -d "$web_dir" ] && rm -rf "$web_dir"
-                mkdir -p "$web_dir"
+                if [ "$filename" == "0" ]; then
+                    end_of
+                    linux_ldnmp
+                fi
+                # 如果用户没有输入文件名，使用最新的压缩包
+                if [ -z "$filename" ]; then
+                    local filename=$(ls -t /opt/*.tar.gz | head -1)
+                fi
+                if [ -n "$filename" ]; then
+                    [ -f "$web_dir/docker-compose.yml" ] && cd $web_dir >/dev/null 2>&1 && docker_compose down >/dev/null 2>&1
+                    [ -d "$web_dir" ] && rm -rf "$web_dir" >/dev/null 2>&1
 
-                cd "$web_dir"
-                mv /opt/web .
+                    echo -e "${yellow}正在解压${filename}${white}"
+                    cd /data/docker_data && tar zxvf "$filename"
 
-                ldnmp_check_port
-                ldnmp_install_deps
-                install_docker
-                ldnmp_install_certbot
-                ldnmp_run
+                    ldnmp_check_port
+                    ldnmp_install_deps
+                    install_docker
+                    ldnmp_install_certbot
+                    ldnmp_run
+                else
+                    _red "没有找到压缩包"
+                fi
                 ;;
             35)
-                if docker inspect fail2ban >/dev/null 2>&1; then
-                    while true; do
+                while true; do
+                    if grep -q "^\s*#\s*modsecurity on;" $nginx_dir/nginx.conf; then
+                        local waf_status=""
+                    elif grep -q "modsecurity on;" $nginx_dir/nginx.conf; then
+                        local waf_status="WAF已开启"
+                    else
+                        local waf_status=""
+                    fi
+                    if [ -f "/path/to/fail2ban/config/fail2ban/action.d/cloudflare-docker.conf" ]; then
+                        local cloudflare_message="cloudflare模式已开启"
+                    else
+                        local cloudflare_message=""
+                    fi
+                    if docker inspect fail2ban >/dev/null 2>&1; then
                         clear
-                        echo "服务器防御程序已启动"
+                        echo -e "服务器防御程序已启动 ${green}${cloudflare_message} ${waf_status}${white}"
                         short_separator
                         echo "1. 开启SSH防暴力破解              2. 关闭SSH防暴力破解"
                         echo "3. 开启网站保护                   4. 关闭网站保护"
@@ -3443,10 +3498,11 @@ linux_ldnmp() {
                         short_separator
                         echo "21. cloudflare模式                22. 高负载开启5秒盾"
                         short_separator
-                        echo "9. 卸载防御程序"
+                        echo "31. 开启WAF                       32. 关闭WAF"
+                        short_separator
+                        echo "50. 卸载防御程序"
                         short_separator
                         echo "0. 退出"
-                        short_separator
 
                         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                         read -r choice
@@ -3504,27 +3560,18 @@ linux_ldnmp() {
                             8)
                                 timeout 5 tail -f /data/docker_data/fail2ban/config/log/fail2ban/fail2ban.log
                                 ;;
-                            9)
-                                cd /data/docker_data/fail2ban
-                                docker_compose down_all
-
-                                [ -d /data/docker_data/fail2ban ] && rm -rf /data/docker_data/fail2ban
-                                crontab -l | grep -v "CF-Under-Attack.sh" | crontab - 2>/dev/null
-                                _green "Fail2Ban防御程序已卸载"
-                                break
-                                ;;
                             11)
                                 vim /data/docker_data/fail2ban/config/fail2ban/jail.d/nginx-docker-cc.conf
                                 fail2ban_status
                                 break
                                 ;;
                             21)
-                                echo "Cloudflare后台右上角我的个人资料，选择左侧API令牌,获取Global API Key"
+                                echo "cloudflare后台右上角我的个人资料，选择左侧API令牌，获取Global API Key"
                                 echo "https://dash.cloudflare.com/login"
 
                                 # 获取CFUSER
                                 while true; do
-                                    echo -n "请输入你的Cloudflare管理员邮箱:"
+                                    echo -n "请输入你的cloudflare管理员邮箱: "
                                     read -r CFUSER
                                     if [[ "$CFUSER" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
                                         break
@@ -3534,9 +3581,7 @@ linux_ldnmp() {
                                 done
                                 # 获取CFKEY
                                 while true; do
-                                    echo "Cloudflare后台右上角我的个人资料，选择左侧API令牌，获取Global API Key"
-                                    echo "https://dash.cloudflare.com/login"
-                                    echo -n "请输入你的Global API Key:"
+                                    echo -n "请输入你的Global API Key: "
                                     read -r CFKEY
                                     if [[ -n "$CFKEY" ]]; then
                                         break
@@ -3545,9 +3590,9 @@ linux_ldnmp() {
                                     fi
                                 done
 
-                                curl -fskL -o "/data/docker_data/web/nginx/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
-
+                                curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
                                 nginx_check_restart
+
                                 cd /data/docker_data/fail2ban/config/fail2ban/jail.d
                                 curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                                 
@@ -3558,15 +3603,17 @@ linux_ldnmp() {
                                 sed -i "s/APIKEY00000/$CFKEY/g" /data/docker_data/fail2ban/config/fail2ban/action.d/cloudflare-docker.conf
 
                                 fail2ban_status
-                                _green "已配置Cloudflare模式，可在Cloudflare后台站点-安全性-事件中查看拦截记录"
+                                _green "已配置cloudflare模式，可在Cloudflare后台站点-安全性-事件中查看拦截记录"
                                 ;;
                             22)
+                                set_script_dir
+
                                 echo "网站每5分钟自动检测，当达检测到高负载会自动开盾，低负载也会自动关闭5秒盾"
                                 short_separator
 
                                 # 获取CFUSER
                                 while true; do
-                                    echo -n "请输入你的Cloudflare管理员邮箱:"
+                                    echo -n "请输入你的cloudflare管理员邮箱: "
                                     read -r CFUSER
                                     if [[ "$CFUSER" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
                                         break
@@ -3578,7 +3625,7 @@ linux_ldnmp() {
                                 while true; do
                                     echo "cloudflare后台右上角我的个人资料，选择左侧API令牌，获取Global API Key"
                                     echo "https://dash.cloudflare.com/login"
-                                    echo -n "请输入你的Global API Key:"
+                                    echo -n "请输入你的Global API Key: "
                                     read -r CFKEY
                                     if [[ -n "$CFKEY" ]]; then
                                         break
@@ -3589,7 +3636,7 @@ linux_ldnmp() {
                                 # 获取ZoneID
                                 while true;do
                                     echo "Cloudflare后台域名概要页面右下方获取区域ID"
-                                    echo -n "请输入你的ZoneID:"
+                                    echo -n "请输入你的ZoneID: "
                                     read -r CFZoneID
                                     if [[ -n "$CFZoneID" ]]; then
                                         break
@@ -3601,24 +3648,38 @@ linux_ldnmp() {
                                 install jq bc
                                 check_crontab_installed
 
-                                [ ! -d /data/script ] && mkdir -p /data/script
-                                cd /data/script
+                                curl -fskL -o "$global_script_dir/CF-Under-Attack.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/CF-Under-Attack.sh"
+                                chmod +x "$global_script_dir/CF-Under-Attack.sh"
+                                sed -i "s/AAAA/$CFUSER/g" "$global_script_dir/CF-Under-Attack.sh"
+                                sed -i "s/BBBB/$CFKEY/g" "$global_script_dir/CF-Under-Attack.sh"
+                                sed -i "s/CCCC/$CFZoneID/g" "$global_script_dir/CF-Under-Attack.sh"
 
-                                curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/CF-Under-Attack.sh"
-                                chmod +x CF-Under-Attack.sh
-                                sed -i "s/AAAA/$CFUSER/g" /data/script/CF-Under-Attack.sh
-                                sed -i "s/BBBB/$CFKEY/g" /data/script/CF-Under-Attack.sh
-                                sed -i "s/CCCC/$CFZoneID/g" /data/script/CF-Under-Attack.sh
+                                local cron_job="*/5 * * * * $global_script_dir/CF-Under-Attack.sh >/dev/null 2>&1"
+                                local existing_cron=$(crontab -l 2>/dev/null | grep -F "$cron_job")
 
-                                cron_job="*/5 * * * * /data/script/CF-Under-Attack.sh >/dev/null 2>&1"
-                                existing_cron=$(crontab -l 2>/dev/null | grep -F "$cron_job")
-                                
                                 if [ -z "$existing_cron" ]; then
                                     (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
                                     _green "高负载自动开盾脚本已添加"
                                 else
                                     _yellow "自动开盾脚本已存在，无需添加"
                                 fi
+                                ;;
+                            31)
+                                nginx_waf on
+                                _green "站点WAF已开启"
+                                ;;
+                            32)
+                                nginx_waf off
+                                _green "站点WAF已关闭"
+                                ;;
+                            50)
+                                cd /data/docker_data/fail2ban
+                                docker_compose down_all
+
+                                [ -d /data/docker_data/fail2ban ] && rm -rf /data/docker_data/fail2ban
+                                crontab -l | grep -v "$global_script_dir/CF-Under-Attack.sh" | crontab - 2>/dev/null
+                                _green "Fail2Ban防御程序已卸载"
+                                break
                                 ;;
                             0)
                                 break
@@ -3627,44 +3688,40 @@ linux_ldnmp() {
                                 _red "无效选项，请重新输入"
                                 ;;
                         esac
-                        end_of
-                    done
-                elif [ -x "$(command -v fail2ban-client)" ] ; then
-                    clear
-                    _yellow "卸载旧版Fail2ban"
-                    echo -n -e "${yellow}确定继续吗?(y/n)${white}"
-                    read -r choice
-                    
-                    case "$choice" in
-                        [Yy])
-                            remove fail2ban
-                            rm -rf /etc/fail2ban
-                            _green "Fail2Ban防御程序已卸载"
-                            ;;
-                        [Nn])
-                            :
-                            _yellow "已取消"
-                            ;;
-                        *)
-                            _red "无效选项，请重新输入"
-                            ;;
-                    esac
-                else
-                    clear
-                    install_docker
-                    install_nginx_standalone
-                    fail2ban_install_sshd
+                    elif [ -x "$(command -v fail2ban-client)" ] ; then
+                        clear
+                        _yellow "卸载旧版Fail2ban"
+                        echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
+                        read -r choice
 
-                    cd /data/docker_data/fail2ban/config/fail2ban/filter.d
-                    curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/fail2ban-nginx-cc.conf"
-                    cd /data/docker_data/fail2ban/config/fail2ban/jail.d
-                    curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
+                        case "$choice" in
+                            [Yy])
+                                remove fail2ban
+                                rm -rf /etc/fail2ban
+                                _green "Fail2Ban防御程序已卸载"
+                                ;;
+                            [Nn])
+                                _yellow "已取消"
+                                ;;
+                            *)
+                                _red "无效选项，请重新输入"
+                                ;;
+                        esac
+                    else
+                        clear
+                        fail2ban_install_sshd
 
-                    sed -i "/cloudflare/d" "/data/docker_data/fail2ban/config/fail2ban/jail.d/nginx-docker-cc.conf"
+                        cd /data/docker_data/fail2ban/config/fail2ban/filter.d
+                        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/fail2ban-nginx-cc.conf"
+                        cd /data/docker_data/fail2ban/config/fail2ban/jail.d
+                        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
+                        sed -i "/cloudflare/d" "/data/docker_data/fail2ban/config/fail2ban/jail.d/nginx-docker-cc.conf"
 
-                    fail2ban_status
-                    _green "防御程序已开启！"
-                fi
+                        fail2ban_status
+                        _green "防御程序已开启！"
+                    fi
+                    end_of
+                done
                 ;;
             36)
                 while true; do
@@ -3683,7 +3740,8 @@ linux_ldnmp() {
                         1)
                             _yellow "站点标准模式"
                             # nginx调优
-                            sed -i 's/worker_connections.*/worker_connections 1024;/' "$nginx_dir/nginx.conf"
+                            sed -i 's/worker_connections.*/worker_connections 10240;/' "$nginx_dir/nginx.conf"
+                            sed -i 's/worker_processes.*/worker_processes 4;/' "$nginx_dir/nginx.conf"
 
                             # php调优
                             curl -fskL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
@@ -3702,17 +3760,23 @@ linux_ldnmp() {
                             docker cp "$web_dir/mysql_config.cnf" "mysql:/etc/mysql/conf.d/"
                             rm -f "$web_dir/mysql_config.cnf"
 
-                            cd "${web_dir}"
-                            docker_compose restart
-                            docker exec -it redis redis-cli CONFIG SET maxmemory 512mb
-                            docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
+                            cd "${web_dir}" && docker_compose restart
+                            redis_restart
+                            optimize_balanced
 
                             _green "LDNMP环境已设置成标准模式"
                             ;;
                         2)
                             _yellow "站点高性能模式"
                             # nginx调优
-                            sed -i 's/worker_connections.*/worker_connections 10240;/' "$nginx_dir/nginx/nginx.conf"
+                            sed -i 's/worker_connections.*/worker_connections 20480;/' "$nginx_dir/nginx/nginx.conf"
+                            sed -i 's/worker_processes.*/worker_processes 8;/' "$nginx_dir/nginx/nginx.conf"
+
+                            # php调优
+                            curl -fskL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
+                            docker cp "$web_dir/optimized_php.ini" "php:/usr/local/etc/php/conf.d/optimized_php.ini"
+                            docker cp "$web_dir/optimized_php.ini" "php74:/usr/local/etc/php/conf.d/optimized_php.ini"
+                            rm -f "$web_dir/optimized_php.ini"
 
                             # php调优
                             curl -fskL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www.conf"
@@ -3725,10 +3789,9 @@ linux_ldnmp() {
                             docker cp "$web_dir/mysql_config.cnf" mysql:/etc/mysql/conf.d/
                             rm -f "$web_dir/mysql_config.cnf"
 
-                            cd "${web_dir}"
-                            docker_compose restart
-                            docker exec -it redis redis-cli CONFIG SET maxmemory 1024mb
-                            docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
+                            cd "${web_dir}" && docker_compose restart
+                            redis_restart
+                            optimize_webserver
 
                             _green "LDNMP环境已设置成高性能模式"
                             ;;
@@ -3877,7 +3940,7 @@ linux_ldnmp() {
                 need_root
                 echo "建议先备份全部网站数据再卸载LDNMP环境"
                 echo "同时会移除由LDNMP建站安装的依赖"
-                echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
@@ -5224,6 +5287,45 @@ restore_defaults() {
     echo always > /sys/kernel/mm/transparent_hugepage/enabled
     # 还原 NUMA balancing
     sysctl -w kernel.numa_balancing=1 2>/dev/null
+}
+
+# 网站搭建优化函数
+optimize_webserver() {
+	echo -e "${yellow}切换到网站搭建优化模式${white}"
+
+	echo -e "${yellow}优化文件描述符${white}"
+	ulimit -n 65535
+
+	echo -e "${yellow}优化虚拟内存${white}"
+	sysctl -w vm.swappiness=10 2>/dev/null
+	sysctl -w vm.dirty_ratio=20 2>/dev/null
+	sysctl -w vm.dirty_background_ratio=10 2>/dev/null
+	sysctl -w vm.overcommit_memory=1 2>/dev/null
+	sysctl -w vm.min_free_kbytes=65536 2>/dev/null
+
+	echo -e "${yellow}优化网络设置${white}"
+	sysctl -w net.core.rmem_max=16777216 2>/dev/null
+	sysctl -w net.core.wmem_max=16777216 2>/dev/null
+	sysctl -w net.core.netdev_max_backlog=5000 2>/dev/null
+	sysctl -w net.core.somaxconn=4096 2>/dev/null
+	sysctl -w net.ipv4.tcp_rmem='4096 87380 16777216' 2>/dev/null
+	sysctl -w net.ipv4.tcp_wmem='4096 65536 16777216' 2>/dev/null
+	sysctl -w net.ipv4.tcp_congestion_control=bbr 2>/dev/null
+	sysctl -w net.ipv4.tcp_max_syn_backlog=8192 2>/dev/null
+	sysctl -w net.ipv4.tcp_tw_reuse=1 2>/dev/null
+	sysctl -w net.ipv4.ip_local_port_range='1024 65535' 2>/dev/null
+
+	echo -e "${yellow}优化缓存管理${white}"
+	sysctl -w vm.vfs_cache_pressure=50 2>/dev/null
+
+	echo -e "${yellow}优化CPU设置${white}"
+	sysctl -w kernel.sched_autogroup_enabled=0 2>/dev/null
+
+	echo -e "${yellow}其他优化${white}"
+	# 禁用透明大页面，减少延迟
+	echo never > /sys/kernel/mm/transparent_hugepage/enabled
+	# 禁用 NUMA balancing
+	sysctl -w kernel.numa_balancing=0 2>/dev/null
 }
 
 clamav_freshclam() {
