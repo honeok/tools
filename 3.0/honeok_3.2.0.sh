@@ -1954,18 +1954,18 @@ ldnmp_global_status() {
     local output="站点: ${green}${cert_count}${white}"
 
     # 获取数据库数量
-    local db_count=0  # 初始化数据库计数
+    local database_count=0  # 初始化数据库计数
     local db_root_passwd=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
     if [ -n "$db_root_passwd" ]; then
-        db_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
+        database_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
     fi
 
-    local db_output="数据库: ${green}${db_count}${white}"
+    local db_info="数据库: ${green}${database_count}${white}"
 
     if command -v docker >/dev/null 2>&1; then
         if docker ps --filter "name=ldnmp" --filter "status=running" -q | grep -q .; then
             short_separator
-            _green "LDNMP环境已安装 $(_white "$output" "$db_output")"
+            _green "LDNMP环境已安装 $(_white "$output" "$db_info")"
         fi
         if docker ps --filter "name=nginx" --filter "status=running" -q | grep -q .; then
             short_separator
@@ -2172,7 +2172,19 @@ install_ldnmp_conf() {
     sed -i "s#HONEOK_PASSWD#$DB_USER_PASSWD#g" "$web_dir/docker-compose.yml"
 }
 
-install_ldnmp() {
+install_nginx_conf() {
+    # 创建必要的目录和文件
+    mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$nginx_dir/certs"
+
+    # 下载配置文件
+    curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
+    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml"
+
+    default_server_ssl
+}
+
+ldnmp_run() {
     cd "$web_dir"
     docker_compose start
     clear
@@ -2194,8 +2206,33 @@ install_ldnmp_standalone() {
     ldnmp_install_deps
     ldnmp_install_certbot
     install_ldnmp_conf
-    install_ldnmp
+    ldnmp_run
     ngx_logrotate
+}
+
+install_nginx_standalone() {
+    local nginx_version=$(docker exec nginx nginx -v 2>&1 | grep -oP "nginx/\K[0-9]+\.[0-9]+\.[0-9]+")
+
+    need_root
+    install_docker
+    ldnmp_check_port
+    ldnmp_install_deps
+    ldnmp_install_certbot
+    install_nginx_conf
+    ldnmp_run
+    ngx_logrotate
+
+    docker exec nginx chown -R nginx:nginx /var/www/html
+    docker exec nginx mkdir -p /var/cache/nginx/proxy
+    docker exec nginx mkdir -p /var/cache/nginx/fastcgi
+    docker exec nginx chown -R nginx:nginx /var/cache/nginx/proxy
+    docker exec nginx chown -R nginx:nginx /var/cache/nginx/fastcgi
+    docker restart nginx >/dev/null 2>&1
+
+    clear
+    _green "Nginx安装完成！"
+    _yellow "当前版本: $(_white "v$nginx_version")"
+    echo ""
 }
 
 install_ldnmp_wordpress() {
@@ -2238,54 +2275,6 @@ install_ldnmp_wordpress() {
     # echo "密码: $DB_USER_PASSWD"
     # echo "数据库地址: mysql"
     # echo "表前缀: wp_"
-}
-
-ldnmp_install_nginx() {
-    local nginx_dir="/data/docker_data/web/nginx"
-    local nginx_conf_dir="/data/docker_data/web/nginx/conf.d"
-    local default_conf="$nginx_conf_dir/default.conf"
-
-    need_root
-
-    # 如果已安装LDNMP环境直接返回
-    if docker inspect "ldnmp" >/dev/null 2>&1; then
-        _yellow "LDNMP环境已集成Nginx，无须重复安装"
-        return 0
-    fi
-
-    if docker inspect "nginx" >/dev/null 2>&1; then
-        if curl -sL "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml" | head -n 19 | diff - "/data/docker_data/web/docker-compose.yml" >/dev/null 2>&1; then
-            _yellow "检测到通过本脚本已安装Nginx"
-            return 0
-        else
-            docker rm -f nginx >/dev/null 2>&1
-        fi
-    else
-        ldnmp_check_port
-        ldnmp_install_deps
-        install_docker
-        ldnmp_install_certbot
-
-        mkdir -p "$nginx_dir" "$nginx_conf_dir" "$nginx_dir/certs"
-        curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
-        curl -fskL -o "$nginx_conf_dir/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-
-        default_server_ssl
-
-        curl -fskL -o "${web_dir}/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml"
-
-        cd "${web_dir}"
-        docker_compose start
-
-        docker exec -it nginx chmod -R 777 /var/www/html
-
-        clear
-        nginx_version=$(docker exec nginx nginx -v 2>&1)
-        nginx_version=$(echo "$nginx_version" | grep -oP "nginx/\K[0-9]+\.[0-9]+\.[0-9]+")
-        _green "Nginx安装完成！"
-        echo -e "当前版本:${yellow}v$nginx_version${white}"
-        echo ""
-    fi
 }
 
 ldnmp_version() {
@@ -2468,11 +2457,17 @@ reverse_proxy() {
     docker restart nginx >/dev/null 2>&1
 }
 
-nginx_check() {
-    docker exec nginx nginx -t >/dev/null 2>&1
+nginx_check_restart() {
+    if docker exec nginx nginx -t >/dev/null 2>&1;then
+        docker restart nginx >/dev/null 2>&1
+    else
+        _err_msg "$(_red 'Nginx配置校验失败，请检查配置文件')"
+        return 1
+    fi
 }
 
-ldnmp_restart_redis() {
+redis_restart() {
+    # redis重启
     docker exec redis redis-cli FLUSHALL >/dev/null 2>&1
     docker exec -it redis redis-cli CONFIG SET maxmemory 512mb >/dev/null 2>&1
     docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru >/dev/null 2>&1
@@ -2481,7 +2476,8 @@ ldnmp_restart_redis() {
 }
 
 ldnmp_restart() {
-    ldnmp_restart_redis
+    redis_restart
+    # nginx php重启
     docker exec nginx chown -R nginx:nginx /var/www/html >/dev/null 2>&1
     docker exec nginx mkdir -p /var/cache/nginx/proxy >/dev/null 2>&1
     docker exec nginx mkdir -p /var/cache/nginx/fastcgi >/dev/null 2>&1
@@ -2497,12 +2493,276 @@ ldnmp_display_success() {
     clear
     _suc_msg "$(_green "您的${webname}搭建好了！")"
     echo "https://${domain}"
+    short_separator
+    echo "${webname}安装信息如下: "
 }
 
 nginx_display_success() {
     clear
     _suc_msg "$(_green "您的${webname}搭建好了！")"
     echo "https://${domain}"
+}
+
+clean_webcache_standalone() {
+    # cloudflare清除缓存
+    local config_file="${web_dir}/config/cf-purge-cache.txt"
+    local api_token email zone_ids
+
+    # 检查配置文件是否存在
+    if [ -f "$config_file" ]; then
+        # 从配置文件读取api_token和zone_id
+        read api_token email zone_ids < "$config_file"
+        # 将zone_ids转换为数组
+        zone_ids=($zone_ids)
+    else
+        # 提示用户是否清理缓存
+        echo -n "需要清理Cloudflare的缓存吗? (y/n): "
+        read -r answer
+        if [[ "$answer" == "y" ]]; then
+            echo "CF信息保存在${config_file}，可以后期修改CF信息"
+            echo -n "请输入你的api token: "
+            read -r api_token
+            echo -n "请输入你的CF用户名: "
+            read -r email
+            echo -n "请输入 zone_id (多个用空格分隔): "
+            read -r zone_ids
+
+            [ ! -d "${web_dir}/config" ] && mkdir -p "${web_dir}/config"
+            echo "$api_token $email ${zone_ids[*]}" > "$config_file"
+        fi
+    fi
+
+    # 循环遍历每个zone_id并执行清除缓存命令
+    for zone_id in "${zone_ids[@]}"; do
+        echo "正在清除缓存for zone_id: $zone_id"
+        curl -X POST "https://api.cloudflare.com/client/v4/zones/$zone_id/purge_cache" \
+            -H "X-Auth-Email: $email" \
+            -H "X-Auth-Key: $api_token" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
+    done
+    _green "Cloudflare缓存清除请求已发送完毕"
+
+    docker exec php php -r 'opcache_reset();'
+    docker exec php74 php -r 'opcache_reset();'
+    docker restart nginx php php74 redis >/dev/null 2>&1
+    redis_restart
+}
+
+ldnmp_site_manage() {
+    need_root
+    local domain expire_date formatted_date
+    local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
+    local site_info="站点: ${green}${cert_count}${white}"
+    local DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+    local database_count=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2> /dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
+    local db_info="数据库信息: ${green}${database_count}${white}"
+
+    while true; do
+        clear
+        echo "LDNMP站点管理"
+        echo "LDNMP环境"
+        short_separator
+        ldnmp_version
+
+        echo -e "${site_info}                      证书到期时间"
+        short_separator
+        for cert_file in $(ls ${nginx_dir}/certs/*cert.pem); do
+            if [ -f "$cert_file" ]; then
+                domain=$(basename "$cert_file" | sed 's/_cert.pem//')
+                if [ -n "$domain" ]; then
+                    expire_date=$(openssl x509 -noout -enddate -in "$cert_file" | awk -F'=' '{print $2}')
+                    formatted_date=$(date -d "$expire_date" '+%Y-%m-%d')
+                    printf "%-30s%s\n" "$domain" "$formatted_date"
+                fi
+            fi
+        done
+        short_separator
+        echo ""
+        echo -e "${db_info}"
+        short_separator
+        if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
+            docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys"
+        else
+            _red "NONE"
+        fi
+        short_separator
+        echo ""
+        echo "站点目录"
+        short_separator
+        echo "数据目录: $nginx_dir/html     证书目录: $nginx_dir/certs     配置文件目录: $nginx_dir/conf.d"
+        short_separator
+        echo ""
+        echo "操作"
+        short_separator
+        echo "1.  申请/更新域名证书               2. 更换站点域名"
+        echo "3.  清理站点缓存                    4.  创建关联站点"
+        echo "5.  查看访问日志                    6.  查看错误日志"
+        echo "7.  编辑全局配置                    8.  编辑站点配置"
+        echo "9.  管理站点数据库		          10. 查看站点分析报告"
+        short_separator
+        echo "20. 删除指定站点数据"
+        short_separator
+        echo "0. 返回上一级选单"
+        short_separator
+
+        echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
+        read -r choice
+
+        case $choice in
+            1)
+                echo -n "请输入你的域名: "
+                read -r domain
+
+                ldnmp_install_certbot
+                docker run -it --rm -v "/data/docker_data/certbot/cert:/etc/letsencrypt" -v "/data/docker_data/certbot/data:/var/lib/letsencrypt" certbot/certbot delete --cert-name "$domain" -n 2>/dev/null
+                ldnmp_install_ssltls
+                ldnmp_certs_status
+                ;;
+            2)
+                _info_msg "$(_red '建议先备份好全站数据再更换站点域名！')"
+                echo -n "请输入旧域名: "
+                read -r old_domain
+                echo -n "请输入新域名: "
+                read -r domain
+                ldnmp_install_certbot
+                ldnmp_install_ssltls
+                ldnmp_certs_status
+
+                # mysql替换
+                ldnmp_add_db
+                local old_dbname=$(echo "$old_domain" | sed -e 's/[^A-Za-z0-9]/_/g')
+
+                docker exec mysql mysqldump -u root -p"$DB_ROOT_PASSWD" $old_dbname | docker exec -i mysql mysql -u root -p"$DB_ROOT_PASSWD" $DB_NAME
+                docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE $old_dbname;"
+
+                local tables=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D $DB_NAME -e "SHOW TABLES;" | awk '{ if (NR>1) print $1 }')
+                for table in $tables; do
+                    local columns=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D $DB_NAME -e "SHOW COLUMNS FROM $table;" | awk '{ if (NR>1) print $1 }')
+                    for column in $columns; do
+                        docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D $DB_NAME -e "UPDATE $table SET $column = REPLACE($column, '$old_domain', '$domain') WHERE $column LIKE '%$old_domain%';"
+                    done
+                done
+
+                # 网站目录替换
+                mv "$nginx_dir/html/$old_domain" "$nginx_dir/html/$domain"
+                find "$nginx_dir/html/$domain" -type f -exec sed -i "s/$old_dbname/$DB_NAME/g" {} +
+                find "$nginx_dir/html/$domain" -type f -exec sed -i "s/$old_domain/$domain/g" {} +
+                mv "$nginx_dir/conf.d/$old_domain.conf" "$nginx_dir/conf.d/$domain.conf"
+                sed -i "s/$old_domain/$domain/g" "$nginx_dir/conf.d/$domain.conf"
+
+                rm -f "$nginx_dir/certs/${old_domain}_key.pem" "$nginx_dir/certs/${old_domain}_cert.pem"
+
+                nginx_check_restart
+                ;;
+            3)
+                clean_webcache_standalone
+                ;;
+            4)
+                echo "为现有的站点再关联一个新域名用于访问"
+                echo -n "请输入现有的域名: "
+                read -r old_domain
+                echo -n "请输入新域名: "
+                read -r new_domain
+
+                ldnmp_install_certbot
+                ldnmp_install_ssltls
+                ldnmp_certs_status
+
+                cp "$nginx_dir/conf.d/$old_domain.conf" "$nginx_dir/conf.d/$new_domain.conf"
+                sed -i "s|server_name $old_domain|server_name $new_domain|g" "$nginx_dir/conf.d/$old_domain.conf"
+                sed -i "s|/etc/nginx/certs/${old_domain}_cert.pem|/etc/nginx/certs/${new_domain}_cert.pem|g" "$nginx_dir/conf.d/$new_domain.conf"
+                sed -i "s|/etc/nginx/certs/${old_domain}_key.pem|/etc/nginx/certs/${new_domain}_key.pem|g" "$nginx_dir/conf.d/$new_domain.conf"
+
+                nginx_check_restart
+                ;;
+            3)
+                if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
+                    docker restart nginx >/dev/null 2>&1
+                else
+                    _red "未发现Nginx容器或未运行"
+                    return 1
+                fi
+                docker exec php php -r 'opcache_reset();'
+                docker restart php
+                docker exec php74 php -r 'opcache_reset();'
+                docker restart php74
+                docker restart redis
+                docker exec redis redis-cli FLUSHALL
+                docker exec -it redis redis-cli CONFIG SET maxmemory 512mb
+                docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
+                ;;
+            4)
+                install goaccess
+                goaccess --log-format=COMBINED $nginx_dir/log/access.log
+                ;;
+            5)
+                vim $nginx_dir/nginx.conf
+
+                if nginx_check_restart; then
+                    docker restart nginx >/dev/null 2>&1
+                else
+                    _red "Nginx配置校验失败，请检查配置文件"
+                    return 1
+                fi
+                ;;
+            6)
+                echo -n "编辑站点配置，请输入你要编辑的域名:"
+                vim "$nginx_dir/conf.d/$edit_domain.conf"
+
+                if nginx_check_restart; then
+                    docker restart nginx >/dev/null 2>&1
+                else
+                    _red "Nginx配置校验失败，请检查配置文件"
+                    return 1
+                fi
+                ;;
+            7)
+                cert_live_dir="/data/docker_data/certbot/cert/live"
+                cert_archive_dir="/data/docker_data/certbot/cert/archive"
+                cert_renewal_dir="/data/docker_data/certbot/cert/renewal"
+                echo -n "删除站点数据目录，请输入你的域名:"
+                read -r del_domain
+
+                # 删除站点数据目录和相关文件
+                rm -rf "$nginx_dir/html/$del_domain"
+                rm -f "$nginx_dir/conf.d/$del_domain.conf" "$nginx_dir/certs/${del_domain}_key.pem" "$nginx_dir/certs/${del_domain}_cert.pem"
+
+                # 检查并删除证书目录
+                if [ -d "$cert_live_dir/$del_domain" ]; then
+                    rm -rf "$cert_live_dir/$del_domain"
+                fi
+
+                if [ -d "$cert_archive_dir/$del_domain" ]; then
+                    rm -rf "$cert_archive_dir/$del_domain"
+                fi
+
+                if [ -f "$cert_renewal_dir/$del_domain.conf" ]; then
+                    rm -f "$cert_renewal_dir/$del_domain.conf"
+                fi
+
+                # 检查Nginx配置并重启Nginx
+                if nginx_check_restart; then
+                    docker restart nginx >/dev/null 2>&1
+                else
+                    _red "Nginx配置校验失败，请检查配置文件"
+                    return 1
+                fi
+                ;;
+            8)
+                echo -n "删除站点数据库，请输入数据库名:"
+                read -r del_database
+                DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+                docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE $del_database;" >/dev/null 2>&1
+                ;;
+            0)
+                break
+                ;;
+            *)
+                _red "无效选项，请重新输入"
+                ;;
+        esac
+    done
 }
 
 fail2ban_status() {
@@ -2875,7 +3135,6 @@ linux_ldnmp() {
                 clear
                 echo -e "[${yellow}2/6${white}] index.php所在路径"
                 short_separator
-                # find "$(realpath .)" -name "index.php" -print
                 find "$(realpath .)" -name "index.php" -print | xargs -I {} dirname {}
 
                 echo -n "请输入index.php的路径，如 ($nginx_dir/html/$domain/wordpress/): "
@@ -2970,19 +3229,18 @@ linux_ldnmp() {
                 echo "管理员登录信息自行设置"
                 ;;
             21)
-                ldnmp_install_nginx
-                ngx_logrotate
+                ldnmp_check_status
+                install_nginx_standalone
                 ;;
             22)
                 clear
                 webname="站点重定向"
 
                 nginx_install_status
-                ip_address
                 add_domain
-                echo -n "请输入跳转域名:"
-                read -r reverseproxy
 
+                echo -n "请输入跳转域名: "
+                read -r reverseproxy
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
@@ -2990,13 +3248,8 @@ linux_ldnmp() {
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/baidu.com/$reverseproxy/g" "$nginx_dir/conf.d/$domain.conf"
 
-                if nginx_check; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "Nginx配置校验失败，请检查配置文件"
-                    return 1
-                fi
-
+                nginx_http_on
+                nginx_check_restart
                 nginx_display_success
                 ;;
             23)
@@ -3004,13 +3257,12 @@ linux_ldnmp() {
                 webname="反向代理-IP+端口"
 
                 nginx_install_status
-                ip_address
                 add_domain
-                echo -n "请输入你的反代IP:" 
-                read -r reverseproxy
-                echo -n "请输入你的反代端口:"
-                read -r port
 
+                echo -n "请输入你的反代IP: " 
+                read -r reverseproxy
+                echo -n "请输入你的反代端口: "
+                read -r port
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
@@ -3019,13 +3271,8 @@ linux_ldnmp() {
                 sed -i "s/0.0.0.0/$reverseproxy/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/0000/$port/g" "$nginx_dir/conf.d/$domain.conf"
 
-                if nginx_check; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "Nginx配置校验失败，请检查配置文件"
-                    return 1
-                fi
-
+                nginx_http_on
+                nginx_check_restart
                 nginx_display_success
                 ;;
             24)
@@ -3033,12 +3280,11 @@ linux_ldnmp() {
                 webname="反向代理-域名"
 
                 nginx_install_status
-                ip_address
                 add_domain
-                echo -e "域名格式: ${yellow}http://www.google.com${white}"
-                echo -n "请输入你的反代域名:"
-                read -r proxy_domain
 
+                echo "域名格式: google.com"
+                echo -n "请输入你的反代域名: "
+                read -r proxy_domain
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
@@ -3046,13 +3292,8 @@ linux_ldnmp() {
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s|fandaicom|$proxy_domain|g" "$nginx_dir/conf.d/$domain.conf"
 
-                if nginx_check; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "Nginx配置校验失败，请检查配置文件"
-                    return 1
-                fi
-
+                nginx_http_on
+                nginx_check_restart
                 nginx_display_success
                 ;;
             25)
@@ -3066,6 +3307,7 @@ linux_ldnmp() {
 
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/html.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
+                nginx_http_on
 
                 static_dir="$nginx_dir/html/$domain"
                 [ ! -d "$static_dir" ] && mkdir -p "$static_dir"
@@ -3075,11 +3317,11 @@ linux_ldnmp() {
                 echo -e "[${yellow}1/2${white}] 上传静态源码"
                 short_separator
                 echo "目前只允许上传zip格式的源码包，请将源码包放到$static_dir目录下"
-                echo -n "也可以输入下载链接远程下载源码包，直接回车将跳过远程下载:"
+                echo -n "也可以输入下载链接远程下载源码包，直接回车将跳过远程下载: "
                 read -r url_download
 
                 if [ -n "$url_download" ]; then
-                    wget -q "$url_download"
+                    curl -fskL -O "$url_download"
                 fi
 
                 unzip $(ls -t *.zip | head -n 1)
@@ -3088,194 +3330,21 @@ linux_ldnmp() {
                 clear
                 echo -e "[${yellow}2/6${white}] index.html所在路径"
                 short_separator
-                find "$(realpath .)" -name "index.html" -print
+                find "$(realpath .)" -name "index.html" -print | xargs -I {} dirname {}
 
-                echo -n "请输入index.html的路径，如($nginx_dir/html/$domain/index/):"
+                echo -n "请输入index.html的路径，如 ($nginx_dir/html/$domain/index/): "
                 read -r index_path
 
                 sed -i "s#root /var/www/html/$domain/#root $index_path#g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s#$nginx_dir/#/var/www/#g" "$nginx_dir/conf.d/$domain.conf"
 
-                docker exec nginx chmod -R 777 /var/www/html
+                docker exec nginx chmod -R nginx:nginx /var/www/html
 
-                if nginx_check; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "Nginx配置校验失败，请检查配置文件"
-                    return 1
-                fi
-
+                nginx_check_restart
                 nginx_display_success
                 ;;
             31)
-                need_root
-                while true; do
-                    clear
-                    echo "LDNMP站点管理"
-                    echo "LDNMP环境"
-                    short_separator
-                    ldnmp_version
-
-                    echo "站点信息                      证书到期时间"
-                    short_separator
-                    for cert_file in /data/docker_data/web/nginx/certs/*_cert.pem; do
-                        if [ -f "$cert_file" ]; then
-                            domain=$(basename "$cert_file" | sed 's/_cert.pem//')
-                            if [ -n "$domain" ]; then
-                                expire_date=$(openssl x509 -noout -enddate -in "$cert_file" | awk -F'=' '{print $2}')
-                                formatted_date=$(date -d "$expire_date" '+%Y-%m-%d')
-                                printf "%-30s%s\n" "$domain" "$formatted_date"
-                            fi
-                        fi
-                    done
-                    short_separator
-                    echo ""
-                    echo "数据库信息"
-                    short_separator
-                    if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
-                        DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
-                        docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys"
-                    else
-                        _red "NONE"
-                    fi
-                    short_separator
-                    echo ""
-                    echo "站点目录"
-                    short_separator
-                    echo "数据目录: $nginx_dir/html     证书目录: $nginx_dir/certs     配置文件目录: $nginx_dir/conf.d"
-                    short_separator
-                    echo ""
-                    echo "操作"
-                    short_separator
-                    echo "1. 申请/更新域名证书               2. 修改域名"
-                    echo "3. 清理站点缓存                    4. 查看站点分析报告"
-                    echo "5. 编辑全局配置                    6. 编辑站点配置"
-                    short_separator
-                    echo "7. 删除指定站点                    8. 删除指定数据库"
-                    short_separator
-                    echo "0. 返回上一级选单"
-                    short_separator
-
-                    echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
-                    read -r choice
-
-                    case $choice in
-                        1)
-                            echo -n "请输入你的域名:"
-                            read -r domain
-
-                            ldnmp_install_certbot
-                            ldnmp_install_ssltls
-                            ldnmp_certs_status
-                            ;;
-                        2)
-                            echo -n "请输入旧域名:"
-                            read -r old_domain
-                            echo -n "请输入新域名:"
-                            read -r new_domain
-                            ldnmp_install_certbot
-                            ldnmp_install_ssltls
-                            ldnmp_certs_status
-                            mv "$nginx_dir/conf.d/$old_domain.conf" "$nginx_dir/conf.d/$new_domain.conf"
-                            sed -i "s/$old_domain/$new_domain/g" "/data/docker_data/web/nginx/conf.d/$new_domain.conf"
-                            mv "$nginx_dir/html/$old_domain" "$nginx_dir/html/$new_domain"
-
-                            rm -f "$nginx_dir/certs/${old_domain}_key.pem" "$nginx_dir/certs/${old_domain}_cert.pem"
-
-                            if nginx_check; then
-                                docker restart nginx >/dev/null 2>&1
-                            else
-                                _red "Nginx配置校验失败，请检查配置文件"
-                                return 1
-                            fi
-                            ;;
-                        3)
-                            if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
-                                docker restart nginx >/dev/null 2>&1
-                            else
-                                _red "未发现Nginx容器或未运行"
-                                return 1
-                            fi
-                            docker exec php php -r 'opcache_reset();'
-                            docker restart php
-                            docker exec php74 php -r 'opcache_reset();'
-                            docker restart php74
-                            docker restart redis
-                            docker exec redis redis-cli FLUSHALL
-                            docker exec -it redis redis-cli CONFIG SET maxmemory 512mb
-                            docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
-                            ;;
-                        4)
-                            install goaccess
-                            goaccess --log-format=COMBINED $nginx_dir/log/access.log
-                            ;;
-                        5)
-                            vim $nginx_dir/nginx.conf
-
-                            if nginx_check; then
-                                docker restart nginx >/dev/null 2>&1
-                            else
-                                _red "Nginx配置校验失败，请检查配置文件"
-                                return 1
-                            fi
-                            ;;
-                        6)
-                            echo -n "编辑站点配置，请输入你要编辑的域名:"
-                            vim "$nginx_dir/conf.d/$edit_domain.conf"
-
-                            if nginx_check; then
-                                docker restart nginx >/dev/null 2>&1
-                            else
-                                _red "Nginx配置校验失败，请检查配置文件"
-                                return 1
-                            fi
-                            ;;
-                        7)
-                            cert_live_dir="/data/docker_data/certbot/cert/live"
-                            cert_archive_dir="/data/docker_data/certbot/cert/archive"
-                            cert_renewal_dir="/data/docker_data/certbot/cert/renewal"
-                            echo -n "删除站点数据目录，请输入你的域名:"
-                            read -r del_domain
-
-                            # 删除站点数据目录和相关文件
-                            rm -rf "$nginx_dir/html/$del_domain"
-                            rm -f "$nginx_dir/conf.d/$del_domain.conf" "$nginx_dir/certs/${del_domain}_key.pem" "$nginx_dir/certs/${del_domain}_cert.pem"
-
-                            # 检查并删除证书目录
-                            if [ -d "$cert_live_dir/$del_domain" ]; then
-                                rm -rf "$cert_live_dir/$del_domain"
-                            fi
-
-                            if [ -d "$cert_archive_dir/$del_domain" ];then
-                                rm -rf "$cert_archive_dir/del_domain"
-                            fi
-
-                            if [ -f "$cert_renewal_dir/$del_domain.conf" ]; then
-                                rm -f "$cert_renewal_dir/$del_domain.conf"
-                            fi
-
-                            # 检查Nginx配置并重启Nginx
-                            if nginx_check; then
-                                docker restart nginx >/dev/null 2>&1
-                            else
-                                _red "Nginx配置校验失败，请检查配置文件"
-                                return 1
-                            fi
-                            ;;
-                        8)
-                            echo -n "删除站点数据库，请输入数据库名:"
-                            read -r del_database
-                            DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
-                            docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE $del_database;" >/dev/null 2>&1
-                            ;;
-                        0)
-                            break
-                            ;;
-                        *)
-                            _red "无效选项，请重新输入"
-                            ;;
-                    esac
-                done
+                ldnmp_site_manage
                 ;;
             32)
                 clear
@@ -3384,7 +3453,7 @@ linux_ldnmp() {
                 ldnmp_install_deps
                 install_docker
                 ldnmp_install_certbot
-                install_ldnmp
+                ldnmp_run
                 ;;
             35)
                 if docker inspect fail2ban >/dev/null 2>&1 ; then
@@ -3506,7 +3575,7 @@ linux_ldnmp() {
 
                                 curl -fskL -o "/data/docker_data/web/nginx/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
 
-                                if nginx_check; then
+                                if nginx_check_restart; then
                                     docker restart nginx >/dev/null 2>&1
                                 else
                                     _red "Nginx配置校验失败，请检查配置文件"
@@ -3617,7 +3686,7 @@ linux_ldnmp() {
                 else
                     clear
                     install_docker
-                    ldnmp_install_nginx
+                    install_nginx_standalone
                     fail2ban_install_sshd
 
                     cd /data/docker_data/fail2ban/config/fail2ban/filter.d
@@ -3822,7 +3891,7 @@ linux_ldnmp() {
                                     ldnmp_install_deps
                                     install_docker
                                     ldnmp_install_certbot
-                                    install_ldnmp
+                                    ldnmp_run
                                     ;;
                                 *)
                                     ;;
