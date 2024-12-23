@@ -2795,6 +2795,7 @@ linux_ldnmp() {
 
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/typecho.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
+                nginx_http_on
 
                 typecho_dir="$nginx_dir/html/$domain"
                 [ ! -d "$typecho_dir" ] && mkdir -p "$typecho_dir"
@@ -2823,6 +2824,7 @@ linux_ldnmp() {
 
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/php_dyna.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
+                nginx_http_on
 
                 dyna_dir="$nginx_dir/html/$domain"
                 [ ! -d "$dyna_dir" ] && mkdir -p "$dyna_dir"
@@ -2832,11 +2834,11 @@ linux_ldnmp() {
                 echo -e "[${yellow}1/6${white}] 上传PHP源码"
                 short_separator
                 echo "目前只允许上传zip格式的源码包，请将源码包放到$dyna_dir目录下"
-                echo -n "也可以输入下载链接远程下载源码包，直接回车将跳过远程下载:"
+                echo -n "也可以输入下载链接远程下载源码包，直接回车将跳过远程下载: "
                 read -r url_download
 
                 if [ -n "$url_download" ]; then
-                    wget -q "$url_download"
+                    curl -fskL -O "$url_download"
                 fi
 
                 unzip $(ls -t *.zip | head -n 1)
@@ -2845,9 +2847,10 @@ linux_ldnmp() {
                 clear
                 echo -e "[${yellow}2/6${white}] index.php所在路径"
                 short_separator
-                find "$(realpath .)" -name "index.php" -print
+                # find "$(realpath .)" -name "index.php" -print
+                find "$(realpath .)" -name "index.php" -print | xargs -I {} dirname {}
 
-                echo -n "请输入index.php的路径，如($nginx_dir/html/$domain/wordpress/):"
+                echo -n "请输入index.php的路径，如 ($nginx_dir/html/$domain/wordpress/): "
                 read -r index_path
 
                 sed -i "s#root /var/www/html/$domain/#root $index_path#g" "$nginx_dir/conf.d/$domain.conf"
@@ -2856,17 +2859,17 @@ linux_ldnmp() {
                 clear
                 echo -e "[${yellow}3/6${white}] 请选择PHP版本"
                 short_separator
-                echo -n "1. php最新版 | 2. php7.4:" 
+                echo -n "1. php最新版 | 2. php7.4: "
                 read -r php_v
 
                 case "$php_v" in
                     1)
                         sed -i "s#php:9000#php:9000#g" "$nginx_dir/conf.d/$domain.conf"
-                        PHP_Version="php"
+                        local PHP_Version="php"
                         ;;
                     2)
                         sed -i "s#php:9000#php74:9000#g" "$nginx_dir/conf.d/$domain.conf"
-                        PHP_Version="php74"
+                        local PHP_Version="php74"
                         ;;
                     *)
                         _red "无效选项，请重新输入"
@@ -2879,7 +2882,7 @@ linux_ldnmp() {
                 echo "已经安装的扩展"
                 docker exec php php -m
 
-                echo -n "$(echo -e "输入需要安装的扩展名称，如 ${yellow}SourceGuardian imap ftp${white} 等，直接回车将跳过安装:")"
+                echo -n "$(echo -e "输入需要安装的扩展名称，如 ${yellow}SourceGuardian imap ftp${white}等，直接回车将跳过安装: ")"
                 read -r php_extensions
                 if [ -n "$php_extensions" ]; then
                     docker exec $PHP_Version install-php-extensions $php_extensions
@@ -2895,7 +2898,7 @@ linux_ldnmp() {
                 clear
                 echo -e "[${yellow}6/6${white}] 数据库管理"
                 short_separator
-                echo -n "1. 我搭建新站        2. 我搭建老站有数据库备份:"
+                echo -n "1. 搭建新站        2. 搭建老站有数据库备份: "
                 read -r use_db
                 case $use_db in
                     1)
@@ -2908,7 +2911,7 @@ linux_ldnmp() {
 
                         cd /opt
                         if [ -n "$url_download_db" ]; then
-                            curl -fskL "$url_download_db"
+                            curl -fskL -O "$url_download_db"
                         fi
                         gunzip $(ls -t *.gz | head -n 1)
                         latest_sql=$(ls -t *.sql | head -n 1)
@@ -2921,7 +2924,7 @@ linux_ldnmp() {
                         _green "数据库导入完成"
                         ;;
                     *)
-                        echo ""
+                        _red "无效选项，请重新输入"
                         ;;
                 esac
 
