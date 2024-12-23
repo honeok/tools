@@ -1060,7 +1060,7 @@ docker_global_status() {
 
     if command -v docker >/dev/null 2>&1; then
         short_separator
-        echo -e "${green}环境已经安装${white}  容器: ${green}${container_count}${white}  镜像: ${green}${image_count}${white}  网络: ${green}${network_count}${white}  卷: ${green}${volume_count}${white}"
+        echo -e "${green}环境已经安装${white}  容器: ${green}${container_count}${white}  镜像: ${green}${image_count}${white}  网络: ${green}${network_count}${white}  容器卷: ${green}${volume_count}${white}"
     fi
 }
 
@@ -1072,26 +1072,26 @@ install_docker() {
     fi
 }
 
-docker_main_version() {
-    local docker_version=""
-    local docker_compose_version=""
+docker_version() {
+    local docker_v=""
+    local docker_compose_v=""
 
-    # 获取 Docker 版本
+    # 获取Docker版本
     if command -v docker >/dev/null 2>&1; then
-        docker_version=$(docker --version | awk -F '[ ,]' '{print $3}')
+        docker_v=$(docker --version | awk -F '[ ,]' '{print $3}')
     elif command -v docker.io >/dev/null 2>&1; then
-        docker_version=$(docker.io --version | awk -F '[ ,]' '{print $3}')
+        docker_v=$(docker.io --version | awk -F '[ ,]' '{print $3}')
     fi
 
-    # 获取 Docker Compose 版本
-    if command -v docker-compose >/dev/null 2>&1; then
-        docker_compose_version=$(docker-compose version --short)
-    elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-        docker_compose_version=$(docker compose version --short)
+    # 获取Docker Compose版本
+    if docker compose version >/dev/null 2>&1; then
+        docker_compose_v=$(docker compose version --short)
+    elif command -v docker-compose >/dev/null 2>&1; then
+        docker_compose_v=$(docker-compose version --short)
     fi
 
-    echo "已安装Docker版本: v${docker_version}"
-    echo "已安装Docker Compose版本: v${docker_compose_version}"
+    echo "Docker版本: v${docker_v}"
+    echo "Docker Compose版本: v${docker_compose_v}"
 }
 
 install_docker_official() {
@@ -1116,7 +1116,7 @@ install_add_docker() {
     # Docker调优
     install_common_docker() {
         generate_docker_config
-        docker_main_version
+        docker_version
     }
 
     if [ -f /etc/os-release ] && grep -q "Fedora" /etc/os-release; then
@@ -1656,9 +1656,9 @@ docker_manager() {
                 if ! command -v docker >/dev/null 2>&1; then
                     install_add_docker
                 else
-                    docker_main_version
+                    docker_version
                     while true; do
-                        echo -n -e "${yellow}是否升级Docker环境?(y/n)${white}"
+                        echo -n -e "${yellow}是否升级Docker环境?(y/n) ${white}"
                         read -r answer
 
                         case $answer in
