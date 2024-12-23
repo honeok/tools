@@ -7241,7 +7241,7 @@ servertest_script() {
         echo "12. Besttrace 三网回程延迟路由测试"
         echo "13. Mtr trace 三网回程线路测试"
         echo "14. Superspeed 三网测速"
-        echo "15. Nxtrace 快速回程测试脚本"
+        echo "15. Nxtrace 快速回程测试脚本 (北上广)"
         echo "16. Nxtrace 指定IP回程测试脚本"
         echo "17. Ludashi2020 三网线路测试"
         echo "18. i-abc 多功能测速脚本"
@@ -7306,6 +7306,7 @@ servertest_script() {
             15)
                 clear
                 curl nxtrace.org/nt | bash
+                # 北上广（电信+联通+移动+教育网）IPv4 / IPv6 ICMP快速测试，使用TCP SYN 而非ICMP进行测试
                 nexttrace --fast-trace --tcp
                 ;;
             16)
@@ -7313,8 +7314,8 @@ servertest_script() {
                 echo "Nxtrace指定IP回程测试脚本"
                 echo "可参考的IP列表"
                 short_separator
-                echo "北京电信: 219.141.136.12"
-                echo "北京联通: 202.106.50.1"
+                echo "北京电信: 219.141.140.10"
+                echo "北京联通: 202.106.195.68"
                 echo "北京移动: 221.179.155.161"
                 echo "上海电信: 202.96.209.133"
                 echo "上海联通: 210.22.97.1"
@@ -7325,15 +7326,12 @@ servertest_script() {
                 echo "成都电信: 61.139.2.69"
                 echo "成都联通: 119.6.6.6"
                 echo "成都移动: 211.137.96.205"
-                echo "湖南电信: 36.111.200.100"
-                echo "湖南联通: 42.48.16.100"
-                echo "湖南移动: 39.134.254.6"
                 short_separator
 
-                echo -n -e "${yellow}输入一个指定IP:${white}"
-                read -r testip
+                echo -n -e "${yellow}输入一个指定IP: ${white}"
+                read -r choice
                 curl nxtrace.org/nt | bash
-                nexttrace "$testip"
+                nexttrace -M "$choice"
                 ;;
             17)
                 clear
@@ -7351,12 +7349,12 @@ servertest_script() {
             20)
                 clear
                 check_swap
-                curl -sL yabs.sh | bash -s -- -i -5
+                curl -sL https://yabs.sh | bash -s -- -i -5
                 ;;
             21)
                 clear
                 check_swap
-                bash <(curl -sL bash.icu/gb5)
+                bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/i-abc/GB5/main/gb5-test.sh)
                 ;;
             30)
                 clear
