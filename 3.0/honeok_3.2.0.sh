@@ -2738,8 +2738,7 @@ linux_ldnmp() {
                 echo "用户名: admin"
                 echo "密码: admin"
                 short_separator
-                echo "后台登录出现error0或者其他登录异常问题"
-                echo "使用命令: sed -i 's/ADMIN_HTTPS=false/ADMIN_HTTPS=true/g' $djsk_dir/dujiaoka/.env"
+                echo "登录时右上角如果出现红色error0请使用: sed -i 's/ADMIN_HTTPS=false/ADMIN_HTTPS=true/g' $djsk_dir/dujiaoka/.env"
                 ;;
             7)
                 clear
@@ -2750,6 +2749,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
                 ldnmp_add_db
+
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/flarum.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
