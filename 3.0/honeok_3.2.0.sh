@@ -5153,7 +5153,7 @@ redhat_kernel_update() {
         echo "升级Linux内核可提升系统性能和安全，建议有条件的尝试，生产环境谨慎升级！"
         long_separator
 
-        echo -n -e "${yellow}确定继续吗(y/n):${white}"
+        echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
         read -r choice
 
         case "$choice" in
@@ -5204,7 +5204,7 @@ optimize_high_performance() {
     echo -e "${yellow}优化CPU设置${white}"
     sysctl -w kernel.sched_autogroup_enabled=0 2>/dev/null
 
-    echo -e "${yellow}其他优化...${white}"
+    echo -e "${yellow}其他优化${white}"
     # 禁用透明大页面,减少延迟
     echo never > /sys/kernel/mm/transparent_hugepage/enabled
     # 禁用NUMA balancing
@@ -5243,49 +5243,10 @@ optimize_balanced() {
     echo -e "${yellow}优化CPU设置${white}"
     sysctl -w kernel.sched_autogroup_enabled=1 2>/dev/null
 
-    echo -e "${yellow}其他优化...${white}"
+    echo -e "${yellow}其他优化${white}"
     # 还原透明大页面
     echo always > /sys/kernel/mm/transparent_hugepage/enabled
     # 还原NUMA balancing
-    sysctl -w kernel.numa_balancing=1 2>/dev/null
-}
-
-# 还原默认设置函数
-restore_defaults() {
-    echo -e "${yellow}还原到默认设置${white}"
-
-    echo -e "${yellow}还原文件描述符${white}"
-    ulimit -n 1024
-
-    echo -e "${yellow}还原虚拟内存${white}"
-    sysctl -w vm.swappiness=60 2>/dev/null
-    sysctl -w vm.dirty_ratio=20 2>/dev/null
-    sysctl -w vm.dirty_background_ratio=10 2>/dev/null
-    sysctl -w vm.overcommit_memory=0 2>/dev/null
-    sysctl -w vm.min_free_kbytes=16384 2>/dev/null
-
-    echo -e "${yellow}还原网络设置${white}"
-    sysctl -w net.core.rmem_max=212992 2>/dev/null
-    sysctl -w net.core.wmem_max=212992 2>/dev/null
-    sysctl -w net.core.netdev_max_backlog=1000 2>/dev/null
-    sysctl -w net.core.somaxconn=128 2>/dev/null
-    sysctl -w net.ipv4.tcp_rmem='4096 87380 6291456' 2>/dev/null
-    sysctl -w net.ipv4.tcp_wmem='4096 16384 4194304' 2>/dev/null
-    sysctl -w net.ipv4.tcp_congestion_control=cubic 2>/dev/null
-    sysctl -w net.ipv4.tcp_max_syn_backlog=2048 2>/dev/null
-    sysctl -w net.ipv4.tcp_tw_reuse=0 2>/dev/null
-    sysctl -w net.ipv4.ip_local_port_range='32768 60999' 2>/dev/null
-
-    echo -e "${yellow}还原缓存管理${white}"
-    sysctl -w vm.vfs_cache_pressure=100 2>/dev/null
-
-    echo -e "${yellow}还原CPU设置${white}"
-    sysctl -w kernel.sched_autogroup_enabled=1 2>/dev/null
-
-    echo -e "${yellow}还原其他优化${white}"
-    # 还原透明大页面
-    echo always > /sys/kernel/mm/transparent_hugepage/enabled
-    # 还原 NUMA balancing
     sysctl -w kernel.numa_balancing=1 2>/dev/null
 }
 
@@ -5326,6 +5287,45 @@ optimize_webserver() {
 	echo never > /sys/kernel/mm/transparent_hugepage/enabled
 	# 禁用 NUMA balancing
 	sysctl -w kernel.numa_balancing=0 2>/dev/null
+}
+
+# 还原默认设置函数
+restore_defaults() {
+    echo -e "${yellow}还原到默认设置${white}"
+
+    echo -e "${yellow}还原文件描述符${white}"
+    ulimit -n 1024
+
+    echo -e "${yellow}还原虚拟内存${white}"
+    sysctl -w vm.swappiness=60 2>/dev/null
+    sysctl -w vm.dirty_ratio=20 2>/dev/null
+    sysctl -w vm.dirty_background_ratio=10 2>/dev/null
+    sysctl -w vm.overcommit_memory=0 2>/dev/null
+    sysctl -w vm.min_free_kbytes=16384 2>/dev/null
+
+    echo -e "${yellow}还原网络设置${white}"
+    sysctl -w net.core.rmem_max=212992 2>/dev/null
+    sysctl -w net.core.wmem_max=212992 2>/dev/null
+    sysctl -w net.core.netdev_max_backlog=1000 2>/dev/null
+    sysctl -w net.core.somaxconn=128 2>/dev/null
+    sysctl -w net.ipv4.tcp_rmem='4096 87380 6291456' 2>/dev/null
+    sysctl -w net.ipv4.tcp_wmem='4096 16384 4194304' 2>/dev/null
+    sysctl -w net.ipv4.tcp_congestion_control=cubic 2>/dev/null
+    sysctl -w net.ipv4.tcp_max_syn_backlog=2048 2>/dev/null
+    sysctl -w net.ipv4.tcp_tw_reuse=0 2>/dev/null
+    sysctl -w net.ipv4.ip_local_port_range='32768 60999' 2>/dev/null
+
+    echo -e "${yellow}还原缓存管理${white}"
+    sysctl -w vm.vfs_cache_pressure=100 2>/dev/null
+
+    echo -e "${yellow}还原CPU设置${white}"
+    sysctl -w kernel.sched_autogroup_enabled=1 2>/dev/null
+
+    echo -e "${yellow}还原其他优化${white}"
+    # 还原透明大页面
+    echo always > /sys/kernel/mm/transparent_hugepage/enabled
+    # 还原 NUMA balancing
+    sysctl -w kernel.numa_balancing=1 2>/dev/null
 }
 
 clamav_freshclam() {
