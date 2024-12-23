@@ -30,6 +30,7 @@ _cyan() { echo -e ${cyan}$@${white}; }
 _purple() { echo -e ${purple}$@${white}; }
 _gray() { echo -e ${gray}$@${white}; }
 _orange() { echo -e ${orange}$@${white}; }
+_white() { echo -e ${white}$@${white}; }
 
 bg_yellow='\033[48;5;220m'
 bg_red='\033[41m'
@@ -1637,7 +1638,7 @@ docker_manager() {
         short_separator
         echo "8. 更换Docker源"
         echo "9. 编辑Docker配置文件"
-        echo "10. Docker配置文件一键优化(CN提供镜像加速)"
+        echo "10. Docker配置文件一键优化 (CN提供镜像加速)"
         short_separator
         echo "11. 开启Docker-ipv6访问"
         echo "12. 关闭Docker-ipv6访问"
@@ -1947,6 +1948,32 @@ docker_compose() {
     esac
 }
 
+ldnmp_global_status() {
+    # 获取证书数量
+    local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
+    local output="站点: ${green}${cert_count}${white}"
+
+    # 获取数据库数量
+    local db_count=0  # 初始化数据库计数
+    local db_root_passwd=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+    if [ -n "$db_root_passwd" ]; then
+        db_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
+    fi
+
+    local db_output="数据库: ${green}${db_count}${white}"
+
+    if command -v docker >/dev/null 2>&1; then
+        if docker ps --filter "name=ldnmp" --filter "status=running" -q | grep -q .; then
+            short_separator
+            _green "LDNMP环境已安装 $(_white "$output" "$db_output")"
+        fi
+        if docker ps --filter "name=nginx" --filter "status=running" -q | grep -q .; then
+            short_separator
+            _green "Nginx环境已安装 $(_white "$output")"
+        fi
+    fi
+}
+
 ldnmp_check_status() {
     if docker inspect "ldnmp" >/dev/null 2>&1; then
         _yellow "LDNMP环境已安装！"
@@ -2076,7 +2103,7 @@ default_server_ssl() {
 }
 
 # Nginx日志轮转
-ldnmp_install_ngx_logrotate() {
+ngx_logrotate() {
     # 定义日志截断文件脚本路径
     local rotate_script="$nginx_dir/rotate.sh"
 
@@ -2168,7 +2195,7 @@ install_ldnmp_standalone() {
     ldnmp_install_certbot
     install_ldnmp_conf
     install_ldnmp
-    ldnmp_install_ngx_logrotate
+    ngx_logrotate
 }
 
 install_ldnmp_wordpress() {
@@ -2562,6 +2589,7 @@ linux_ldnmp() {
     while true; do
         clear
         echo "▶ LDNMP建站"
+        ldnmp_global_status
         short_separator
         echo "1. 安装LDNMP环境"
         echo "2. 安装WordPress"
@@ -2943,7 +2971,7 @@ linux_ldnmp() {
                 ;;
             21)
                 ldnmp_install_nginx
-                ldnmp_install_ngx_logrotate
+                ngx_logrotate
                 ;;
             22)
                 clear
