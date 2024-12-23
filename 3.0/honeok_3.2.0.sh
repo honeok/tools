@@ -2,7 +2,7 @@
 #
 # Description: lightweight shell scripting toolbox.
 #
-# Copyright (C) 2021-2024 honeok <honeok@duck.com>
+# Copyright (C) 2021 - 2024 honeok <honeok@duck.com>
 # Blog: www.honeok.com
 # https://github.com/honeok/Tools
 #
@@ -2560,7 +2560,6 @@ ldnmp_site_manage() {
 
     while true; do
         clear
-        echo "LDNMP站点管理"
         echo "LDNMP环境"
         short_separator
         ldnmp_version
@@ -2599,7 +2598,7 @@ ldnmp_site_manage() {
         echo "3.  清理站点缓存                    4.  创建关联站点"
         echo "5.  查看访问日志                    6.  查看错误日志"
         echo "7.  编辑全局配置                    8.  编辑站点配置"
-        echo "9.  管理站点数据库		          10. 查看站点分析报告"
+        echo "10. 查看站点分析报告"
         short_separator
         echo "20. 删除指定站点数据"
         short_separator
@@ -2676,84 +2675,57 @@ ldnmp_site_manage() {
 
                 nginx_check_restart
                 ;;
-            3)
-                if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "未发现Nginx容器或未运行"
-                    return 1
-                fi
-                docker exec php php -r 'opcache_reset();'
-                docker restart php
-                docker exec php74 php -r 'opcache_reset();'
-                docker restart php74
-                docker restart redis
-                docker exec redis redis-cli FLUSHALL
-                docker exec -it redis redis-cli CONFIG SET maxmemory 512mb
-                docker exec -it redis redis-cli CONFIG SET maxmemory-policy allkeys-lru
+            5)
+                tail -n 200 $nginx_dir/log/access.log
+                end_of
                 ;;
-            4)
+            6)
+                tail -n 200 $nginx_dir/log/error.log
+                end_of
+                ;;
+            7)
+                vim $nginx_dir/nginx.conf
+                nginx_check_restart
+                ;;
+            8)
+                echo -n "编辑站点配置，请输入你要编辑的域名: "
+                read -r edit_domain
+                vim "$nginx_dir/conf.d/$edit_domain.conf"
+
+                nginx_check_restart
+                ;;
+            10)
                 install goaccess
                 goaccess --log-format=COMBINED $nginx_dir/log/access.log
                 ;;
-            5)
-                vim $nginx_dir/nginx.conf
 
-                if nginx_check_restart; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "Nginx配置校验失败，请检查配置文件"
-                    return 1
-                fi
-                ;;
-            6)
-                echo -n "编辑站点配置，请输入你要编辑的域名:"
-                vim "$nginx_dir/conf.d/$edit_domain.conf"
+            20)
+                local cert_live_dir="/data/docker_data/certbot/cert/live"
+                local cert_archive_dir="/data/docker_data/certbot/cert/archive"
+                local cert_renewal_dir="/data/docker_data/certbot/cert/renewal"
+                echo -n "删除站点数据目录，请输入你的域名 (多个域名用空格隔开): "
+                read -r del_domain_list
 
-                if nginx_check_restart; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "Nginx配置校验失败，请检查配置文件"
-                    return 1
-                fi
-                ;;
-            7)
-                cert_live_dir="/data/docker_data/certbot/cert/live"
-                cert_archive_dir="/data/docker_data/certbot/cert/archive"
-                cert_renewal_dir="/data/docker_data/certbot/cert/renewal"
-                echo -n "删除站点数据目录，请输入你的域名:"
-                read -r del_domain
-
-                # 删除站点数据目录和相关文件
-                rm -rf "$nginx_dir/html/$del_domain"
-                rm -f "$nginx_dir/conf.d/$del_domain.conf" "$nginx_dir/certs/${del_domain}_key.pem" "$nginx_dir/certs/${del_domain}_cert.pem"
-
-                # 检查并删除证书目录
-                if [ -d "$cert_live_dir/$del_domain" ]; then
-                    rm -rf "$cert_live_dir/$del_domain"
+                if [ -z "$del_domain_list" ]; then
+                    _info_msg "$(_red '无效选项，请重新输入！')" && return
                 fi
 
-                if [ -d "$cert_archive_dir/$del_domain" ]; then
-                    rm -rf "$cert_archive_dir/$del_domain"
-                fi
+                for del_domain in $del_domain_list; do
+                    echo "正在删除域名: $del_domain"
+                    # 删除站点数据目录和相关文件
+                    rm -rf "$nginx_dir/html/$del_domain"
+                    rm -f "$nginx_dir/conf.d/$del_domain.conf" "$nginx_dir/certs/${del_domain}_key.pem" "$nginx_dir/certs/${del_domain}_cert.pem"
+                    # 检查并删除证书目录
+                    [ -d "$cert_live_dir/$del_domain" ] && rm -rf "$cert_live_dir/$del_domain"
+                    [ -d "$cert_archive_dir/$del_domain" ] && rm -rf "$cert_archive_dir/$del_domain"
+                    [ -f "$cert_renewal_dir/$del_domain.conf" ] && rm -f "$cert_renewal_dir/$del_domain.conf"
+                    # 将域名转换为数据库名
+                    local del_database=$(echo "$del_domain" | sed -e 's/[^A-Za-z0-9]/_/g')
+                    # 删除站点数据库
+                    docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE IF EXISTS $del_database;" >/dev/null 2>&1
+                done
 
-                if [ -f "$cert_renewal_dir/$del_domain.conf" ]; then
-                    rm -f "$cert_renewal_dir/$del_domain.conf"
-                fi
-
-                # 检查Nginx配置并重启Nginx
-                if nginx_check_restart; then
-                    docker restart nginx >/dev/null 2>&1
-                else
-                    _red "Nginx配置校验失败，请检查配置文件"
-                    return 1
-                fi
-                ;;
-            8)
-                echo -n "删除站点数据库，请输入数据库名:"
-                read -r del_database
-                DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
-                docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE $del_database;" >/dev/null 2>&1
+                nginx_check_restart
                 ;;
             0)
                 break
@@ -3456,7 +3428,7 @@ linux_ldnmp() {
                 ldnmp_run
                 ;;
             35)
-                if docker inspect fail2ban >/dev/null 2>&1 ; then
+                if docker inspect fail2ban >/dev/null 2>&1; then
                     while true; do
                         clear
                         echo "服务器防御程序已启动"
@@ -3575,13 +3547,7 @@ linux_ldnmp() {
 
                                 curl -fskL -o "/data/docker_data/web/nginx/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
 
-                                if nginx_check_restart; then
-                                    docker restart nginx >/dev/null 2>&1
-                                else
-                                    _red "Nginx配置校验失败，请检查配置文件"
-                                    return 1
-                                fi
-
+                                nginx_check_restart
                                 cd /data/docker_data/fail2ban/config/fail2ban/jail.d
                                 curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                                 
