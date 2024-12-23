@@ -2206,11 +2206,11 @@ install_ldnmp_wordpress() {
     ldnmp_restart
     ldnmp_display_success
 
-    #echo "数据库名: $DB_NAME"
-    #echo "用户名: $DB_USER"
-    #echo "密码: $DB_USER_PASSWD"
-    #echo "数据库地址: mysql"
-    #echo "表前缀: wp_"
+    # echo "数据库名: $DB_NAME"
+    # echo "用户名: $DB_USER"
+    # echo "密码: $DB_USER_PASSWD"
+    # echo "数据库地址: mysql"
+    # echo "表前缀: wp_"
 }
 
 ldnmp_install_nginx() {
@@ -2304,7 +2304,7 @@ add_domain() {
     ip_address
 
     echo -e "先将域名解析到本机IP: ${yellow}$ipv4_address  $ipv6_address${white}"
-    echo -n "请输入你解析的域名(输入0取消操作): "
+    echo -n "请输入你解析的域名 (输入0取消操作): "
     read -r domain
 
     if [[ "$domain" == "0" ]]; then
@@ -2407,7 +2407,7 @@ ldnmp_certs_status() {
         _red "域名证书申请失败，请检测域名是否正确解析或更换域名重新尝试！"
         end_of
         clear
-        echo -e "${info_msg} ${yellow}再次尝试证书申请${white}"
+        _info_msg "$(_yellow '再次尝试证书申请！')"
         add_domain
         ldnmp_install_ssltls
         ldnmp_certs_status
@@ -2649,7 +2649,7 @@ linux_ldnmp() {
                 kdy_dir="$nginx_dir/html/$domain"
                 [ ! -d "$kdy_dir" ] && mkdir -p "$kdy_dir"
                 cd "$kdy_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/refs/tags/1.50.02.zip" && unzip latest.zip && rm -f latest.zip
+                curl -fskL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/tags/1.50.02.zip" && unzip -o latest.zip && rm -f latest.zip
                 mv "$kdy_dir/kodbox-*" "$kdy_dir/kodbox"
 
                 ldnmp_restart
@@ -2678,9 +2678,9 @@ linux_ldnmp() {
                 cms_dir="$nginx_dir/html/$domain"
                 [ ! -d "$cms_dir" ] && mkdir -p "$cms_dir"
                 cd "$cms_dir"
-                curl -fskL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && rm -f maccms10.zip
+                curl -fskL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && mv maccms10-*/* . && rm -rf maccms10*
                 cd "$cms_dir/template/"
-                curl -fskL -o "DYXS2.zip" "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
+                curl -fskL -O "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
                 cp "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
                 cp "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
                 mv "$cms_dir/admin.php" "$cms_dir/vip.php"
