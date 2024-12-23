@@ -1260,7 +1260,7 @@ generate_docker_config() {
     daemon_reload
     restart docker
     echo "Docker配置文件已根据服务器IP归属做相关优化"
-    echo "配置文件默认关闭Docker IPV6，如需调整自行修改${config_file}"
+    echo "配置文件默认关闭Docker IPv6，如需调整自行修改${config_file}"
 }
 
 restart_docker_retry() {
@@ -2183,12 +2183,12 @@ install_ldnmp_wordpress() {
 
     curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
     sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-
     nginx_http_on
 
     wordpress_dir="$nginx_dir/html/$domain"
     [ ! -d "$wordpress_dir" ] && mkdir -p "$wordpress_dir"
     cd "$wordpress_dir"
+    # curl -fskL -o latest.zip "https://wordpress.org/latest.zip" && unzip latest.zip && rm -f latest.zip
     # curl -fskL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
     curl -fskL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
 
@@ -2616,7 +2616,6 @@ linux_ldnmp() {
 
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/discuz.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-
                 nginx_http_on
 
                 discuz_dir="$nginx_dir/html/$domain"
@@ -2645,7 +2644,6 @@ linux_ldnmp() {
 
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/kdy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-
                 nginx_http_on
 
                 kdy_dir="$nginx_dir/html/$domain"
@@ -2675,7 +2673,6 @@ linux_ldnmp() {
 
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/maccms.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-
                 nginx_http_on
 
                 cms_dir="$nginx_dir/html/$domain"
@@ -2714,7 +2711,6 @@ linux_ldnmp() {
 
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/dujiaoka.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-
                 nginx_http_on
 
                 djsk_dir="$nginx_dir/html/$domain"
@@ -2756,7 +2752,6 @@ linux_ldnmp() {
                 ldnmp_add_db
                 curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/flarum.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-
                 nginx_http_on
 
                 flarum_dir="$nginx_dir/html/$domain"
