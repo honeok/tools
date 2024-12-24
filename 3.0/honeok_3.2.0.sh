@@ -4090,14 +4090,6 @@ dns_lock() {
     fi
 }
 
-lock_dns_status() {
-    if lsattr /etc/resolv.conf | grep -qi 'i'; then
-        echo -e -n "${green}已锁定${white}"
-    else
-        echo -e -n "${yellow}已解锁${white}"
-    fi
-}
-
 reinstall_system() {
     local os_text="当前操作系统: ${os_info}"
 
@@ -4110,7 +4102,11 @@ reinstall_system() {
     }
 
     script_bin456789() {
-        curl -sL -O "${github_proxy}https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh" && chmod +x reinstall.sh
+        if [[ "$country" == "CN" ]];then
+            curl -fskL -O https://jihulab.com/bin456789/reinstall/-/raw/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+        else
+            curl -fskL -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+        fi
     }
 
     reinstall_linux_MollyLau() {
@@ -6190,7 +6186,7 @@ EOF
                     echo "1. 设置DNS优化"
                     echo "2. 恢复DNS原有配置"
                     echo "3. 手动编辑DNS配置"
-                    echo -e "4. 锁定/解锁DNS文件 当前状态$(lock_dns_status)"
+                    echo "4. 锁定/解锁DNS文件"
                     short_separator
                     echo "0. 返回上一级"
                     short_separator
