@@ -4031,7 +4031,7 @@ bak_dns() {
     [[ -f "$dns_config" ]] && cp "$dns_config" "$backupdns_config" || _red "DNS配置文件不存在"
 
     # 检查备份是否成功
-    [[ $? -ne 0 ]] && _red "备份DNS配置文件失败"
+    [ $? -ne 0 ] && _red "备份DNS配置文件失败"
 }
 
 set_dns() {
