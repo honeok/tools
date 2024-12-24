@@ -1959,7 +1959,7 @@ ldnmp_global_status() {
 
     # 获取数据库数量
     local database_count=0  # 初始化数据库计数
-    local db_root_passwd=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+    local db_root_passwd=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' "$web_dir/docker-compose.yml" 2>/dev/null | tr -d '[:space:]')
     if [ -n "$db_root_passwd" ]; then
         database_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
     fi
