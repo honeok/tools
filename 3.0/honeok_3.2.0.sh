@@ -2063,6 +2063,7 @@ ldnmp_uninstall_certbot() {
 
     set_script_dir
 
+    docker ps -a --filter "ancestor=certbot" --format "{{.ID}}" | xargs -r docker rm -f >/dev/null 2>&1
     if [ -n "$certbot_image_ids" ]; then
         while IFS= read -r image_id; do
             docker rmi -f "$image_id" >/dev/null 2>&1
@@ -2072,7 +2073,7 @@ ldnmp_uninstall_certbot() {
     local cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
     # 检查并删除定时任务
     if crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
-        (crontab -l 2>/dev/null | grep -Fv "0 0 * * * $cert_cron") | crontab - >/dev/null 2>&1
+        (crontab -l 2>/dev/null | grep -Fv "$cert_cron") | crontab - >/dev/null 2>&1
         _green "续签任务已从定时任务中移除"
     else
         _yellow "定时任务未找到，无需移除"
