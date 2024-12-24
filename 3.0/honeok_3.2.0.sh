@@ -4098,7 +4098,7 @@ reinstall_system() {
     [ -z "$current_sshport" ] && current_sshport=22
 
     script_MollyLau() {
-        wget --no-check-certificate -qO InstallNET.sh "${github_proxy}https://raw.githubusercontent.com/leitbogioro/Tools/master/Linux_reinstall/InstallNET.sh" && chmod a+x InstallNET.sh
+        wget --no-check-certificate -qO InstallNET.sh "${github_proxy}https://raw.githubusercontent.com/leitbogioro/Tools/master/Linux_reinstall/InstallNET.sh" && chmod +x InstallNET.sh
     }
 
     script_bin456789() {
