@@ -2038,7 +2038,7 @@ ldnmp_install_certbot() {
     check_crontab_installed
 
     # 设置定时任务
-    cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
+    local cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
     # 检查是否已有定时任务
     if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
         curl -fskL -o "$global_script_dir/certbot_renew.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/certbot_renew.sh"
@@ -2065,8 +2065,7 @@ ldnmp_uninstall_certbot() {
         done <<< "$certbot_image_ids"
     fi
 
-    cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
-
+    local cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
     # 检查并删除定时任务
     if crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
         (crontab -l 2>/dev/null | grep -Fv "0 0 * * * $cert_cron") | crontab - >/dev/null 2>&1
@@ -2076,16 +2075,9 @@ ldnmp_uninstall_certbot() {
     fi
 
     # 删除脚本文件
-    if [ -f "$global_script_dir/certbot_renew.sh" ]; then
-        rm -f "$global_script_dir/certbot_renew.sh"
-        _green "续签脚本文件已删除"
-    fi
-
+    [ -f "$global_script_dir/certbot_renew.sh" ] && rm -f "$global_script_dir/certbot_renew.sh" && _green "续签脚本文件已删除"
     # 删除certbot目录及其内容
-    if [ -d "$certbot_dir" ]; then
-        rm -rf "$certbot_dir"
-        _green "Certbot目录及其内容已删除"
-    fi
+    [ -d "$certbot_dir" ] && rm -rf "$certbot_dir" && _green "certbot目录及其内容已删除"
 }
 
 default_server_ssl() {
@@ -2129,7 +2121,7 @@ ngx_logrotate() {
     fi
 }
 
-ldnmp_uninstall_ngx_logrotate() {
+uninstall_ngx_logrotate() {
     # 定义日志截断文件脚本路径
     local rotate_script="$nginx_dir/rotate.sh"
 
@@ -2227,7 +2219,7 @@ install_nginx_standalone() {
     docker exec nginx mkdir -p /var/cache/nginx/fastcgi
     docker exec nginx chown -R nginx:nginx /var/cache/nginx/proxy
     docker exec nginx chown -R nginx:nginx /var/cache/nginx/fastcgi
-    docker restart nginx >/dev/null 2>&1
+    nginx_check_restart
 
     clear
     _green "Nginx安装完成！"
@@ -2454,12 +2446,12 @@ reverse_proxy() {
     sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0.0.0.0/$ipv4_address/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0000/$duankou/g" "$nginx_dir/conf.d/$domain.conf"
-    docker restart nginx >/dev/null 2>&1
+    nginx_check_restart
 }
 
 nginx_check_restart() {
     if docker exec nginx nginx -t >/dev/null 2>&1;then
-        docker restart nginx >/dev/null 2>&1
+        nginx_check_restart
     else
         _err_msg "$(_red 'Nginx配置校验失败，请检查配置文件')"
         return 1
@@ -2486,7 +2478,24 @@ ldnmp_restart() {
     docker exec php chown -R www-data:www-data /var/www/html >/dev/null 2>&1
     docker exec php74 chown -R www-data:www-data /var/www/html >/dev/null 2>&1
 
-    cd "$web_dir" && docker_compose restart
+    cd $web_dir && docker_compose restart
+}
+
+nginx_upgrade() {
+    cd $web_dir
+    docker rm -f nginx >/dev/null 2>&1
+    docker images --filter=reference="honeok/nginx*" -q | xargs docker rmi -f >/dev/null 2>&1
+    docker images --filter=reference="nginx*" -q | xargs docker rmi -f >/dev/null 2>&1
+    docker_compose recreate nginx
+
+    docker exec nginx chown -R nginx:nginx /var/www/html
+    docker exec nginx mkdir -p /var/cache/nginx/proxy
+    docker exec nginx mkdir -p /var/cache/nginx/fastcgi
+    docker exec nginx chown -R nginx:nginx /var/cache/nginx/proxy
+    docker exec nginx chown -R nginx:nginx /var/cache/nginx/fastcgi
+
+    nginx_check_restart
+    _suc_msg "$(_green '更新Nginx完成！')"
 }
 
 ldnmp_display_success() {
@@ -3824,42 +3833,38 @@ linux_ldnmp() {
 
                     case $choice in
                         1)
-                            ldnmp_pods="nginx"
-                            cd "$web_dir"
-
-                            docker rm -f "$ldnmp_pods" >/dev/null 2>&1
-                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi >/dev/null 2>&1
-                            docker_compose recreate "$ldnmp_pods"
-                            docker exec "$ldnmp_pods" chmod -R 777 /var/www/html
-                            docker restart "$ldnmp_pods" >/dev/null 2>&1
-                            _green "更新${ldnmp_pods}完成"
+                            nginx_upgrade
                             ;;
                         2)
-                            ldnmp_pods="mysql"
-                            echo -n "请输入${ldnmp_pods}版本号(如: 8.0 8.3 8.4 9.0) (回车获取最新版): "
+                            local ldnmp_pods="mysql"
+                            echo -n "请输入${ldnmp_pods}版本号 (如: 8.0 8.3 8.4 9.0) (回车获取最新版): "
                             read -r version
-                            version=${version:-latest}
-                            cd "$web_dir"
+                            local version=${version:-latest}
 
+                            cp -f "${web_dir}/docker-compose.yml"{,.bak}
                             sed -i "s/image: mysql/image: mysql:$version/" "$web_dir/docker-compose.yml"
                             docker rm -f "$ldnmp_pods"
-                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi >/dev/null 2>&1
+                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi -f >/dev/null 2>&1
                             docker_compose recreate "$ldnmp_pods"
                             docker restart "$ldnmp_pods" >/dev/null 2>&1
-                            _green "更新${ldnmp_pods}完成"
+                            _suc_msg "$(_green "更新${ldnmp_pods}完成！")"
                             ;;
                         3)
-                            ldnmp_pods="php"
-                            echo -n "请输入${ldnmp_pods}版本号(如: 7.4 8.0 8.1 8.2 8.3) (回车获取最新版): "
+                            local ldnmp_pods="php"
+                            echo -n "请输入${ldnmp_pods}版本号 (如: 7.4 8.0 8.1 8.2 8.3) (回车获取最新版): "
                             read -r version
+                            local version=${version:-8.3}
 
-                            version=${version:-8.3}
-                            cd "$web_dir"
+                            cp "${web_dir}/docker-compose.yml" "${web_dir}/docker-compose1.yml"
+                            sed -i "s/kjlion\///g" "$web_dir/docker-compose.yml" >/dev/null 2>&1
                             sed -i "s/image: php:fpm-alpine/image: php:${version}-fpm-alpine/" "$web_dir/docker-compose.yml"
                             docker rm -f "$ldnmp_pods" >/dev/null 2>&1
-                            docker images --filter=reference="php:*" -q | xargs -r docker rmi >/dev/null 2>&1
+                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi -f >/dev/null 2>&1
+                            docker images --filter=reference="kjlion/${ldnmp_pods}*" -q | xargs docker rmi -f >/dev/null 2>&1
                             docker_compose recreate "$ldnmp_pods"
-                            docker exec "$ldnmp_pods" chmod -R 777 /var/www/html
+                            docker exec php chown -R www-data:www-data /var/www/html >/dev/null 2>&1
+
+                            exec_cmd docker exec "$ldnmp_pods" sed -i "s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g" /etc/apk/repositories >/dev/null 2>&1
 
                             docker exec "$ldnmp_pods" apk update
                             curl -fskL ${github_proxy}https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions
@@ -3892,22 +3897,22 @@ linux_ldnmp() {
                             docker exec "$ldnmp_pods" sh -c 'echo "expose_php=Off" > /usr/local/etc/php/conf.d/custom-php-settings.ini' >/dev/null 2>&1
 
                             docker restart "$ldnmp_pods" >/dev/null 2>&1
-                            _green "更新${ldnmp_pods}完成"
+                            cp "${web_dir}/docker-compose1.yml" "${web_dir}/docker-compose.yml"
+                            _suc_msg "$(_green "更新${ldnmp_pods}完成！")"
                             ;;
                         4)
-                            ldnmp_pods="redis"
+                            local ldnmp_pods="redis"
 
                             cd "$web_dir"
                             docker rm -f "$ldnmp_pods" >/dev/null 2>&1
-                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi >/dev/null 2>&1
+                            docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi -f >/dev/null 2>&1
                             docker_compose recreate "$ldnmp_pods"
-                            docker exec -it "$ldnmp_pods" redis-cli CONFIG SET maxmemory 512mb
-                            docker exec -it "$ldnmp_pods" redis-cli CONFIG SET maxmemory-policy allkeys-lru
+                            redis_restart
                             docker restart "$ldnmp_pods" >/dev/null 2>&1
-                            _green "更新${ldnmp_pods}完成"
+                            _suc_msg "$(_green "更新${ldnmp_pods}完成！")"
                             ;;
                         5)
-                            echo -n -e "${yellow}长时间不更新环境的用户请慎重更新LDNMP环境，会有数据库更新失败的风险，确定更新LDNMP环境吗?(y/n)${white}"
+                            echo -n -e "${yellow}长时间不更新环境的用户请慎重更新LDNMP环境，会有数据库更新失败的风险，确定更新LDNMP环境吗? (y/n): ${white}"
                             read -r choice
 
                             case "$choice" in
@@ -3938,25 +3943,24 @@ linux_ldnmp() {
                 ;;
             38)
                 need_root
-                echo "建议先备份全部网站数据再卸载LDNMP环境"
-                echo "同时会移除由LDNMP建站安装的依赖"
+                _info_msg "$(_red '建议先备份全部网站数据再卸载LDNMP环境，同时会移除由LDNMP建站安装的依赖！')"
                 echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
                     [Yy])
                         if docker inspect "ldnmp" >/dev/null 2>&1; then
-                            cd "$web_dir" || { _red "无法进入目录 $web_dir"; return 1; }
+                            cd "$web_dir"
                             docker_compose down_all
                             ldnmp_uninstall_certbot
-                            ldnmp_uninstall_ngx_logrotate
+                            uninstall_ngx_logrotate
                             rm -rf "$web_dir"
                             _green "LDNMP环境已卸载并清除相关依赖"
                         elif docker inspect "nginx" >/dev/null 2>&1 && [ -d "$nginx_dir" ]; then
-                            cd "$web_dir" || { _red "无法进入目录 $web_dir"; return 1; }
+                            cd "$web_dir"
                             docker_compose down_all
                             ldnmp_uninstall_certbot
-                            ldnmp_uninstall_ngx_logrotate
+                            uninstall_ngx_logrotate
                             rm -rf "$web_dir"
                             _green "Nginx环境已卸载并清除相关依赖"
                         else
@@ -5822,7 +5826,7 @@ linux_trash() {
                 fi
                 ;;
             4)
-                echo -n "确认清空回收站?[y/n]:"
+                echo -n "确认清空回收站? (y/n): "
                 read -r confirm
                 if [[ "$confirm" == "y" ]]; then
                     trash-empty
@@ -5951,7 +5955,7 @@ cloudflare_ddns() {
                 ;;
             2)
                 if [ -f /usr/local/bin/cf-ddns.sh ]; then
-                    sudo rm -f /usr/local/bin/cf-ddns.sh
+                    rm -f /usr/local/bin/cf-ddns.sh
                 else
                     _red "/usr/local/bin/cf-ddns.sh文件不存在"
                 fi
