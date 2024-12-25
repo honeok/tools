@@ -1,6 +1,6 @@
 # 🧰 Shellscript Tools
 
-[![Build Status](https://github.com/honeok/Tools/actions/workflows/ci.yml/badge.svg)](https://github.com/honeok/Tools/actions/workflows/ci.yml/badge.svg)
+[![Build Status](https://github.com/honeok/Tools/actions/workflows/check.yml/badge.svg)](https://github.com/honeok/Tools/actions/workflows/check.yml/badge.svg)
 [![LICENSE](https://img.shields.io/github/license/honeok/Tools.svg?style=flat)](./LICENSE)
 [![Commit](https://img.shields.io/github/last-commit/honeok/Tools)](https://github.com/honeok/Tools)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/honeok/Tools.svg)](https://github.com/honeok/Tools)
