@@ -9,7 +9,7 @@
 
 A lightweight Shell script toolbox designed for more convenient operations.
 
-## 💌 项目说明
+## 项目说明
 
 - **轻量级**：基于Shell脚本，执行快速，资源占用低。
 - **跨平台支持**：支持多种Linux发行版，轻松在不同环境中部署和管理。
@@ -17,7 +17,7 @@ A lightweight Shell script toolbox designed for more convenient operations.
 - **高可扩展性**：可以根据需求自由定制和扩展功能，灵活满足各种使用场景。
 - **代理支持**：支持通过国内外不同镜像源下载和执行，适配不同网络环境。
 
-## 🥵 一键安装与使用
+## 一键安装与使用
 
 **支持在Linux系统上运行所有功能**
 
@@ -29,27 +29,19 @@ bash <(curl -sL https://github.com/honeok/Tools/raw/master/honeok.sh)
 ```
 或
 ```shell
-bash <(wget -qO- https://github.com/honeok/Tools/raw/master/honeok.sh)
-```
-或
-```shell
 curl -sL -O https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
 ```
 
-🇨🇳 国内服务器
+国内服务器
 ```shell
 bash <(curl -sL https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
-```
-或
-```shell
-bash <(wget -qO- https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
 ```
 或
 ```shell
 curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
 ```
 
-## 🎗️ 支持的系统
+## 支持的系统
 
 | 系统                                                                                                                                                                                                                                                        |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -65,7 +57,7 @@ curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/h
 | <img width="16" height="16" src="https://www.openeuler.org/favicon.ico" /> openEuler                                                                                                                                                                            |
 | <img width="16" height="16" src="https://static.opensuse.org/favicon.ico" /> openSUSE                                                                                                                                                                           |
 
-## 👐 License
+## License
 
 This project is licensed under the GPL-3.0 License. See the [LICENSE](./LICENSE) file for more details.
 
