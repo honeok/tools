@@ -1933,7 +1933,7 @@ docker_compose() {
 ldnmp_global_status() {
     # 获取证书数量
     local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
-    local site_output="站点: ${green}${cert_count}${white}"
+    local site_count="站点: ${green}${cert_count}${white}"
 
     # 获取数据库数量
     local database_count=0  # 初始化数据库计数
@@ -1947,11 +1947,11 @@ ldnmp_global_status() {
     if command -v docker >/dev/null 2>&1; then
         if docker ps --filter "name=ldnmp" --filter "status=running" -q | grep -q .; then
             short_separator
-            _green "LDNMP环境已安装 $(_white "$site_output" "$db_info")"
+            _green "LDNMP环境已安装 $(_white "$site_count" "$db_info")"
         fi
         if docker ps --filter "name=nginx" --filter "status=running" -q | grep -q .; then
             short_separator
-            _green "Nginx环境已安装 $(_white "$site_output")"
+            _green "Nginx环境已安装 $(_white "$site_count")"
         fi
     fi
 }
