@@ -5061,10 +5061,10 @@ redhat_kernel_update() {
         _yellow "导入ELRepo GPG 公钥"
         rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
         # 检测系统版本
-        os_version=$(rpm -q --qf "%{VERSION}" $(rpm -qf /etc/os-release) 2>/dev/null | awk -F '.' '{print $1}')
-        os_name=$(awk -F= '/^NAME/{print $2}' /etc/os-release)
+        local os_version=$(rpm -q --qf "%{VERSION}" $(rpm -qf /etc/*release) 2>/dev/null | awk -F '.' '{print $1}')
+        local os_name=$(grep ^ID= /etc/*release | awk -F'=' '{print $2}' | sed 's/"//g')
         # 确保支持的操作系统上运行
-        if [[ "$os_name" != *"Red Hat"* && "$os_name" != *"AlmaLinux"* && "$os_name" != *"Rocky"* && "$os_name" != *"Oracle"* && "$os_name" != *"CentOS"* ]]; then
+        if [[ "$os_name" != "rhel" && "$os_name" != "centos" && "$os_name" != "rocky" && "$os_name" != "almalinux" && "$os_name" != "oracle" && "$os_name" != "amazon" ]]; then
             _red "不支持的操作系统: $os_name"
             end_of
             linux_system_tools
@@ -5138,7 +5138,7 @@ redhat_kernel_update() {
         clear
         _yellow "请备份数据，将为你升级Linux内核"
         long_separator
-        echo "仅支持红帽系列发行版CentOS/RedHat/Alma/Rocky/oracle"
+        echo "仅支持红帽系列发行版RedHat/CentOS/Rocky/Almalinux/Oracle/Amazon"
         echo "升级Linux内核可提升系统性能和安全，建议有条件的尝试，生产环境谨慎升级！"
         long_separator
 
