@@ -794,7 +794,7 @@ linux_tools() {
         echo "26. 俄罗斯方块小游戏                  27. 贪吃蛇小游戏"
         echo "28. 太空入侵者小游戏"
         short_separator
-        echo "31. 全部安装                          32. 全部安装（不含屏保和游戏）"
+        echo "31. 全部安装                          32. 全部安装 (不含屏保和游戏)"
         echo "33. 全部卸载"
         short_separator
         echo "41. 安装指定工具                      42. 卸载指定工具"
@@ -965,13 +965,13 @@ linux_tools() {
                 ;;
             41)
                 clear
-                echo -n -e "${yellow}请输入安装的工具名（wget curl sudo htop）:${white}"
+                echo -n -e "${yellow}请输入安装的工具名 (wget curl sudo htop): ${white}"
                 read -r installname
                 install "$installname"
                 ;;
             42)
                 clear
-                echo -n -e "${yellow}请输入卸载的工具名（htop ufw tmux cmatrix）:${white}"
+                echo -n -e "${yellow}请输入卸载的工具名 (htop ufw tmux cmatrix): ${white}"
                 read -r removename
                 remove "$removename"
                 ;;
@@ -1471,7 +1471,7 @@ docker_ps() {
                 docker stop $(docker ps -q)
                 ;;
             8)
-                echo -n -e "${yellow}确定删除所有容器吗?(y/n):${white}"
+                echo -n -e "${yellow}确定删除所有容器吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
@@ -1572,7 +1572,7 @@ docker_image() {
                 done
                 ;;
             4)
-                echo -n -e "${red}确定删除所有镜像吗?(y/n):${white}"
+                echo -n -e "${red}确定删除所有镜像吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
@@ -1641,7 +1641,7 @@ docker_manager() {
                 else
                     docker_version
                     while true; do
-                        echo -n -e "${yellow}是否升级Docker环境?(y/n) ${white}"
+                        echo -n -e "${yellow}是否升级Docker环境? (y/n): ${white}"
                         read -r answer
 
                         case $answer in
@@ -1831,7 +1831,7 @@ docker_manager() {
                 ;;
             7)
                 clear
-                echo -n -e "${yellow}将清理无用的镜像容器网络，包括停止的容器，确定清理吗?(y/n)${white}"
+                echo -n -e "${yellow}将清理无用的镜像容器网络，包括停止的容器，确定清理吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
@@ -1867,7 +1867,7 @@ docker_manager() {
                 ;;
             20)
                 clear
-                echo -n -e "${yellow}确定卸载docker环境吗?(y/n)${white}"
+                echo -n -e "${yellow}确定卸载docker环境吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
@@ -4484,7 +4484,7 @@ set_default_qdisc() {
         echo "3. fq_codel    : 结合了公平排队和控制延迟的算法，通过主动丢包和公平分配带宽来减少延迟并提高多流的性能"
         short_separator
 
-        echo -n -e "${yellow}请输入选项并按回车键确认(回车使用默认值 fq): ${white}"
+        echo -n -e "${yellow}请输入选项并按回车键确认 (回车使用默认值: fq): ${white}"
         read -r choice
 
         case "$choice" in
@@ -4610,7 +4610,7 @@ xanmod_bbr3() {
         echo "VPS是512M内存的，请提前添加1G虚拟内存，防止因内存不足失联！"
         long_separator
 
-        echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+        echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
         read -r choice
 
         case "$choice" in
@@ -4827,7 +4827,7 @@ cron_manager() {
 
         case $choice in
             1)
-                echo -n -e "${yellow}请输入新任务的执行命令:${white}"
+                echo -n -e "${yellow}请输入新任务的执行命令: ${white}"
                 read -r newquest
                 short_separator
                 echo "1. 每月任务                 2. 每周任务"
@@ -4839,7 +4839,7 @@ cron_manager() {
 
                 case $dingshi in
                     1)
-                        echo -n -e "${yellow}选择每月的几号执行任务?(1-30): ${white}"
+                        echo -n -e "${yellow}选择每月的几号执行任务? (1-30): ${white}"
                         read -r day
                         if [[ ! $day =~ ^[1-9]$|^[12][0-9]$|^30$ ]]; then
                             _red "无效的日期输入"
@@ -4850,7 +4850,7 @@ cron_manager() {
                         fi
                         ;;
                     2)
-                        echo -n -e "${yellow}选择周几执行任务?(0-6，0代表星期日): ${white}"
+                        echo -n -e "${yellow}选择周几执行任务? (0-6，0代表星期日): ${white}"
                         read -r weekday
                         if [[ ! $weekday =~ ^[0-6]$ ]]; then
                             _red "无效的星期输入"
@@ -4861,7 +4861,7 @@ cron_manager() {
                         fi
                         ;;
                     3)
-                        echo -n -e "${yellow}选择每天几点执行任务?(小时，0-23): ${white}"
+                        echo -n -e "${yellow}选择每天几点执行任务? (小时，0-23): ${white}"
                         read -r hour
                         if [[ ! $hour =~ ^[0-9]$|^[1][0-9]$|^[2][0-3]$ ]]; then
                             _red "无效的小时输入"
@@ -4872,7 +4872,7 @@ cron_manager() {
                         fi
                         ;;
                     4)
-                        echo -n -e "${yellow}输入每小时的第几分钟执行任务?(分钟,0-60):${white}"
+                        echo -n -e "${yellow}输入每小时的第几分钟执行任务? (分钟,0-60): ${white}"
                         read -r minute
                         if [[ ! $minute =~ ^[0-5][0-9]$ ]]; then
                             _red "无效的分钟输入"
@@ -4888,7 +4888,7 @@ cron_manager() {
                 esac
                 ;;
             2)
-                echo -n -e "${yellow}请输入需要删除任务的关键字:${white}"
+                echo -n -e "${yellow}请输入需要删除任务的关键字: ${white}"
                 read -r kquest
                 if crontab -l | grep -v "$kquest" | crontab -; then
                     _green "$kquest 定时任务已删除"
@@ -4976,7 +4976,7 @@ telegram_bot() {
     echo "到达阈值后会向用户发预警消息，流量重启服务器将重新计算"
     short_separator
                 
-    echo -n -e "${yellow}确定继续吗?(y/n):${white}"
+    echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
     read -r choice
 
     case "$choice" in
@@ -5795,7 +5795,7 @@ linux_trash() {
                 sleep 2
                 ;;
             3)
-                echo -n "输入要还原的文件名:"
+                echo -n "输入要还原的文件名: "
                 read -r file_to_restore
                 if [ -e "$TRASH_DIR/$file_to_restore" ]; then
                     mv "$TRASH_DIR/$file_to_restore" "$HOME/"
@@ -5971,7 +5971,7 @@ cloudflare_ddns() {
 
 server_reboot() {
     local choice
-    echo -n -e "${yellow}现在重启服务器吗?(y/n):${white}"
+    echo -n -e "${yellow}现在重启服务器吗? (y/n): ${white}"
     read -r choice
 
     case "$choice" in
@@ -6573,14 +6573,14 @@ EOF
 
                         case $choice in
                             1)
-                                echo -n -e "${yellow}请输入开放的端口号:${white}"
+                                echo -n -e "${yellow}请输入开放的端口号: ${white}"
                                 read -r o_port
                                 sed -i "/COMMIT/i -A INPUT -p tcp --dport $o_port -j ACCEPT" /etc/iptables/rules.v4
                                 sed -i "/COMMIT/i -A INPUT -p udp --dport $o_port -j ACCEPT" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
                                 ;;
                             2)
-                                echo -n -e "${yellow}请输入关闭的端口号:${white}"
+                                echo -n -e "${yellow}请输入关闭的端口号: ${white}"
                                 read -r c_port
                                 sed -i "/--dport $c_port/d" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
@@ -6624,13 +6624,13 @@ EOF
                                 iptables-restore < /etc/iptables/rules.v4
                                 ;;
                             6)
-                                echo -n -e "${yellow}请输入封锁的IP:${white}"
+                                echo -n -e "${yellow}请输入封锁的IP: ${white}"
                                 read -r c_ip
                                 sed -i "/COMMIT/i -A INPUT -s $c_ip -j DROP" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
                                 ;;
                             7)
-                                echo -n -e "${yellow}请输入清除的IP:${white}"
+                                echo -n -e "${yellow}请输入清除的IP: ${white}"
                                 read -r d_ip
                                 sed -i "/-A INPUT -s $d_ip/d" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
@@ -6660,7 +6660,7 @@ EOF
                         clear
                         echo "将为你安装防火墙，该防火墙仅支持Debian/Ubuntu"
                         short_separator
-                        echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                        echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                         read -r choice
 
                         case "$choice" in
@@ -6843,7 +6843,7 @@ EOF
                     elif [ -x "$(command -v fail2ban-client)" ] ; then
                     	clear
                     	echo "卸载旧版fail2ban"
-                    	echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                    	echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                     	read -r choice
 
                     	case "$choice" in
@@ -6865,7 +6865,7 @@ EOF
                     	long_separator
                     	echo "工作原理:研判非法IP恶意高频访问SSH端口，自动进行IP封锁"
                     	long_separator
-                    	echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                    	echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                     	read -r choice
 
                     	case "$choice" in
@@ -6957,7 +6957,7 @@ EOF
                 echo "root私钥登录模式"
                 long_separator
                 echo "将会生成密钥对，更安全的方式SSH登录"
-                echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
@@ -7088,7 +7088,7 @@ EOF
                 echo -e "10. Linux系统内核参数优化切换到${yellow}均衡优化模式${white}"
                 long_separator
 
-                echo -n -e "${yellow}确定一键调优吗?[y/n]${white}"
+                echo -n -e "${yellow}确定一键调优吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
@@ -7451,7 +7451,7 @@ servertest_script() {
                 ;;
             15)
                 clear
-                curl nxtrace.org/nt | bash
+                curl -sL nxtrace.org/nt | bash
                 # 北上广（电信+联通+移动+教育网）IPv4 / IPv6 ICMP快速测试，使用TCP SYN 而非ICMP进行测试
                 nexttrace --fast-trace --tcp
                 ;;
@@ -7476,7 +7476,7 @@ servertest_script() {
 
                 echo -n -e "${yellow}输入一个指定IP: ${white}"
                 read -r choice
-                curl nxtrace.org/nt | bash
+                curl -sL nxtrace.org/nt | bash
                 nexttrace -M "$choice"
                 ;;
             17)
@@ -7710,9 +7710,9 @@ oracle_script() {
             1)
                 clear
                 _yellow "活跃脚本: CPU占用10-20% 内存占用20%"
-                echo -n -e "${yellow}确定安装吗?(y/n):${white}"
+                echo -n -e "${yellow}确定安装吗? (y/n): ${white}"
                 read -r ins
-                
+
                 case "$ins" in
                     [Yy])
                         install_docker
@@ -7724,19 +7724,19 @@ oracle_script() {
                         DEFAULT_SPEEDTEST_INTERVAL=120
 
                         # 提示用户输入CPU核心数和占用百分比，如果回车则使用默认值
-                        echo -n -e "${yellow}请输入CPU核心数[默认:$DEFAULT_CPU_CORE]: ${white}"
+                        echo -n -e "${yellow}请输入CPU核心数 (默认:$DEFAULT_CPU_CORE): ${white}"
                         read -r cpu_core
                         cpu_core=${cpu_core:-$DEFAULT_CPU_CORE}
 
-                        echo -n -e "${yellow}请输入CPU占用百分比范围 (例如10-20) [默认:$DEFAULT_CPU_UTIL]: ${white}"
+                        echo -n -e "${yellow}请输入CPU占用百分比范围 (例如10-20) (默认:$DEFAULT_CPU_UTIL): ${white}"
                         read -r cpu_util
                         cpu_util=${cpu_util:-$DEFAULT_CPU_UTIL}
 
-                        echo -n -e "${yellow}请输入内存占用百分比 [默认:$DEFAULT_MEM_UTIL]: ${white}"
+                        echo -n -e "${yellow}请输入内存占用百分比 (默认:$DEFAULT_MEM_UTIL): ${white}"
                         read -r mem_util
                         mem_util=${mem_util:-$DEFAULT_MEM_UTIL}
 
-                        echo -n -e "${yellow}请输入Speedtest间隔时间 (秒) [默认:$DEFAULT_SPEEDTEST_INTERVAL]: ${white}"
+                        echo -n -e "${yellow}请输入Speedtest间隔时间 (秒) (默认:$DEFAULT_SPEEDTEST_INTERVAL): ${white}"
                         read -r speedtest_interval
                         speedtest_interval=${speedtest_interval:-$DEFAULT_SPEEDTEST_INTERVAL}
 
@@ -7747,7 +7747,7 @@ oracle_script() {
                             -e CPU_CORE="$cpu_core" \
                             -e MEM_UTIL="$mem_util" \
                             -e SPEEDTEST_INTERVAL="$speedtest_interval" \
-                            fogforest/lookbusy
+                            fogforest/lookbusy:latest
                         ;;
                     [Nn])
                         echo ""
@@ -7759,8 +7759,8 @@ oracle_script() {
                 ;;
             2)
                 clear
-                docker rm -f lookbusy
-                docker rmi fogforest/lookbusy
+                docker rm -f lookbusy >/dev/null 2>&1
+                docker rmi -f fogforest/lookbusy:latest >/dev/null 2>&1
                 _green "成功卸载甲骨文活跃脚本"
                 ;;
             3)
@@ -7768,14 +7768,14 @@ oracle_script() {
                 _yellow "重装系统"
                 short_separator
                 _yellow "注意: 重装有风险失联，不放心者慎用，重装预计花费15分钟，请提前备份数据！"
-                
-                echo -n -e "${yellow}确定继续吗?(y/n):${white}"
+
+                echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
                 case "$choice" in
                     [Yy])
                         while true; do
-                            echo -n -e "${yellow}请选择要重装的系统:  1. Debian12 | 2. Ubuntu20.04${white}"
+                            echo -n -e "${yellow}请选择要重装的系统:  1. Debian12 | 2. Ubuntu20.04 : ${white}"
                             read -r sys_choice
 
                             case "$sys_choice" in
@@ -7793,7 +7793,7 @@ oracle_script() {
                             esac
                         done
 
-                        echo -n -e "${yellow}请输入你重装后的密码:${white}"
+                        echo -n -e "${yellow}请输入你重装后的密码: ${white}"
                         read -r vpspasswd
 
                         install wget
@@ -7942,5 +7942,4 @@ honeok() {
     done
 }
 
-# 脚本入口
 honeok
