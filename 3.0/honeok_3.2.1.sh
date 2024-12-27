@@ -11,7 +11,7 @@
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
 
-honeok_v="v3.2.1 (2024.12.26)"
+honeok_v="v3.2.1 (2024.12.27)"
 
 yellow='\033[93m'
 red='\033[31m'
@@ -40,6 +40,7 @@ short_separator() { printf "%-20s\n" "-" | sed 's/\s/-/g'; }
 long_separator() { printf "%-40s\n" "-" | sed 's/\s/-/g'; }
 
 export DEBIAN_FRONTEND=noninteractive
+
 os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
 
 honeok_pid="/tmp/honeok.pid"
@@ -47,7 +48,6 @@ if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
     exit 1
 fi
-
 # 将当前进程的PID写入文件
 echo $$ > "$honeok_pid"
 
@@ -57,16 +57,10 @@ fi
 # ============== 脚本退出执行相关 ==============
 # 终止信号捕获，意外中断时能优雅地处理
 trap _exit SIGINT SIGQUIT SIGTERM EXIT
-
-_exit() {
-    echo ""
-    _err_msg "$(_red '检测到退出操作，脚本终止！')"
-    global_exit
-    exit 0
-}
+_exit() { echo ""; _err_msg "$(_red '检测到退出操作，脚本终止！')"; cleanup_exit; exit 0; }
 
 # 全局退出操作
-global_exit() {
+cleanup_exit() {
     [ -f "$honeok_pid" ] && rm -f "$honeok_pid"
     [ -f "$HOME/get-docker.sh" ] && rm -f "$HOME/get-docker.sh"
     [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
@@ -7940,7 +7934,7 @@ honeok() {
             16) node_create ;;
             17) oracle_script ;;
             p) palworld ;;
-            0) _orange "Bye!"&& sleep 1 && clear && global_exit
+            0) _orange "Bye!"&& sleep 1 && clear && cleanup_exit
                exit 0 ;;
             *) _red "无效选项，请重新输入" ;;
         esac
