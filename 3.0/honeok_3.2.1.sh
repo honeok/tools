@@ -1933,11 +1933,11 @@ docker_compose() {
 ldnmp_global_status() {
     # 获取证书数量
     local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
-    local output="站点: ${green}${cert_count}${white}"
+    local site_output="站点: ${green}${cert_count}${white}"
 
     # 获取数据库数量
     local database_count=0  # 初始化数据库计数
-    local db_root_passwd=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
+    local db_root_passwd=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:[[:space:]]*\(.*\)/\1/p' "$web_dir/docker-compose.yml" 2>/dev/null)
     if [ -n "$db_root_passwd" ]; then
         database_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
     fi
@@ -1947,11 +1947,11 @@ ldnmp_global_status() {
     if command -v docker >/dev/null 2>&1; then
         if docker ps --filter "name=ldnmp" --filter "status=running" -q | grep -q .; then
             short_separator
-            _green "LDNMP环境已安装 $(_white "$output" "$db_info")"
+            _green "LDNMP环境已安装 $(_white "$site_output" "$db_info")"
         fi
         if docker ps --filter "name=nginx" --filter "status=running" -q | grep -q .; then
             short_separator
-            _green "Nginx环境已安装 $(_white "$output")"
+            _green "Nginx环境已安装 $(_white "$site_output")"
         fi
     fi
 }
@@ -4905,8 +4905,8 @@ cron_manager() {
     done
 }
 
-output_status() {
-    output=$(awk 'BEGIN { rx_total = 0; tx_total = 0 }
+network_usage_status() {
+    network_usage_summary=$(awk 'BEGIN { rx_total = 0; tx_total = 0 }
         NR > 2 { rx_total += $2; tx_total += $10 }
         END {
             rx_units = "Bytes";
@@ -6884,8 +6884,8 @@ EOF
                     echo "限流关机功能"
                     long_separator
                     echo "当前流量使用情况，重启服务器流量计算会清零！"
-                    output_status
-                    echo "$output"
+                    network_usage_status
+                    echo "$network_usage_summary"
 
                     # 检查是否存在limitoff.sh文件
                     if [ -f ${global_script_dir}/limitoff.sh ]; then
