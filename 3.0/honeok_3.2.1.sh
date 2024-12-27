@@ -322,16 +322,16 @@ system_info() {
 
     # 获取运营商信息
     local isp_info
-    isp_info=$(curl -fskL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' | sed 's/^AS[0-9]* //' || echo "")
+    isp_info=$(curl -fsL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' | sed 's/^AS[0-9]* //' || echo "")
     if [ -z "$isp_info" ]; then
-        isp_info=$(curl -fskL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | grep -oP '"asn_organization":\s*"\K[^"]+')
+        isp_info=$(curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"asn_organization":\s*"\([^"]*\)".*/\1/p')
     fi
 
     # 获取IP地址
     ip_address
 
     # 获取地理位置
-    local location=$(curl -fskL --connect-timeout 5 https://ipinfo.io/city || curl -fskL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | grep -oP '"city":\s*"\K[^"]+')
+    local location=$(curl -fsL --connect-timeout 5 https://ipinfo.io/city || curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | grep -oP '"city":\s*"\K[^"]+')
 
     # 获取系统时区
     if grep -q 'Alpine' /etc/issue; then
@@ -352,7 +352,7 @@ system_info() {
     if [[ "$country" == "CN" ]];then
         china_time=$(date -d @$(($(curl -sL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
     else
-        china_time=$(curl -fskL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
+        china_time=$(curl -fsL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
     fi
 
     echo "系统信息查询"
@@ -402,13 +402,13 @@ ip_address() {
     ipv4_address=""
     ipv6_address=""
     for service in "${ipv4_services[@]}"; do
-        ipv4_address=$(curl -fskL4 -m 3 "$service")
+        ipv4_address=$(curl -fsL4 -m 3 "$service")
         if [[ "$ipv4_address" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             break
         fi
     done
     for service in "${ipv6_services[@]}"; do
-        ipv6_address=$(curl -fskL6 -m 3 "$service")
+        ipv6_address=$(curl -fsL6 -m 3 "$service")
         if [[ "$ipv6_address" =~ ^[0-9a-fA-F:]+$ ]]; then
             break
         fi
@@ -428,12 +428,12 @@ warp_check() {
     local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
     # set -- "$cloudflare_api"
     for url in $cloudflare_api; do
-        response=$(curl -fskL4 -m 3 "$url" | grep warp | cut -d= -f2)
+        response=$(curl -fsL4 -m 3 "$url" | grep warp | cut -d= -f2)
         [ "$response" == 'on' ] && { warp_ipv4=on; break; } || warp_ipv4=off
     done
 
     for url in $cloudflare_api; do
-        response=$(curl -fskL6 -m 3 "$url" | grep warp | cut -d= -f2)
+        response=$(curl -fsL6 -m 3 "$url" | grep warp | cut -d= -f2)
         [ "$response" == 'on' ] && { warp_ipv6=on; break; } || warp_ipv6=off
     done
 }
@@ -444,7 +444,7 @@ cdn_check() {
     geo_check
 
     if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
-        $(curl -fskL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
+        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
         exec_ok=0  # 0 表示允许执行命令
         github_proxy="https://gh-proxy.com/"
     else
@@ -1080,12 +1080,12 @@ docker_version() {
 install_docker_official() {
     if [[ "$country" == "CN" ]];then
         cd ~
-        # curl -fskL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/docker/docker-install/master/install.sh" && chmod +x get-docker.sh
-        curl -fskL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
+        # curl -fsL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/docker/docker-install/master/install.sh" && chmod +x get-docker.sh
+        curl -fsL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
         sh get-docker.sh --mirror Aliyun
         rm -f get-docker.sh
     else
-        curl -fskL https://get.docker.com | sh
+        curl -fsL https://get.docker.com | sh
     fi
 
     enable docker && start docker
@@ -1130,24 +1130,24 @@ install_add_docker() {
             if [ "$(uname -m)" = "x86_64" ]; then
                 sed -i '/^deb \[arch=amd64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             elif [ "$(uname -m)" = "aarch64" ]; then
                 sed -i '/^deb \[arch=arm64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             fi
         else
             if [ "$(uname -m)" = "x86_64" ]; then
                 sed -i '/^deb \[arch=amd64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             elif [ "$(uname -m)" = "aarch64" ]; then
                 sed -i '/^deb \[arch=arm64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             fi
         fi
@@ -1205,7 +1205,7 @@ generate_docker_config() {
     fi
 
     # 获取 registry mirrors 内容
-    registry_mirrors=$(curl -fskL "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/registry_mirrors.txt" | grep -v '^#' | sed '/^$/d' | jq -R . | jq -s .)
+    registry_mirrors=$(curl -fsL "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/registry_mirrors.txt" | grep -v '^#' | sed '/^$/d' | jq -R . | jq -s .)
 
     # 判断操作系统是否为 Alpine
     if grep -q 'Alpine' /etc/issue; then
@@ -2023,7 +2023,7 @@ ldnmp_install_certbot() {
     local cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
     # 检查是否已有定时任务
     if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
-        curl -fskL -o "$global_script_dir/certbot_renew.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/certbot_renew.sh"
+        curl -fsL -o "$global_script_dir/certbot_renew.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/certbot_renew.sh"
         chmod +x $global_script_dir/certbot_renew.sh
 
         # 添加定时任务
@@ -2087,7 +2087,7 @@ ngx_logrotate() {
         return 1
     fi
 
-    curl -fskL -o "$rotate_script" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh" || {
+    curl -fsL -o "$rotate_script" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh" || {
         _red "脚本下载失败，请检查网络连接或脚本URL"
         return 1
     }
@@ -2131,9 +2131,9 @@ install_ldnmp_conf() {
     mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$nginx_dir/certs" "$web_dir/redis" "$web_dir/mysql"
 
     # 下载配置文件
-    curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
-    curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/ldnmp-docker-compose.yml"
+    curl -fsL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    curl -fsL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
+    curl -fsL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/ldnmp-docker-compose.yml"
 
     default_server_ssl
 
@@ -2152,9 +2152,9 @@ install_nginx_conf() {
     mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$nginx_dir/certs"
 
     # 下载配置文件
-    curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
-    curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml"
+    curl -fsL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    curl -fsL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
+    curl -fsL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml"
 
     default_server_ssl
 }
@@ -2220,16 +2220,16 @@ install_ldnmp_wordpress() {
     ldnmp_certs_status
     ldnmp_add_db
 
-    curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
+    curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
     sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
     nginx_http_on
 
     wordpress_dir="$nginx_dir/html/$domain"
     [ ! -d "$wordpress_dir" ] && mkdir -p "$wordpress_dir"
     cd "$wordpress_dir"
-    # curl -fskL -o latest.zip "https://wordpress.org/latest.zip" && unzip latest.zip && rm -f latest.zip
-    # curl -fskL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
-    curl -fskL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
+    # curl -fsL -o latest.zip "https://wordpress.org/latest.zip" && unzip latest.zip && rm -f latest.zip
+    # curl -fsL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
+    curl -fsL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
 
     # 配置WordPress
     wp_sample_config="$wordpress_dir/wordpress/wp-config-sample.php"
@@ -2425,7 +2425,7 @@ ldnmp_add_db() {
 
 reverse_proxy() {
     ip_address
-    curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
+    curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
     sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0.0.0.0/$ipv4_address/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0000/$duankou/g" "$nginx_dir/conf.d/$domain.conf"
@@ -2545,7 +2545,7 @@ nginx_waf() {
     local mode=$1
 
     if ! grep -q "honeok/nginx:alpine" "$web_dir/docker-compose.yml"; then
-        curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+        curl -fsL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
     fi
 
     # 根据 mode 参数来决定开启或关闭 WAF
@@ -2814,26 +2814,26 @@ fail2ban_install_sshd() {
 
     [ ! -d "$fail2ban_dir" ] && mkdir -p "$fail2ban_dir" && cd "$fail2ban_dir"
 
-    curl -fskL -o "docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
+    curl -fsL -o "docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
 
     docker_compose start
 
     sleep 3
     if grep -q 'Alpine' /etc/issue; then
         cd "$config_dir/filter.d"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd.conf"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd-ddos.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd-ddos.conf"
         cd "$config_dir/jail.d/"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-ssh.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-ssh.conf"
     elif command -v dnf >/dev/null 2>&1; then
         cd "$config_dir/jail.d/"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/centos-ssh.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/centos-ssh.conf"
     else
         install rsyslog
         systemctl start rsyslog
         systemctl enable rsyslog
         cd "$config_dir/jail.d/"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/linux-ssh.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/linux-ssh.conf"
     fi
 }
 
@@ -2898,14 +2898,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/discuz.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/discuz.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 discuz_dir="$nginx_dir/html/$domain"
                 [ ! -d "$discuz_dir" ] && mkdir -p "$discuz_dir"
                 cd "$discuz_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/Discuz_X3.5_SC_UTF8_20240520.zip" && unzip latest.zip && rm -f latest.zip
+                curl -fsL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/Discuz_X3.5_SC_UTF8_20240520.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -2926,14 +2926,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/kdy.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/kdy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 kdy_dir="$nginx_dir/html/$domain"
                 [ ! -d "$kdy_dir" ] && mkdir -p "$kdy_dir"
                 cd "$kdy_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/tags/1.50.02.zip" && unzip -o latest.zip && rm -f latest.zip
+                curl -fsL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/tags/1.50.02.zip" && unzip -o latest.zip && rm -f latest.zip
                 mv "$kdy_dir/kodbox-*" "$kdy_dir/kodbox"
 
                 ldnmp_restart
@@ -2955,20 +2955,20 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/maccms.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/maccms.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 cms_dir="$nginx_dir/html/$domain"
                 [ ! -d "$cms_dir" ] && mkdir -p "$cms_dir"
                 cd "$cms_dir"
-                curl -fskL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && mv maccms10-*/* . && rm -rf maccms10*
+                curl -fsL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && mv maccms10-*/* . && rm -rf maccms10*
                 cd "$cms_dir/template/"
-                curl -fskL -O "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
+                curl -fsL -O "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
                 cp "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
                 cp "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
                 mv "$cms_dir/admin.php" "$cms_dir/vip.php"
-                curl -fskL -o "$cms_dir/application/extra/maccms.php" "${github_proxy}https://raw.githubusercontent.com/kejilion/Website_source_code/main/maccms.php"
+                curl -fsL -o "$cms_dir/application/extra/maccms.php" "${github_proxy}https://raw.githubusercontent.com/kejilion/Website_source_code/main/maccms.php"
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -2993,14 +2993,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/dujiaoka.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/dujiaoka.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 djsk_dir="$nginx_dir/html/$domain"
                 [ ! -d "$djsk_dir" ] && mkdir -p "$djsk_dir"
                 cd "$djsk_dir"
-                curl -fskL -O "${github_proxy}https://github.com/assimon/dujiaoka/releases/download/2.0.6/2.0.6-antibody.tar.gz" && tar zxvf 2.0.6-antibody.tar.gz && rm -f 2.0.6-antibody.tar.gz
+                curl -fsL -O "${github_proxy}https://github.com/assimon/dujiaoka/releases/download/2.0.6/2.0.6-antibody.tar.gz" && tar zxvf 2.0.6-antibody.tar.gz && rm -f 2.0.6-antibody.tar.gz
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -3034,7 +3034,7 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/flarum.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/flarum.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
@@ -3077,14 +3077,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/typecho.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/typecho.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 typecho_dir="$nginx_dir/html/$domain"
                 [ ! -d "$typecho_dir" ] && mkdir -p "$typecho_dir"
                 cd "$typecho_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/typecho/typecho/releases/latest/download/typecho.zip" && unzip latest.zip && rm -f latest.zip
+                curl -fsL -o latest.zip "${github_proxy}https://github.com/typecho/typecho/releases/latest/download/typecho.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -3106,7 +3106,7 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/php_dyna.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/php_dyna.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
@@ -3122,7 +3122,7 @@ linux_ldnmp() {
                 read -r url_download
 
                 if [ -n "$url_download" ]; then
-                    curl -fskL -O "$url_download"
+                    curl -fsL -O "$url_download"
                 fi
 
                 unzip $(ls -t *.zip | head -n 1)
@@ -3194,7 +3194,7 @@ linux_ldnmp() {
 
                         cd /opt
                         if [ -n "$url_download_db" ]; then
-                            curl -fskL -O "$url_download_db"
+                            curl -fsL -O "$url_download_db"
                         fi
                         gunzip $(ls -t *.gz | head -n 1)
                         latest_sql=$(ls -t *.sql | head -n 1)
@@ -3240,7 +3240,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/rewrite.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/rewrite.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/baidu.com/$reverseproxy/g" "$nginx_dir/conf.d/$domain.conf"
 
@@ -3262,7 +3262,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/conf/main/nginx/conf.d/reverse-proxy.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/conf/main/nginx/conf.d/reverse-proxy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/0.0.0.0/$reverseproxy/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/0000/$port/g" "$nginx_dir/conf.d/$domain.conf"
@@ -3284,7 +3284,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s|fandaicom|$proxy_domain|g" "$nginx_dir/conf.d/$domain.conf"
 
@@ -3301,7 +3301,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/html.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/html.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
@@ -3317,7 +3317,7 @@ linux_ldnmp() {
                 read -r url_download
 
                 if [ -n "$url_download" ]; then
-                    curl -fskL -O "$url_download"
+                    curl -fsL -O "$url_download"
                 fi
 
                 unzip $(ls -t *.zip | head -n 1)
@@ -3397,7 +3397,7 @@ linux_ldnmp() {
                 echo -n "输入远程服务器密码: "
                 read -r usepasswd
 
-                curl -fskL -o "${global_script_dir}/${useip}_backup.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/web_backup.sh"
+                curl -fsL -o "${global_script_dir}/${useip}_backup.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/web_backup.sh"
                 chmod +x "${global_script_dir}/${useip}_backup.sh"
 
                 sed -i "s/0.0.0.0/$useip/g" "${global_script_dir}/${useip}_backup.sh"
@@ -3582,14 +3582,14 @@ linux_ldnmp() {
                                     fi
                                 done
 
-                                curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
+                                curl -fsL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
                                 nginx_check_restart
 
                                 cd /data/docker_data/fail2ban/config/fail2ban/jail.d
-                                curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
+                                curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                                 
                                 cd /data/docker_data/fail2ban/config/fail2ban/action.d
-                                curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/cloudflare-docker.conf"
+                                curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/cloudflare-docker.conf"
 
                                 sed -i "s/kejilion@outlook.com/$CFUSER/g" /data/docker_data/fail2ban/config/fail2ban/action.d/cloudflare-docker.conf
                                 sed -i "s/APIKEY00000/$CFKEY/g" /data/docker_data/fail2ban/config/fail2ban/action.d/cloudflare-docker.conf
@@ -3640,7 +3640,7 @@ linux_ldnmp() {
                                 install jq bc
                                 check_crontab_installed
 
-                                curl -fskL -o "$global_script_dir/CF-Under-Attack.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/CF-Under-Attack.sh"
+                                curl -fsL -o "$global_script_dir/CF-Under-Attack.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/CF-Under-Attack.sh"
                                 chmod +x "$global_script_dir/CF-Under-Attack.sh"
                                 sed -i "s/AAAA/$CFUSER/g" "$global_script_dir/CF-Under-Attack.sh"
                                 sed -i "s/BBBB/$CFKEY/g" "$global_script_dir/CF-Under-Attack.sh"
@@ -3704,9 +3704,9 @@ linux_ldnmp() {
                         fail2ban_install_sshd
 
                         cd /data/docker_data/fail2ban/config/fail2ban/filter.d
-                        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/fail2ban-nginx-cc.conf"
+                        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/fail2ban-nginx-cc.conf"
                         cd /data/docker_data/fail2ban/config/fail2ban/jail.d
-                        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
+                        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                         sed -i "/cloudflare/d" "/data/docker_data/fail2ban/config/fail2ban/jail.d/nginx-docker-cc.conf"
 
                         fail2ban_status
@@ -3736,19 +3736,19 @@ linux_ldnmp() {
                             sed -i 's/worker_processes.*/worker_processes 4;/' "$nginx_dir/nginx.conf"
 
                             # php调优
-                            curl -fskL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
+                            curl -fsL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php:/usr/local/etc/php/conf.d/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php74:/usr/local/etc/php/conf.d/optimized_php.ini"
                             rm -f "$web_dir/optimized_php.ini"
 
                             # php调优
-                            curl -fskL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www-1.conf"
+                            curl -fsL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www-1.conf"
                             docker cp "$web_dir/www.conf" "php:/usr/local/etc/php-fpm.d/www.conf"
                             docker cp "$web_dir/www.conf" "php74:/usr/local/etc/php-fpm.d/www.conf"
                             rm -f "$web_dir/www.conf"
 
                             # mysql调优
-                            curl -fskL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/custom_mysql_config-1.cnf"
+                            curl -fsL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/custom_mysql_config-1.cnf"
                             docker cp "$web_dir/mysql_config.cnf" "mysql:/etc/mysql/conf.d/"
                             rm -f "$web_dir/mysql_config.cnf"
 
@@ -3765,19 +3765,19 @@ linux_ldnmp() {
                             sed -i 's/worker_processes.*/worker_processes 8;/' "$nginx_dir/nginx/nginx.conf"
 
                             # php调优
-                            curl -fskL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
+                            curl -fsL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php:/usr/local/etc/php/conf.d/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php74:/usr/local/etc/php/conf.d/optimized_php.ini"
                             rm -f "$web_dir/optimized_php.ini"
 
                             # php调优
-                            curl -fskL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www.conf"
+                            curl -fsL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www.conf"
                             docker cp "$web_dir/www.conf" php:/usr/local/etc/php-fpm.d/www.conf
                             docker cp "$web_dir/www.conf" php74:/usr/local/etc/php-fpm.d/www.conf
                             rm -f "$web_dir/www.conf"
 
                             # mysql调优
-                            curl -fskL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/custom_mysql_config.cnf"
+                            curl -fsL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/custom_mysql_config.cnf"
                             docker cp "$web_dir/mysql_config.cnf" mysql:/etc/mysql/conf.d/
                             rm -f "$web_dir/mysql_config.cnf"
 
@@ -3850,24 +3850,16 @@ linux_ldnmp() {
                             exec_cmd docker exec "$ldnmp_pods" sed -i "s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g" /etc/apk/repositories >/dev/null 2>&1
 
                             docker exec "$ldnmp_pods" apk update
-                            curl -fskL ${github_proxy}https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions
+                            curl -fsL ${github_proxy}https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions
                             docker exec "$ldnmp_pods" mkdir -p /usr/local/bin/
                             docker cp /usr/local/bin/install-php-extensions "$ldnmp_pods":/usr/local/bin/
                             docker exec "$ldnmp_pods" chmod +x /usr/local/bin/install-php-extensions
                             rm -f /usr/local/bin/install-php-extensions >/dev/null 2>&1
 
-                            docker exec "$ldnmp_pods" sh -c "\
-                                apk add --no-cache imagemagick imagemagick-dev \
-                                && apk add --no-cache git autoconf gcc g++ make pkgconfig \
-                                && rm -rf /tmp/imagick \
-                                && git clone https://github.com/Imagick/imagick /tmp/imagick \
-                                && cd /tmp/imagick \
-                                && phpize \
-                                && ./configure \
-                                && make \
-                                && make install \
-                                && echo 'extension=imagick.so' > /usr/local/etc/php/conf.d/imagick.ini \
-                                && rm -rf /tmp/imagick"
+                            docker exec "$ldnmp_pods" sh -c "apk add --no-cache imagemagick imagemagick-dev git autoconf gcc g++ make pkgconfig \
+                                && rm -rf /tmp/imagick && git clone ${github_proxy}https://github.com/Imagick/imagick /tmp/imagick \
+                                && cd /tmp/imagick && phpize && ./configure && make && make install \
+                                && echo 'extension=imagick.so' > /usr/local/etc/php/conf.d/imagick.ini && rm -rf /tmp/imagick"
 
                             docker exec "$ldnmp_pods" install-php-extensions mysqli pdo_mysql gd intl zip exif bcmath opcache redis
 
@@ -4086,9 +4078,9 @@ reinstall_system() {
 
     script_bin456789() {
         if [[ "$country" == "CN" ]];then
-            curl -fskL -O https://jihulab.com/bin456789/reinstall/-/raw/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+            curl -fsL -O https://jihulab.com/bin456789/reinstall/-/raw/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
         else
-            curl -fskL -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+            curl -fsL -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
         fi
     }
 
@@ -4576,7 +4568,7 @@ xanmod_bbr3() {
                     echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
                     # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
-                    local kernel_version=$(curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
+                    local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
 
                     install linux-xanmod-x64v"$kernel_version"
 
@@ -4646,7 +4638,7 @@ xanmod_bbr3() {
                 echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
                 # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
-                local kernel_version=$(curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
+                local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
 
                 install linux-xanmod-x64v"$kernel_version"
 
@@ -4989,7 +4981,7 @@ telegram_bot() {
                 chmod +x "${global_script_dir}/TG-check-notify.sh"
                 vim "${global_script_dir}/TG-check-notify.sh"
             else
-                curl -fskL -o "${global_script_dir}/TG-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-check-notify.sh"
+                curl -fsL -o "${global_script_dir}/TG-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-check-notify.sh"
                 # 计算文件哈希
                 TG_check_notify=$(sha256sum "${global_script_dir}/TG-check-notify.sh" | awk '{ print $1 }')
 
@@ -5010,7 +5002,7 @@ telegram_bot() {
             crontab -l | grep -v "${global_script_dir}/TG-check-notify.sh" | crontab - >/dev/null 2>&1
             (crontab -l ; echo "@reboot tmux new -d -s TG-check-notify '${global_script_dir}/TG-check-notify.sh'") | crontab - >/dev/null 2>&1
 
-            curl -fskL -o "${global_script_dir}/TG-SSH-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-SSH-check-notify.sh"
+            curl -fsL -o "${global_script_dir}/TG-SSH-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-SSH-check-notify.sh"
             # 计算文件哈希
             TG_SSH_check_notify=$(sha256sum "${global_script_dir}/TG-SSH-check-notify.sh" | awk '{ print $1 }')
 
@@ -5909,7 +5901,7 @@ cloudflare_ddns() {
                 read -r CFTTL
                 CFTTL=${CFTTL:-60}
 
-                curl -fskL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/cf-v4-ddns.sh"
+                curl -fsL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/cf-v4-ddns.sh"
 
                 sed -i "/^CFKEY=$/s/CFKEY=$/CFKEY=$CFKEY/" ${global_script_dir}/cf-v4-ddns.sh
                 sed -i "/^CFUSER=$/s/CFUSER=$/CFUSER=$CFUSER/" ${global_script_dir}/cf-v4-ddns.sh
@@ -6928,7 +6920,7 @@ EOF
                             reset_day=${reset_day:-1}
 
                             cd ${global_script_dir}
-                            curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/limitoff.sh"
+                            curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/limitoff.sh"
                             chmod +x ${global_script_dir}/limitoff.sh
                             sed -i "s/110/$rx_threshold_gb/g" ${global_script_dir}/limitoff.sh
                             sed -i "s/120/$tx_threshold_gb/g" ${global_script_dir}/limitoff.sh
@@ -6979,7 +6971,7 @@ EOF
             26)
                 need_root
                 cd ~
-                curl -fskL -o "upgrade_openssh.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/upgrade_ssh.sh"
+                curl -fsL -o "upgrade_openssh.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/upgrade_ssh.sh"
                 chmod +x upgrade_openssh.sh
                 ./upgrade_openssh.sh
                 rm -f upgrade_openssh.sh
@@ -7339,7 +7331,7 @@ linux_workspace() {
                             tmux_run
                             ;;
                         2)
-                            echo -n "请输入你要后台执行的命令，如: curl -fskL https://get.docker.com | sh:"
+                            echo -n "请输入你要后台执行的命令，如: curl -fsL https://get.docker.com | sh:"
                             read -r tmuxd
                             tmux_run_d
                             ;;
@@ -7857,7 +7849,7 @@ palworld() {
         case $choice in
             1)
                 cd ~
-                curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
+                curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
                 chmod +x palworld.sh
                 ;;
             2)
@@ -7872,7 +7864,7 @@ palworld() {
                 if [ -f "~/palworld.sh" ]; then
                     bash "~/palworld.sh"
                 else
-                    curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
+                    curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
                     chmod +x palworld.sh
                     bash "~/palworld.sh"
                 fi
