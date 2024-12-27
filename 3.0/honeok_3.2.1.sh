@@ -11,7 +11,7 @@
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
 
-honeok_v="v3.2.1 (2024.12.27)"
+honeok_v="v3.2.1 (2024.12.28)"
 
 yellow='\033[93m'
 red='\033[31m'
