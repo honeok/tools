@@ -65,12 +65,12 @@ cleanup_exit() {
     [ -f "$HOME/get-docker.sh" ] && rm -f "$HOME/get-docker.sh"
     [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
     [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
-    [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh*"
+    [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh"
     [ -f "$HOME/upgrade_ssh.sh" ] && rm -f "$HOME/upgrade_ssh.sh"
 }
 
 print_logo() {
-echo -e "${yellow}   __                      __     ™️
+echo -e "${yellow}   __                      __     🧰
   / /  ___  ___  ___ ___  / /__
  / _ \/ _ \/ _ \/ -_) _ \/  '_/
 /_//_/\___/_//_/\__/\___/_/\_\ 
@@ -331,7 +331,7 @@ system_info() {
     ip_address
 
     # 获取地理位置
-    local location=$(curl -fsL --connect-timeout 5 https://ipinfo.io/city || curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | grep -oP '"city":\s*"\K[^"]+')
+    local location=$(curl -fsL --connect-timeout 5 https://ipinfo.io/city || curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"city":\s*"\([^"]*\)".*/\1/p')
 
     # 获取系统时区
     if grep -q 'Alpine' /etc/issue; then
@@ -352,7 +352,7 @@ system_info() {
     if [[ "$country" == "CN" ]];then
         china_time=$(date -d @$(($(curl -sL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
     else
-        china_time=$(curl -fsL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
+        china_time=$(curl -fsL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | sed -n 's/.*"dateTime":\s*"\([^"]*\)\.[^"]*".*/\1/p' | sed 's/T/ /')
     fi
 
     echo "系统信息查询"
@@ -419,7 +419,7 @@ geo_check() {
     local cloudflare_api="https://dash.cloudflare.com/cdn-cgi/trace"
     local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
 
-    country=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api" | grep -oP 'loc=\K\w+')
+    country=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api" | sed -n 's/.*loc=\([^ ]*\).*/\1/p')
     [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
 }
 
@@ -1937,7 +1937,7 @@ ldnmp_global_status() {
 
     # 获取数据库数量
     local database_count=0  # 初始化数据库计数
-    local db_root_passwd=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' "$web_dir/docker-compose.yml" 2>/dev/null | tr -d '[:space:]')
+    local db_root_passwd=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
     if [ -n "$db_root_passwd" ]; then
         database_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
     fi
@@ -2186,7 +2186,7 @@ install_ldnmp_standalone() {
 }
 
 install_nginx_standalone() {
-    local nginx_version=$(docker exec nginx nginx -v 2>&1 | grep -oP "nginx/\K[0-9]+\.[0-9]+\.[0-9]+")
+    local nginx_version=$(docker exec nginx nginx -v 2>&1 | sed -n 's/.*nginx\/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
 
     need_root
     install_docker
@@ -2255,8 +2255,7 @@ install_ldnmp_wordpress() {
 ldnmp_version() {
     # 获取Nginx版本
     if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
-        nginx_version=$(docker exec nginx nginx -v 2>&1)
-        nginx_version=$(echo "$nginx_version" | grep -oP "nginx/\K[0-9]+\.[0-9]+\.[0-9]+")
+        nginx_version=$(docker exec nginx nginx -v 2>&1 | awk -F 'nginx/' '{print $2}' | awk '{print $1}')
         echo -n -e "Nginx: ${yellow}v$nginx_version${white}"
     else
         echo -n -e "Nginx: ${red}NONE${white}"
@@ -2264,7 +2263,7 @@ ldnmp_version() {
 
     # 获取MySQL版本
     if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
-        DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+        DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
         mysql_version=$(docker exec mysql mysql --silent --skip-column-names -u root -p"$DB_ROOT_PASSWD" -e "SELECT VERSION();" 2>/dev/null | tail -n 1)
         echo -n -e "     MySQL: ${yellow}v$mysql_version${white}"
     else
@@ -2273,7 +2272,7 @@ ldnmp_version() {
 
     # 获取PHP版本
     if docker ps --format '{{.Names}}' | grep -q '^php$'; then
-        php_version=$(docker exec php php -v 2>/dev/null | grep -oP "PHP \K[0-9]+\.[0-9]+\.[0-9]+")
+        php_version=$(docker exec php php -v 2>/dev/null | awk '/PHP/ {print $2}')
         echo -n -e "     PHP: ${yellow}v$php_version${white}"
     else
         echo -n -e "     PHP: ${red}NONE${white}"
@@ -2281,7 +2280,7 @@ ldnmp_version() {
 
     # 获取Redis版本
     if docker ps --format '{{.Names}}' | grep -q '^redis$'; then
-        redis_version=$(docker exec redis redis-server -v 2>&1 | grep -oP "v=+\K[0-9]+\.[0-9]+")
+        redis_version=$(docker exec redis redis-server -v 2>&1 | awk -F 'v=' '{print $2}' | awk '{print $1}')
         echo -e "     Redis: ${yellow}v$redis_version${white}"
     else
         echo -e "     Redis: ${red}NONE${white}"
@@ -2408,9 +2407,9 @@ ldnmp_certs_status() {
 ldnmp_add_db() {
     DB_NAME=$(echo "$domain" | sed -e 's/[^A-Za-z0-9]/_/g')
 
-    DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
-    DB_USER=$(grep -oP 'MYSQL_USER:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
-    DB_USER_PASSWD=$(grep -oP 'MYSQL_PASSWORD:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
+    DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
+    DB_USER=$(sed -n 's/.*MYSQL_USER:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
+    DB_USER_PASSWD=$(sed -n 's/.*MYSQL_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
 
     if [[ -z "$DB_ROOT_PASSWD" || -z "$DB_USER" || -z "$DB_USER_PASSWD" ]]; then
         _red "无法获取MySQL凭据！"
@@ -2578,7 +2577,7 @@ ldnmp_site_manage() {
     local domain expire_date formatted_date
     local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
     local site_info="站点: ${green}${cert_count}${white}"
-    local DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+    local DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
     local database_count=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2> /dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
     local db_info="数据库信息: ${green}${database_count}${white}"
 
@@ -3198,7 +3197,7 @@ linux_ldnmp() {
                         fi
                         gunzip $(ls -t *.gz | head -n 1)
                         latest_sql=$(ls -t *.sql | head -n 1)
-                        DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+                        DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
 
                         docker exec -i mysql mysql -u root -p"$DB_ROOT_PASSWD" "$DB_NAME" < "/opt/$latest_sql"
                         echo "数据库导入的表数据"
@@ -4310,18 +4309,16 @@ reinstall_system() {
                 ;;
             43)
                 reinstall_win_bin456789
-                local url="https://massgrave.dev/windows_7_links"
-                local web_content=$(wget -q -O - "$url")
-                local iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_7[^"]*professional[^"]*x64[^"]*\.iso')
+                local web_content=$(wget -q -O - "https://massgrave.dev/windows_7_links")
+                local iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_7.*professional.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows 7 PROFESSIONAL'
                 reboot
                 exit
                 ;;
             44)
                 reinstall_win_bin456789
-                local url="https://massgrave.dev/windows_server_links"
-                local web_content=$(wget -q -O - "$url")
-                local iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_server[^"]*2022[^"]*x64[^"]*\.iso')
+                local web_content=$(wget -q -O - "https://massgrave.dev/windows_server_links")
+                local iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_server.*2022.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows Server 2022 SERVERDATACENTER'
                 reboot
                 exit
@@ -4537,6 +4534,7 @@ bbr_on() {
 xanmod_bbr3() {
     local choice
     need_root
+    cd ~
 
     echo "XanMod BBR3管理"
     if dpkg -l | grep -q 'linux-xanmod'; then
@@ -4544,8 +4542,7 @@ xanmod_bbr3() {
             clear
             local kernel_version=$(uname -r)
             echo "已安装XanMod的BBRv3内核"
-            echo "当前内核版本:$kernel_version"
-
+            echo "当前内核版本: $kernel_version"
             echo ""
             echo "内核管理"
             short_separator
@@ -4567,14 +4564,14 @@ xanmod_bbr3() {
                     # 添加存储库
                     echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
-                    # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
-                    local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
+                    # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
+                    local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
 
                     install linux-xanmod-x64v"$kernel_version"
 
                     _green "XanMod内核已更新，重启后生效"
-                    rm -f /etc/apt/sources.list.d/xanmod-release.list
-                    rm -f check_x86-64_psabi.sh*
+                    [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
+                    [ -f "check_x86-64_psabi.sh" ] && rm -f "check_x86-64_psabi.sh"
 
                     server_reboot
                     ;;
@@ -4637,8 +4634,8 @@ xanmod_bbr3() {
                 # 添加存储库
                 echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
-                # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
-                local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
+                # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
+                local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
 
                 install linux-xanmod-x64v"$kernel_version"
 
@@ -4646,8 +4643,8 @@ xanmod_bbr3() {
                 bbr_on
 
                 _green "XanMod内核安装并启用BBR3成功，重启后生效！"
-                rm -f /etc/apt/sources.list.d/xanmod-release.list
-                rm -f check_x86-64_psabi.sh*
+                [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
+                [ -f "check_x86-64_psabi.sh" ] && rm -f "check_x86-64_psabi.sh"
 
                 server_reboot
                 ;;
@@ -6890,11 +6887,11 @@ EOF
                     output_status
                     echo "$output"
 
-                    # 检查是否存在 limitoff.sh 文件
+                    # 检查是否存在limitoff.sh文件
                     if [ -f ${global_script_dir}/limitoff.sh ]; then
                         # 获取threshold_gb的值
-                        local rx_threshold_gb=$(grep -oP 'rx_threshold_gb=\K\d+' ${global_script_dir}/limitoff.sh)
-                        local tx_threshold_gb=$(grep -oP 'tx_threshold_gb=\K\d+' ${global_script_dir}/limitoff.sh)
+                        local rx_threshold_gb=$(sed -n 's/.*rx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
+                        local tx_threshold_gb=$(sed -n 's/.*tx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
                         echo -e "${green}当前设置的进站限流阈值为: ${yellow}${rx_threshold_gb}${green}GB${white}"
                         echo -e "${green}当前设置的出站限流阈值为: ${yellow}${tx_threshold_gb}${green}GB${white}"
                     else
