@@ -7539,8 +7539,8 @@ servertest_script() {
 node_create() {
     if [[ "$country" == "CN" ]];then
         clear
-        _red "时刻铭记上网三要素:不评政治、不谈宗教、不碰黄賭毒，龙的传人需自律"
-        _red "本功能所提供的内容已触犯你的IP所在地相关法律法规请绕行！"
+        _err_msg "$(_red '时刻铭记上网三要素:不评政治、不谈宗教、不碰黄賭毒，龙的传人需自律')"
+        _err_msg "$(_red '本功能所提供的内容已触犯你的IP所在地相关法律法规请绕行！')"
         end_of
         honeok # 返回主菜单
     fi
@@ -7839,11 +7839,10 @@ oracle_script() {
 # =============== 幻兽帕鲁START ===============
 palworld() {
     need_root
-    set_script_dir
     while true; do
         clear
 
-        if [ -f ${global_script_dir}/palworld.sh ]; then
+        if [ -f "~/palworld.sh" ]; then
             echo -e "${white}幻兽帕鲁脚本: ${green}已安装${white}"
         else
             echo -e "${white}幻兽帕鲁脚本: ${yellow}未安装${white}"
@@ -7864,24 +7863,24 @@ palworld() {
         case $choice in
             1)
                 cd ~
-                curl -fskL -o ${global_script_dir}/palworld.sh ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
-                chmod +x ${global_script_dir}/palworld.sh
+                curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
+                chmod +x palworld.sh
                 ;;
             2)
-                [ -f ${global_script_dir}/palworld.sh ] && rm -f ${global_script_dir}/palworld.sh
+                [ -f "~/palworld.sh" ] && rm -f "~/palworld.sh"
                 [ -L /usr/local/bin/p ] && rm -f /usr/local/bin/p
 
-                if [ ! -f ${global_script_dir}/palworld.sh ] && [ ! -L /usr/local/bin/p ]; then
+                if [ ! -f "~/palworld.sh" ] && [ ! -L /usr/local/bin/p ]; then
                     _red "幻兽帕鲁开服脚本未安装"
                 fi
                 ;;
             3)
-                if [ -f ${global_script_dir}/palworld.sh ]; then
-                    bash ${global_script_dir}/palworld.sh
+                if [ -f "~/palworld.sh" ]; then
+                    bash "~/palworld.sh"
                 else
-                    curl -fskL -o ${global_script_dir}/palworld.sh ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
-                    chmod +x ${global_script_dir}/palworld.sh
-                    bash ${global_script_dir}/palworld.sh
+                    curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
+                    chmod +x palworld.sh
+                    bash "~/palworld.sh"
                 fi
                 ;;
             0)
