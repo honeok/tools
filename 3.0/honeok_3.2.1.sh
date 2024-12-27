@@ -1474,7 +1474,7 @@ docker_ps() {
                 echo -n -e "${yellow}确定删除所有容器吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         docker rm -f $(docker ps -a -q)
                         ;;
@@ -1575,7 +1575,7 @@ docker_image() {
                 echo -n -e "${red}确定删除所有镜像吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         if [ -n "$(docker images -q)" ]; then
                             docker rmi -f $(docker images -q)
@@ -1809,7 +1809,7 @@ docker_manager() {
                         3)
                             echo -n "确定删除所有未使用的卷吗:"
                             read -r choice
-                            case "$choice" in
+                            case $choice in
                                 [Yy])
                                     docker volume prune -f
                                     ;;
@@ -1834,7 +1834,7 @@ docker_manager() {
                 echo -n -e "${yellow}将清理无用的镜像容器网络，包括停止的容器，确定清理吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         docker system prune -af --volumes
                         ;;
@@ -1870,7 +1870,7 @@ docker_manager() {
                 echo -n -e "${yellow}确定卸载docker环境吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         uninstall_docker
                         ;;
@@ -3355,7 +3355,7 @@ linux_ldnmp() {
                         echo -n -e "${yellow}要传送文件到远程服务器吗? (y/n): ${white}"
                         read -r choice
 
-                        case "$choice" in
+                        case $choice in
                             [Yy])
                                 echo -n "请输入远端服务器IP: "
                                 read -r remote_ip
@@ -3409,7 +3409,7 @@ linux_ldnmp() {
                 echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     1)
                         echo -n "选择每周备份的星期几(0-6，0代表星期日): "
                         read -r weekday
@@ -3686,7 +3686,7 @@ linux_ldnmp() {
                         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                         read -r choice
 
-                        case "$choice" in
+                        case $choice in
                             [Yy])
                                 remove fail2ban
                                 rm -rf /etc/fail2ban
@@ -3898,7 +3898,7 @@ linux_ldnmp() {
                             echo -n -e "${yellow}长时间不更新环境的用户请慎重更新LDNMP环境，会有数据库更新失败的风险，确定更新LDNMP环境吗? (y/n): ${white}"
                             read -r choice
 
-                            case "$choice" in
+                            case $choice in
                                 [Yy])
                                     _yellow "完整更新LDNMP环境"
                                     cd "$web_dir"
@@ -3930,7 +3930,7 @@ linux_ldnmp() {
                 echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         if docker inspect "ldnmp" >/dev/null 2>&1; then
                             cd "$web_dir"
@@ -4159,7 +4159,7 @@ reinstall_system() {
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1)
                 reinstall_linux_MollyLau
                 bash InstallNET.sh -debian 12
@@ -4487,7 +4487,7 @@ set_default_qdisc() {
         echo -n -e "${yellow}请输入选项并按回车键确认 (回车使用默认值: fq): ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1|"")
                 chosen_qdisc="fq"
                 break
@@ -4613,7 +4613,7 @@ xanmod_bbr3() {
         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             [Yy])
                 if [ -r /etc/os-release ]; then
                     . /etc/os-release
@@ -4979,7 +4979,7 @@ telegram_bot() {
     echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
     read -r choice
 
-    case "$choice" in
+    case $choice in
         [Yy])
             cd ~
             install tmux bc jq
@@ -5107,7 +5107,7 @@ redhat_kernel_update() {
             echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
             read -r choice
 
-            case "$choice" in
+            case $choice in
                 1)
                     dnf remove -y elrepo-release
                     rpm -qa | grep elrepo | grep kernel | xargs rpm -e --nodeps
@@ -5139,7 +5139,7 @@ redhat_kernel_update() {
         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             [Yy])
                 check_swap
                 install_elrepo
@@ -5974,7 +5974,7 @@ server_reboot() {
     echo -n -e "${yellow}现在重启服务器吗? (y/n): ${white}"
     read -r choice
 
-    case "$choice" in
+    case $choice in
         [Yy])
             _green "已执行"
             reboot
@@ -6177,7 +6177,7 @@ EOF
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
-                    case "$choice" in
+                    case $choice in
                         1)
                             bak_dns
                             set_dns
@@ -6308,7 +6308,7 @@ EOF
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
-                    case "$choice" in
+                    case $choice in
                         1)
                             add_swap 1024
                             _green "已设置虚拟内存为1024MB"
@@ -6663,7 +6663,7 @@ EOF
                         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                         read -r choice
 
-                        case "$choice" in
+                        case $choice in
                             [Yy])
                                 if [ -r /etc/os-release ]; then
                                     . /etc/os-release
@@ -6846,7 +6846,7 @@ EOF
                     	echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                     	read -r choice
 
-                    	case "$choice" in
+                    	case $choice in
                     		[Yy])
                                 remove fail2ban
                                 rm -rf /etc/fail2ban
@@ -6868,7 +6868,7 @@ EOF
                     	echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                     	read -r choice
 
-                    	case "$choice" in
+                    	case $choice in
                     		[Yy])
                                 clear
                                 install_docker
@@ -6916,7 +6916,7 @@ EOF
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
-                    case "$choice" in
+                    case $choice in
                         1)
                             echo "如果实际服务器就100G流量，可设置阈值为95G提前关机，以免出现流量误差或溢出"
                             echo -n "请输入进站流量阈值(单位为GB): "
@@ -6960,7 +6960,7 @@ EOF
                 echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         clear
                         add_sshkey
@@ -7091,7 +7091,7 @@ EOF
                 echo -n -e "${yellow}确定一键调优吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         clear
                         long_separator
@@ -7370,6 +7370,7 @@ linux_workspace() {
 
 # =============== VPS测试脚本START ===============
 servertest_script() {
+    need_root
     local choice
     while true; do
         clear
@@ -7389,9 +7390,9 @@ servertest_script() {
         echo "14. Superspeed 三网测速"
         echo "15. Nxtrace 快速回程测试脚本 (北上广)"
         echo "16. Nxtrace 指定IP回程测试脚本"
-        echo "17. Ludashi2020 三网线路测试"
+        echo "17. Oneclickvirt 三网线路测试"
         echo "18. i-abc 多功能测速脚本"
-        echo "19. Chennhaoo 回程详细测试"
+        echo "19. Chennhaoo 三网回程TCP路由详细测试"
         short_separator
         _yellow "硬件性能测试"
         echo "20. Yabs 性能测试"
@@ -7409,7 +7410,7 @@ servertest_script() {
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1)
                 clear
                 bash <(curl -Ls https://cdn.jsdelivr.net/gh/missuo/OpenAI-Checker/openai.sh)
@@ -7438,8 +7439,7 @@ servertest_script() {
                 ;;
             12)
                 clear
-                install wget
-                wget -qO- git.io/besttrace | bash
+                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/BestTrace.sh)
                 ;;
             13)
                 clear
@@ -7477,11 +7477,11 @@ servertest_script() {
                 echo -n -e "${yellow}输入一个指定IP: ${white}"
                 read -r choice
                 curl -sL nxtrace.org/nt | bash
-                nexttrace -M "$choice"
+                nexttrace -M $choice
                 ;;
             17)
                 clear
-                curl ${github_proxy}https://raw.githubusercontent.com/ludashi2020/backtrace/main/install.sh -sSf | sh
+                curl ${github_proxy}https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | bash
                 ;;
             18)
                 clear
@@ -7508,7 +7508,7 @@ servertest_script() {
                 ;;
             31)
                 clear
-                curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x ecs.sh && bash ecs.sh
+                curl -sL ${github_proxy}https://github.com/spiritLHLS/ecs/raw/main/ecs.sh -o ecs.sh && chmod +x ecs.sh && bash ecs.sh
                 ;;
             32)
                 clear
@@ -7717,7 +7717,7 @@ oracle_script() {
                     [Yy])
                         install_docker
 
-                        # 设置默认值
+                        # 默认值
                         DEFAULT_CPU_CORE=1
                         DEFAULT_CPU_UTIL="10-20"
                         DEFAULT_MEM_UTIL=20
@@ -7772,7 +7772,7 @@ oracle_script() {
                 echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         while true; do
                             echo -n -e "${yellow}请选择要重装的系统:  1. Debian12 | 2. Ubuntu20.04 : ${white}"
@@ -7919,7 +7919,7 @@ honeok() {
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1) clear; system_info ;;
             2) clear; linux_update ;;
             3) clear; linux_clean ;;
