@@ -56,7 +56,7 @@ if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
 fi
 # ============== 脚本退出执行相关 ==============
 # 终止信号捕获，意外中断时能优雅地处理
-trap _exit SIGINT SIGQUIT SIGTERM SIGHUP
+trap _exit SIGINT SIGQUIT SIGTERM EXIT
 
 _exit() {
     echo ""
