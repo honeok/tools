@@ -2258,7 +2258,7 @@ ldnmp_version() {
         nginx_version=$(docker exec nginx nginx -v 2>&1 | awk -F 'nginx/' '{print $2}' | awk '{print $1}')
         echo -n -e "Nginx: ${yellow}v$nginx_version${white}"
     else
-        echo -n -e "Nginx: ${red}NONE${white}"
+        echo -n -e "Nginx: ${red}none${white}"
     fi
 
     # 获取MySQL版本
@@ -2267,7 +2267,7 @@ ldnmp_version() {
         mysql_version=$(docker exec mysql mysql --silent --skip-column-names -u root -p"$DB_ROOT_PASSWD" -e "SELECT VERSION();" 2>/dev/null | tail -n 1)
         echo -n -e "     MySQL: ${yellow}v$mysql_version${white}"
     else
-        echo -n -e "     MySQL: ${red}NONE${white}"
+        echo -n -e "     MySQL: ${red}none${white}"
     fi
 
     # 获取PHP版本
@@ -2275,7 +2275,7 @@ ldnmp_version() {
         php_version=$(docker exec php php -v 2>/dev/null | awk '/PHP/ {print $2}')
         echo -n -e "     PHP: ${yellow}v$php_version${white}"
     else
-        echo -n -e "     PHP: ${red}NONE${white}"
+        echo -n -e "     PHP: ${red}none${white}"
     fi
 
     # 获取Redis版本
@@ -2283,7 +2283,7 @@ ldnmp_version() {
         redis_version=$(docker exec redis redis-server -v 2>&1 | awk -F 'v=' '{print $2}' | awk '{print $1}')
         echo -e "     Redis: ${yellow}v$redis_version${white}"
     else
-        echo -e "     Redis: ${red}NONE${white}"
+        echo -e "     Redis: ${red}none${white}"
     fi
 
     short_separator
@@ -2606,7 +2606,7 @@ ldnmp_site_manage() {
         if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
             docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys"
         else
-            _red "NONE"
+            _red "none"
         fi
         short_separator
         echo ""
