@@ -4,7 +4,7 @@
 #
 # Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
 # Blog: www.honeok.com
-# Github: https://github.com/honeok/Tools
+# https://github.com/honeok/Tools
 #
 # Acks:
 #       @kejilion   <https://github.com/kejilion>
