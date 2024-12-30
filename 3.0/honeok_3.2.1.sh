@@ -2,7 +2,7 @@
 #
 # Description: lightweight shell scripting toolbox.
 #
-# Copyright (C) 2021-2024 honeok <honeok@duck.com>
+# Copyright (C) 2021-2025 honeok <honeok@duck.com>
 # Blog: www.honeok.com
 # Github: https://github.com/honeok/Tools
 #
@@ -11,7 +11,7 @@
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
 
-honeok_v="v3.2.1 (2024.12.28)"
+honeok_v='v3.2.1 (2024.12.31)'
 
 yellow='\033[93m'
 red='\033[31m'
@@ -44,10 +44,12 @@ export DEBIAN_FRONTEND=noninteractive
 os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
 
 honeok_pid="/tmp/honeok.pid"
+
 if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
     exit 1
 fi
+
 # 将当前进程的PID写入文件
 echo $$ > "$honeok_pid"
 
@@ -55,7 +57,7 @@ if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
     cd /root >/dev/null 2>&1
 fi
 # ============== 脚本退出执行相关 ==============
-# 终止信号捕获，意外中断时能优雅地处理
+# 终止信号捕获
 trap "cleanup_exit ; echo "" ; exit 0" SIGINT SIGQUIT SIGTERM EXIT
 
 # 全局退出操作
