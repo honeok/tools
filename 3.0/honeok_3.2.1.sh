@@ -7384,8 +7384,8 @@ servertest_script() {
         echo "19. Chennhaoo 三网回程TCP路由详细测试"
         short_separator
         _yellow "硬件性能测试"
-        echo "20. Yabs 性能测试"
-        echo "21. Icu/gb5 CPU性能测试脚本"
+        echo "25. Yabs 性能测试"
+        echo "26. Icu/gb5 CPU性能测试脚本"
         short_separator
         _yellow "综合性测试"
         echo "30. Bench 性能测试"
@@ -7402,16 +7402,15 @@ servertest_script() {
         case $choice in
             1)
                 clear
-                bash <(curl -Ls https://cdn.jsdelivr.net/gh/missuo/OpenAI-Checker/openai.sh)
+                bash <(curl -sL ${github_proxy}https://github.com/missuo/OpenAI-Checker/raw/main/openai.sh)
                 ;;
             2)
                 clear
-                bash <(curl -L -s ${github_proxy}https://raw.githubusercontent.com/lmc999/RegionRestrictionCheck/main/check.sh)
+                bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/lmc999/RegionRestrictionCheck/main/check.sh)
                 ;;
             3)
                 clear
-                install wget
-                wget -qO- "${github_proxy}https://github.com/yeahwu/check/raw/main/check.sh" | bash
+                bash <(curl -sL ${github_proxy}https://github.com/yeahwu/check/raw/main/check.sh)
                 ;;
             4)
                 clear
@@ -7428,11 +7427,11 @@ servertest_script() {
                 ;;
             12)
                 clear
-                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/BestTrace.sh)
+                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/BestTrace.sh) -d
                 ;;
             13)
                 clear
-                curl -sL "${github_proxy}https://raw.githubusercontent.com/zhucaidan/mtr_trace/main/mtr_trace.sh" | bash
+                bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/zhucaidan/mtr_trace/main/mtr_trace.sh)
                 ;;
             14)
                 clear
@@ -7470,7 +7469,7 @@ servertest_script() {
                 ;;
             17)
                 clear
-                curl ${github_proxy}https://raw.githubusercontent.com/oneclickvirt/backtrace/main/backtrace_install.sh -sSf | bash
+                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/backtrace.sh) -d
                 ;;
             18)
                 clear
@@ -7481,12 +7480,12 @@ servertest_script() {
                 install wget
                 wget -N --no-check-certificate ${github_proxy}https://raw.githubusercontent.com/Chennhaoo/Shell_Bash/master/AutoTrace.sh && chmod +x AutoTrace.sh && bash AutoTrace.sh
                 ;;
-            20)
+            25)
                 clear
                 check_swap
-                curl -sL https://yabs.sh | bash -s -- -i -5
+                curl -sL ${github_proxy}https://github.com/masonr/yet-another-bench-script/raw/master/yabs.sh | bash -s -- -i -5
                 ;;
-            21)
+            26)
                 clear
                 check_swap
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/i-abc/GB5/main/gb5-test.sh)
