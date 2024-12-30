@@ -7390,7 +7390,7 @@ servertest_script() {
         short_separator
         _yellow "综合性测试"
         echo "30. Bench 性能测试"
-        echo "31. Spiritysdx 融合怪测评"
+        echo "31. spiritLHLS 融合怪测评"
         echo "32. LemonBench 综合测试"
         echo "33. NodeBench VPS聚合测试"
         short_separator
@@ -7493,7 +7493,7 @@ servertest_script() {
                 ;;
             30)
                 clear
-                curl -Lso- bench.sh | bash
+                bash <(curl -Lso- ${github_proxy}https://github.com/teddysun/across/raw/master/bench.sh)
                 ;;
             31)
                 clear
