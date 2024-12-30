@@ -56,15 +56,14 @@ if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
 fi
 # ============== 脚本退出执行相关 ==============
 # 终止信号捕获，意外中断时能优雅地处理
-trap _exit SIGINT SIGQUIT SIGTERM EXIT
-_exit() { echo ""; _err_msg "$(_red '检测到退出操作，脚本终止！')"; cleanup_exit; exit 0; }
+trap "cleanup_exit ; echo "" ; exit 0" SIGINT SIGQUIT SIGTERM EXIT
 
 # 全局退出操作
 cleanup_exit() {
     [ -f "$honeok_pid" ] && rm -f "$honeok_pid"
     [ -f "$HOME/get-docker.sh" ] && rm -f "$HOME/get-docker.sh"
     [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
-    [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
+    [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f "/etc/apt/sources.list.d/xanmod-release.list"
     [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh"
     [ -f "$HOME/upgrade_ssh.sh" ] && rm -f "$HOME/upgrade_ssh.sh"
 }
