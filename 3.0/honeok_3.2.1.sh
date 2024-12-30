@@ -7428,7 +7428,7 @@ servertest_script() {
                 ;;
             12)
                 clear
-                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/BestTrace.sh) -d
+                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/besttrace.sh)
                 ;;
             13)
                 clear
