@@ -2,7 +2,7 @@
 #
 # Description: lightweight shell scripting toolbox.
 #
-# Copyright (C) 2021 - 2024 honeok <honeok@duck.com>
+# Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
 # Blog: www.honeok.com
 # https://github.com/honeok/Tools
 #
@@ -11,7 +11,7 @@
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
 
-honeok_v="v3.2.0 (2024.12.24)"
+honeok_v='v3.2.1 (2024.12.31)'
 
 yellow='\033[93m'
 red='\033[31m'
@@ -22,44 +22,30 @@ purple='\033[95m'
 gray='\033[37m'
 orange='\033[38;5;214m'
 white='\033[0m'
-_yellow() { echo -e ${yellow}$@${white}; }
-_red() { echo -e ${red}$@${white}; }
-_green() { echo -e ${green}$@${white}; }
-_blue() { echo -e ${blue}$@${white}; }
-_cyan() { echo -e ${cyan}$@${white}; }
-_purple() { echo -e ${purple}$@${white}; }
-_gray() { echo -e ${gray}$@${white}; }
-_orange() { echo -e ${orange}$@${white}; }
-_white() { echo -e ${white}$@${white}; }
+_yellow() { echo -e "${yellow}$*${white}"; }
+_red() { echo -e "${red}$*${white}"; }
+_green() { echo -e "${green}$*${white}"; }
+_blue() { echo -e "${blue}$*${white}"; }
+_cyan() { echo -e "${cyan}$*${white}"; }
+_purple() { echo -e "${purple}$*${white}"; }
+_gray() { echo -e "${gray}$*${white}"; }
+_orange() { echo -e "${orange}$*${white}"; }
+_white() { echo -e "${white}$*${white}"; }
 
-bg_yellow='\033[48;5;220m'
-bg_red='\033[41m'
-bg_green='\033[42m'
-bold='\033[1m'
-_bg_yellow() { echo -e "${bg_yellow}${bold}$@${white}"; }
-_bg_red() { echo -e "${bg_red}${bold}$@${white}"; }
-_bg_green() { echo -e "${bg_green}${bold}$@${white}"; }
+_info_msg() { echo -e "\033[48;5;220m\033[1m提示${white} $*"; }
+_err_msg() { echo -e "\033[41m\033[1m警告${white} $*"; }
+_suc_msg() { echo -e "\033[42m\033[1m成功${white} $*"; }
 
-info_msg=$(_bg_yellow 提示)
-err_msg=$(_bg_red 警告)
-suc_msg=$(_bg_green 成功)
-_info_msg() { echo -e "$info_msg $@"; }
-_err_msg() { echo -e "$err_msg $@"; }
-_suc_msg() { echo -e "$suc_msg $@"; }
-
-short_separator() {
-    printf "%-20s\n" "-" | sed 's/\s/-/g'
-}
-
-long_separator() {
-    printf "%-40s\n" "-" | sed 's/\s/-/g'
-}
+short_separator() { printf "%-20s\n" "-" | sed 's/\s/-/g'; }
+long_separator() { printf "%-40s\n" "-" | sed 's/\s/-/g'; }
 
 export DEBIAN_FRONTEND=noninteractive
+
 os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
 
 honeok_pid="/tmp/honeok.pid"
-if [ -f "$honeok_pid" ] && kill -0 $(cat "$honeok_pid") 2>/dev/null; then
+
+if [ -f "$honeok_pid" ] && kill -0 "$(cat "$honeok_pid")" 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
     exit 1
 fi
@@ -71,28 +57,21 @@ if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
     cd /root >/dev/null 2>&1
 fi
 # ============== 脚本退出执行相关 ==============
-# 终止信号捕获，意外中断时能优雅地处理
-trap _exit SIGINT SIGQUIT SIGTERM SIGHUP
-
-_exit() {
-    echo ""
-    _err_msg "$(_red '检测到退出操作，脚本终止！')"
-    global_exit
-    exit 0
-}
+# 终止信号捕获
+trap "cleanup_exit ; echo "" ; exit 0" SIGINT SIGQUIT SIGTERM EXIT
 
 # 全局退出操作
-global_exit() {
+cleanup_exit() {
     [ -f "$honeok_pid" ] && rm -f "$honeok_pid"
     [ -f "$HOME/get-docker.sh" ] && rm -f "$HOME/get-docker.sh"
     [ -f "/tmp/docker_ipv6.lock" ] && rm -f "/tmp/docker_ipv6.lock"
-    [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
-    [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh*"
+    [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f "/etc/apt/sources.list.d/xanmod-release.list"
+    [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh"
     [ -f "$HOME/upgrade_ssh.sh" ] && rm -f "$HOME/upgrade_ssh.sh"
 }
 
 print_logo() {
-echo -e "${yellow}   __                      __     ™️
+echo -e "${yellow}   __                      __     💀
   / /  ___  ___  ___ ___  / /__
  / _ \/ _ \/ _ \/ -_) _ \/  '_/
 /_//_/\___/_//_/\__/\___/_/\_\ 
@@ -344,16 +323,16 @@ system_info() {
 
     # 获取运营商信息
     local isp_info
-    isp_info=$(curl -fskL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' | sed 's/^AS[0-9]* //' || echo "")
+    isp_info=$(curl -fsL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' | sed 's/^AS[0-9]* //' || echo "")
     if [ -z "$isp_info" ]; then
-        isp_info=$(curl -fskL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | grep -oP '"asn_organization":\s*"\K[^"]+')
+        isp_info=$(curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"asn_organization":\s*"\([^"]*\)".*/\1/p')
     fi
 
     # 获取IP地址
     ip_address
 
     # 获取地理位置
-    local location=$(curl -fskL --connect-timeout 5 https://ipinfo.io/city || curl -fskL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | grep -oP '"city":\s*"\K[^"]+')
+    local location=$(curl -fsL --connect-timeout 5 https://ipinfo.io/city || curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"city":\s*"\([^"]*\)".*/\1/p')
 
     # 获取系统时区
     if grep -q 'Alpine' /etc/issue; then
@@ -374,7 +353,7 @@ system_info() {
     if [[ "$country" == "CN" ]];then
         china_time=$(date -d @$(($(curl -sL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
     else
-        china_time=$(curl -fskL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | grep -oP '"dateTime":\s*"\K[^"]+' | sed 's/\.[0-9]*//g' | sed 's/T/ /')
+        china_time=$(curl -fsL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | sed -n 's/.*"dateTime":\s*"\([^"]*\)\.[^"]*".*/\1/p' | sed 's/T/ /')
     fi
 
     echo "系统信息查询"
@@ -424,13 +403,13 @@ ip_address() {
     ipv4_address=""
     ipv6_address=""
     for service in "${ipv4_services[@]}"; do
-        ipv4_address=$(curl -fskL4 -m 3 "$service")
+        ipv4_address=$(curl -fsL4 -m 3 "$service")
         if [[ "$ipv4_address" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             break
         fi
     done
     for service in "${ipv6_services[@]}"; do
-        ipv6_address=$(curl -fskL6 -m 3 "$service")
+        ipv6_address=$(curl -fsL6 -m 3 "$service")
         if [[ "$ipv6_address" =~ ^[0-9a-fA-F:]+$ ]]; then
             break
         fi
@@ -441,7 +420,7 @@ geo_check() {
     local cloudflare_api="https://dash.cloudflare.com/cdn-cgi/trace"
     local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
 
-    country=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api" | grep -oP 'loc=\K\w+')
+    country=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api" | sed -n 's/.*loc=\([^ ]*\).*/\1/p')
     [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
 }
 
@@ -450,12 +429,12 @@ warp_check() {
     local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
     # set -- "$cloudflare_api"
     for url in $cloudflare_api; do
-        response=$(curl -fskL4 -m 3 "$url" | grep warp | cut -d= -f2)
+        response=$(curl -fsL4 -m 3 "$url" | grep warp | cut -d= -f2)
         [ "$response" == 'on' ] && { warp_ipv4=on; break; } || warp_ipv4=off
     done
 
     for url in $cloudflare_api; do
-        response=$(curl -fskL6 -m 3 "$url" | grep warp | cut -d= -f2)
+        response=$(curl -fsL6 -m 3 "$url" | grep warp | cut -d= -f2)
         [ "$response" == 'on' ] && { warp_ipv6=on; break; } || warp_ipv6=off
     done
 }
@@ -466,7 +445,7 @@ cdn_check() {
     geo_check
 
     if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
-        $(curl -fskL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
+        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
         exec_ok=0  # 0 表示允许执行命令
         github_proxy="https://gh-proxy.com/"
     else
@@ -816,7 +795,7 @@ linux_tools() {
         echo "26. 俄罗斯方块小游戏                  27. 贪吃蛇小游戏"
         echo "28. 太空入侵者小游戏"
         short_separator
-        echo "31. 全部安装                          32. 全部安装（不含屏保和游戏）"
+        echo "31. 全部安装                          32. 全部安装 (不含屏保和游戏)"
         echo "33. 全部卸载"
         short_separator
         echo "41. 安装指定工具                      42. 卸载指定工具"
@@ -987,13 +966,13 @@ linux_tools() {
                 ;;
             41)
                 clear
-                echo -n -e "${yellow}请输入安装的工具名（wget curl sudo htop）:${white}"
+                echo -n -e "${yellow}请输入安装的工具名 (wget curl sudo htop): ${white}"
                 read -r installname
                 install "$installname"
                 ;;
             42)
                 clear
-                echo -n -e "${yellow}请输入卸载的工具名（htop ufw tmux cmatrix）:${white}"
+                echo -n -e "${yellow}请输入卸载的工具名 (htop ufw tmux cmatrix): ${white}"
                 read -r removename
                 remove "$removename"
                 ;;
@@ -1102,12 +1081,12 @@ docker_version() {
 install_docker_official() {
     if [[ "$country" == "CN" ]];then
         cd ~
-        # curl -fskL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/docker/docker-install/master/install.sh" && chmod +x get-docker.sh
-        curl -fskL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
+        # curl -fsL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/docker/docker-install/master/install.sh" && chmod +x get-docker.sh
+        curl -fsL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
         sh get-docker.sh --mirror Aliyun
         rm -f get-docker.sh
     else
-        curl -fskL https://get.docker.com | sh
+        curl -fsL https://get.docker.com | sh
     fi
 
     enable docker && start docker
@@ -1152,24 +1131,24 @@ install_add_docker() {
             if [ "$(uname -m)" = "x86_64" ]; then
                 sed -i '/^deb \[arch=amd64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             elif [ "$(uname -m)" = "aarch64" ]; then
                 sed -i '/^deb \[arch=arm64 signed-by=\/etc\/apt\/keyrings\/docker-archive-keyring.gpg\] https:\/\/mirrors.aliyun.com\/docker-ce\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://mirrors.aliyun.com/docker-ce/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             fi
         else
             if [ "$(uname -m)" = "x86_64" ]; then
                 sed -i '/^deb \[arch=amd64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             elif [ "$(uname -m)" = "aarch64" ]; then
                 sed -i '/^deb \[arch=arm64 signed-by=\/usr\/share\/keyrings\/docker-archive-keyring.gpg\] https:\/\/download.docker.com\/linux\/debian bullseye stable/d' /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
                 mkdir -p /etc/apt/keyrings
-                curl -fskL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
+                curl -fsL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg >/dev/null 2>&1
                 echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bullseye stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
             fi
         fi
@@ -1227,7 +1206,7 @@ generate_docker_config() {
     fi
 
     # 获取 registry mirrors 内容
-    registry_mirrors=$(curl -fskL "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/registry_mirrors.txt" | grep -v '^#' | sed '/^$/d' | jq -R . | jq -s .)
+    registry_mirrors=$(curl -fsL "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/registry_mirrors.txt" | grep -v '^#' | sed '/^$/d' | jq -R . | jq -s .)
 
     # 判断操作系统是否为 Alpine
     if grep -q 'Alpine' /etc/issue; then
@@ -1493,10 +1472,10 @@ docker_ps() {
                 docker stop $(docker ps -q)
                 ;;
             8)
-                echo -n -e "${yellow}确定删除所有容器吗?(y/n):${white}"
+                echo -n -e "${yellow}确定删除所有容器吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         docker rm -f $(docker ps -a -q)
                         ;;
@@ -1594,10 +1573,10 @@ docker_image() {
                 done
                 ;;
             4)
-                echo -n -e "${red}确定删除所有镜像吗?(y/n):${white}"
+                echo -n -e "${red}确定删除所有镜像吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         if [ -n "$(docker images -q)" ]; then
                             docker rmi -f $(docker images -q)
@@ -1663,7 +1642,7 @@ docker_manager() {
                 else
                     docker_version
                     while true; do
-                        echo -n -e "${yellow}是否升级Docker环境?(y/n) ${white}"
+                        echo -n -e "${yellow}是否升级Docker环境? (y/n): ${white}"
                         read -r answer
 
                         case $answer in
@@ -1831,7 +1810,7 @@ docker_manager() {
                         3)
                             echo -n "确定删除所有未使用的卷吗:"
                             read -r choice
-                            case "$choice" in
+                            case $choice in
                                 [Yy])
                                     docker volume prune -f
                                     ;;
@@ -1853,10 +1832,10 @@ docker_manager() {
                 ;;
             7)
                 clear
-                echo -n -e "${yellow}将清理无用的镜像容器网络，包括停止的容器，确定清理吗?(y/n)${white}"
+                echo -n -e "${yellow}将清理无用的镜像容器网络，包括停止的容器，确定清理吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         docker system prune -af --volumes
                         ;;
@@ -1889,10 +1868,10 @@ docker_manager() {
                 ;;
             20)
                 clear
-                echo -n -e "${yellow}确定卸载docker环境吗?(y/n)${white}"
+                echo -n -e "${yellow}确定卸载docker环境吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         uninstall_docker
                         ;;
@@ -1955,11 +1934,11 @@ docker_compose() {
 ldnmp_global_status() {
     # 获取证书数量
     local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
-    local output="站点: ${green}${cert_count}${white}"
+    local site_count="站点: ${green}${cert_count}${white}"
 
     # 获取数据库数量
     local database_count=0  # 初始化数据库计数
-    local db_root_passwd=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' "$web_dir/docker-compose.yml" 2>/dev/null | tr -d '[:space:]')
+    local db_root_passwd=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:[[:space:]]*\(.*\)/\1/p' "$web_dir/docker-compose.yml" 2>/dev/null)
     if [ -n "$db_root_passwd" ]; then
         database_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
     fi
@@ -1969,11 +1948,11 @@ ldnmp_global_status() {
     if command -v docker >/dev/null 2>&1; then
         if docker ps --filter "name=ldnmp" --filter "status=running" -q | grep -q .; then
             short_separator
-            _green "LDNMP环境已安装 $(_white "$output" "$db_info")"
+            _green "LDNMP环境已安装 $(_white "$site_count" "$db_info")"
         fi
         if docker ps --filter "name=nginx" --filter "status=running" -q | grep -q .; then
             short_separator
-            _green "Nginx环境已安装 $(_white "$output")"
+            _green "Nginx环境已安装 $(_white "$site_count")"
         fi
     fi
 }
@@ -2045,7 +2024,7 @@ ldnmp_install_certbot() {
     local cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
     # 检查是否已有定时任务
     if ! crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
-        curl -fskL -o "$global_script_dir/certbot_renew.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/certbot_renew.sh"
+        curl -fsL -o "$global_script_dir/certbot_renew.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/certbot_renew.sh"
         chmod +x $global_script_dir/certbot_renew.sh
 
         # 添加定时任务
@@ -2063,6 +2042,7 @@ ldnmp_uninstall_certbot() {
 
     set_script_dir
 
+    docker ps -a --filter "ancestor=certbot" --format "{{.ID}}" | xargs -r docker rm -f >/dev/null 2>&1
     if [ -n "$certbot_image_ids" ]; then
         while IFS= read -r image_id; do
             docker rmi -f "$image_id" >/dev/null 2>&1
@@ -2072,7 +2052,7 @@ ldnmp_uninstall_certbot() {
     local cert_cron="0 0 * * * $global_script_dir/certbot_renew.sh >/dev/null 2>&1"
     # 检查并删除定时任务
     if crontab -l 2>/dev/null | grep -Fq "$cert_cron"; then
-        (crontab -l 2>/dev/null | grep -Fv "0 0 * * * $cert_cron") | crontab - >/dev/null 2>&1
+        (crontab -l 2>/dev/null | grep -Fv "$cert_cron") | crontab - >/dev/null 2>&1
         _green "续签任务已从定时任务中移除"
     else
         _yellow "定时任务未找到，无需移除"
@@ -2108,7 +2088,7 @@ ngx_logrotate() {
         return 1
     fi
 
-    curl -fskL -o "$rotate_script" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh" || {
+    curl -fsL -o "$rotate_script" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/nginx/docker_ngx_rotate2.sh" || {
         _red "脚本下载失败，请检查网络连接或脚本URL"
         return 1
     }
@@ -2152,9 +2132,9 @@ install_ldnmp_conf() {
     mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$nginx_dir/certs" "$web_dir/redis" "$web_dir/mysql"
 
     # 下载配置文件
-    curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
-    curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/ldnmp-docker-compose.yml"
+    curl -fsL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    curl -fsL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
+    curl -fsL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/ldnmp-docker-compose.yml"
 
     default_server_ssl
 
@@ -2173,9 +2153,9 @@ install_nginx_conf() {
     mkdir -p "$nginx_dir/certs" "$nginx_dir/conf.d" "$nginx_dir/certs"
 
     # 下载配置文件
-    curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
-    curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
-    curl -fskL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml"
+    curl -fsL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+    curl -fsL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default2.conf"
+    curl -fsL -o "$web_dir/docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/ldnmp-nginx-docker-compose.yml"
 
     default_server_ssl
 }
@@ -2207,7 +2187,7 @@ install_ldnmp_standalone() {
 }
 
 install_nginx_standalone() {
-    local nginx_version=$(docker exec nginx nginx -v 2>&1 | grep -oP "nginx/\K[0-9]+\.[0-9]+\.[0-9]+")
+    local nginx_version=$(docker exec nginx nginx -v 2>&1 | sed -n 's/.*nginx\/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
 
     need_root
     install_docker
@@ -2241,16 +2221,16 @@ install_ldnmp_wordpress() {
     ldnmp_certs_status
     ldnmp_add_db
 
-    curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
+    curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/wordpress.conf"
     sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
     nginx_http_on
 
     wordpress_dir="$nginx_dir/html/$domain"
     [ ! -d "$wordpress_dir" ] && mkdir -p "$wordpress_dir"
     cd "$wordpress_dir"
-    # curl -fskL -o latest.zip "https://wordpress.org/latest.zip" && unzip latest.zip && rm -f latest.zip
-    # curl -fskL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
-    curl -fskL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
+    # curl -fsL -o latest.zip "https://wordpress.org/latest.zip" && unzip latest.zip && rm -f latest.zip
+    # curl -fsL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
+    curl -fsL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
 
     # 配置WordPress
     wp_sample_config="$wordpress_dir/wordpress/wp-config-sample.php"
@@ -2276,36 +2256,35 @@ install_ldnmp_wordpress() {
 ldnmp_version() {
     # 获取Nginx版本
     if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
-        nginx_version=$(docker exec nginx nginx -v 2>&1)
-        nginx_version=$(echo "$nginx_version" | grep -oP "nginx/\K[0-9]+\.[0-9]+\.[0-9]+")
+        nginx_version=$(docker exec nginx nginx -v 2>&1 | awk -F 'nginx/' '{print $2}' | awk '{print $1}')
         echo -n -e "Nginx: ${yellow}v$nginx_version${white}"
     else
-        echo -n -e "Nginx: ${red}NONE${white}"
+        echo -n -e "Nginx: ${red}none${white}"
     fi
 
     # 获取MySQL版本
     if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
-        DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+        DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
         mysql_version=$(docker exec mysql mysql --silent --skip-column-names -u root -p"$DB_ROOT_PASSWD" -e "SELECT VERSION();" 2>/dev/null | tail -n 1)
         echo -n -e "     MySQL: ${yellow}v$mysql_version${white}"
     else
-        echo -n -e "     MySQL: ${red}NONE${white}"
+        echo -n -e "     MySQL: ${red}none${white}"
     fi
 
     # 获取PHP版本
     if docker ps --format '{{.Names}}' | grep -q '^php$'; then
-        php_version=$(docker exec php php -v 2>/dev/null | grep -oP "PHP \K[0-9]+\.[0-9]+\.[0-9]+")
+        php_version=$(docker exec php php -v 2>/dev/null | awk '/PHP/ {print $2}')
         echo -n -e "     PHP: ${yellow}v$php_version${white}"
     else
-        echo -n -e "     PHP: ${red}NONE${white}"
+        echo -n -e "     PHP: ${red}none${white}"
     fi
 
     # 获取Redis版本
     if docker ps --format '{{.Names}}' | grep -q '^redis$'; then
-        redis_version=$(docker exec redis redis-server -v 2>&1 | grep -oP "v=+\K[0-9]+\.[0-9]+")
+        redis_version=$(docker exec redis redis-server -v 2>&1 | awk -F 'v=' '{print $2}' | awk '{print $1}')
         echo -e "     Redis: ${yellow}v$redis_version${white}"
     else
-        echo -e "     Redis: ${red}NONE${white}"
+        echo -e "     Redis: ${red}none${white}"
     fi
 
     short_separator
@@ -2429,9 +2408,9 @@ ldnmp_certs_status() {
 ldnmp_add_db() {
     DB_NAME=$(echo "$domain" | sed -e 's/[^A-Za-z0-9]/_/g')
 
-    DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
-    DB_USER=$(grep -oP 'MYSQL_USER:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
-    DB_USER_PASSWD=$(grep -oP 'MYSQL_PASSWORD:\s*\K.*' $web_dir/docker-compose.yml | tr -d '[:space:]')
+    DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
+    DB_USER=$(sed -n 's/.*MYSQL_USER:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
+    DB_USER_PASSWD=$(sed -n 's/.*MYSQL_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
 
     if [[ -z "$DB_ROOT_PASSWD" || -z "$DB_USER" || -z "$DB_USER_PASSWD" ]]; then
         _red "无法获取MySQL凭据！"
@@ -2446,7 +2425,7 @@ ldnmp_add_db() {
 
 reverse_proxy() {
     ip_address
-    curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
+    curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
     sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0.0.0.0/$ipv4_address/g" "$nginx_dir/conf.d/$domain.conf"
     sed -i "s/0000/$duankou/g" "$nginx_dir/conf.d/$domain.conf"
@@ -2566,7 +2545,7 @@ nginx_waf() {
     local mode=$1
 
     if ! grep -q "honeok/nginx:alpine" "$web_dir/docker-compose.yml"; then
-        curl -fskL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
+        curl -fsL -o "$nginx_dir/nginx.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/nginx10.conf"
     fi
 
     # 根据 mode 参数来决定开启或关闭 WAF
@@ -2599,7 +2578,7 @@ ldnmp_site_manage() {
     local domain expire_date formatted_date
     local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
     local site_info="站点: ${green}${cert_count}${white}"
-    local DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+    local DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
     local database_count=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2> /dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
     local db_info="数据库信息: ${green}${database_count}${white}"
 
@@ -2628,7 +2607,7 @@ ldnmp_site_manage() {
         if docker ps --format '{{.Names}}' | grep -q '^mysql$'; then
             docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys"
         else
-            _red "NONE"
+            _red "none"
         fi
         short_separator
         echo ""
@@ -2835,26 +2814,26 @@ fail2ban_install_sshd() {
 
     [ ! -d "$fail2ban_dir" ] && mkdir -p "$fail2ban_dir" && cd "$fail2ban_dir"
 
-    curl -fskL -o "docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
+    curl -fsL -o "docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
 
     docker_compose start
 
     sleep 3
     if grep -q 'Alpine' /etc/issue; then
         cd "$config_dir/filter.d"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd.conf"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd-ddos.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd-ddos.conf"
         cd "$config_dir/jail.d/"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-ssh.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-ssh.conf"
     elif command -v dnf >/dev/null 2>&1; then
         cd "$config_dir/jail.d/"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/centos-ssh.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/centos-ssh.conf"
     else
         install rsyslog
         systemctl start rsyslog
         systemctl enable rsyslog
         cd "$config_dir/jail.d/"
-        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/linux-ssh.conf"
+        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/linux-ssh.conf"
     fi
 }
 
@@ -2919,14 +2898,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/discuz.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/discuz.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 discuz_dir="$nginx_dir/html/$domain"
                 [ ! -d "$discuz_dir" ] && mkdir -p "$discuz_dir"
                 cd "$discuz_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/Discuz_X3.5_SC_UTF8_20240520.zip" && unzip latest.zip && rm -f latest.zip
+                curl -fsL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/Discuz_X3.5_SC_UTF8_20240520.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -2947,14 +2926,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/kdy.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/kdy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 kdy_dir="$nginx_dir/html/$domain"
                 [ ! -d "$kdy_dir" ] && mkdir -p "$kdy_dir"
                 cd "$kdy_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/tags/1.50.02.zip" && unzip -o latest.zip && rm -f latest.zip
+                curl -fsL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/tags/1.50.02.zip" && unzip -o latest.zip && rm -f latest.zip
                 mv "$kdy_dir/kodbox-*" "$kdy_dir/kodbox"
 
                 ldnmp_restart
@@ -2976,20 +2955,20 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/maccms.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/maccms.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 cms_dir="$nginx_dir/html/$domain"
                 [ ! -d "$cms_dir" ] && mkdir -p "$cms_dir"
                 cd "$cms_dir"
-                curl -fskL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && mv maccms10-*/* . && rm -rf maccms10*
+                curl -fsL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && mv maccms10-*/* . && rm -rf maccms10*
                 cd "$cms_dir/template/"
-                curl -fskL -O "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
+                curl -fsL -O "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
                 cp "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
                 cp "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
                 mv "$cms_dir/admin.php" "$cms_dir/vip.php"
-                curl -fskL -o "$cms_dir/application/extra/maccms.php" "${github_proxy}https://raw.githubusercontent.com/kejilion/Website_source_code/main/maccms.php"
+                curl -fsL -o "$cms_dir/application/extra/maccms.php" "${github_proxy}https://raw.githubusercontent.com/kejilion/Website_source_code/main/maccms.php"
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -3014,14 +2993,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/dujiaoka.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/dujiaoka.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 djsk_dir="$nginx_dir/html/$domain"
                 [ ! -d "$djsk_dir" ] && mkdir -p "$djsk_dir"
                 cd "$djsk_dir"
-                curl -fskL -O "${github_proxy}https://github.com/assimon/dujiaoka/releases/download/2.0.6/2.0.6-antibody.tar.gz" && tar zxvf 2.0.6-antibody.tar.gz && rm -f 2.0.6-antibody.tar.gz
+                curl -fsL -O "${github_proxy}https://github.com/assimon/dujiaoka/releases/download/2.0.6/2.0.6-antibody.tar.gz" && tar zxvf 2.0.6-antibody.tar.gz && rm -f 2.0.6-antibody.tar.gz
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -3055,7 +3034,7 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/flarum.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/flarum.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
@@ -3098,14 +3077,14 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/typecho.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/typecho.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
                 typecho_dir="$nginx_dir/html/$domain"
                 [ ! -d "$typecho_dir" ] && mkdir -p "$typecho_dir"
                 cd "$typecho_dir"
-                curl -fskL -o latest.zip "${github_proxy}https://github.com/typecho/typecho/releases/latest/download/typecho.zip" && unzip latest.zip && rm -f latest.zip
+                curl -fsL -o latest.zip "${github_proxy}https://github.com/typecho/typecho/releases/latest/download/typecho.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
                 ldnmp_display_success
@@ -3127,7 +3106,7 @@ linux_ldnmp() {
                 ldnmp_certs_status
                 ldnmp_add_db
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/php_dyna.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/php_dyna.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
@@ -3143,7 +3122,7 @@ linux_ldnmp() {
                 read -r url_download
 
                 if [ -n "$url_download" ]; then
-                    curl -fskL -O "$url_download"
+                    curl -fsL -O "$url_download"
                 fi
 
                 unzip $(ls -t *.zip | head -n 1)
@@ -3215,11 +3194,11 @@ linux_ldnmp() {
 
                         cd /opt
                         if [ -n "$url_download_db" ]; then
-                            curl -fskL -O "$url_download_db"
+                            curl -fsL -O "$url_download_db"
                         fi
                         gunzip $(ls -t *.gz | head -n 1)
                         latest_sql=$(ls -t *.sql | head -n 1)
-                        DB_ROOT_PASSWD=$(grep -oP 'MYSQL_ROOT_PASSWORD:\s*\K.*' /data/docker_data/web/docker-compose.yml | tr -d '[:space:]')
+                        DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
 
                         docker exec -i mysql mysql -u root -p"$DB_ROOT_PASSWD" "$DB_NAME" < "/opt/$latest_sql"
                         echo "数据库导入的表数据"
@@ -3261,7 +3240,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/rewrite.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/rewrite.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/baidu.com/$reverseproxy/g" "$nginx_dir/conf.d/$domain.conf"
 
@@ -3283,7 +3262,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/conf/main/nginx/conf.d/reverse-proxy.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/conf/main/nginx/conf.d/reverse-proxy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/0.0.0.0/$reverseproxy/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s/0000/$port/g" "$nginx_dir/conf.d/$domain.conf"
@@ -3305,7 +3284,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s|fandaicom|$proxy_domain|g" "$nginx_dir/conf.d/$domain.conf"
 
@@ -3322,7 +3301,7 @@ linux_ldnmp() {
                 ldnmp_install_ssltls
                 ldnmp_certs_status
 
-                curl -fskL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/html.conf"
+                curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/html.conf"
                 sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
                 nginx_http_on
 
@@ -3338,7 +3317,7 @@ linux_ldnmp() {
                 read -r url_download
 
                 if [ -n "$url_download" ]; then
-                    curl -fskL -O "$url_download"
+                    curl -fsL -O "$url_download"
                 fi
 
                 unzip $(ls -t *.zip | head -n 1)
@@ -3376,7 +3355,7 @@ linux_ldnmp() {
                         echo -n -e "${yellow}要传送文件到远程服务器吗? (y/n): ${white}"
                         read -r choice
 
-                        case "$choice" in
+                        case $choice in
                             [Yy])
                                 echo -n "请输入远端服务器IP: "
                                 read -r remote_ip
@@ -3418,7 +3397,7 @@ linux_ldnmp() {
                 echo -n "输入远程服务器密码: "
                 read -r usepasswd
 
-                curl -fskL -o "${global_script_dir}/${useip}_backup.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/web_backup.sh"
+                curl -fsL -o "${global_script_dir}/${useip}_backup.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/web_backup.sh"
                 chmod +x "${global_script_dir}/${useip}_backup.sh"
 
                 sed -i "s/0.0.0.0/$useip/g" "${global_script_dir}/${useip}_backup.sh"
@@ -3430,7 +3409,7 @@ linux_ldnmp() {
                 echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     1)
                         echo -n "选择每周备份的星期几(0-6，0代表星期日): "
                         read -r weekday
@@ -3603,14 +3582,14 @@ linux_ldnmp() {
                                     fi
                                 done
 
-                                curl -fskL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
+                                curl -fsL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
                                 nginx_check_restart
 
                                 cd /data/docker_data/fail2ban/config/fail2ban/jail.d
-                                curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
+                                curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                                 
                                 cd /data/docker_data/fail2ban/config/fail2ban/action.d
-                                curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/cloudflare-docker.conf"
+                                curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/cloudflare-docker.conf"
 
                                 sed -i "s/kejilion@outlook.com/$CFUSER/g" /data/docker_data/fail2ban/config/fail2ban/action.d/cloudflare-docker.conf
                                 sed -i "s/APIKEY00000/$CFKEY/g" /data/docker_data/fail2ban/config/fail2ban/action.d/cloudflare-docker.conf
@@ -3661,7 +3640,7 @@ linux_ldnmp() {
                                 install jq bc
                                 check_crontab_installed
 
-                                curl -fskL -o "$global_script_dir/CF-Under-Attack.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/CF-Under-Attack.sh"
+                                curl -fsL -o "$global_script_dir/CF-Under-Attack.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/CF-Under-Attack.sh"
                                 chmod +x "$global_script_dir/CF-Under-Attack.sh"
                                 sed -i "s/AAAA/$CFUSER/g" "$global_script_dir/CF-Under-Attack.sh"
                                 sed -i "s/BBBB/$CFKEY/g" "$global_script_dir/CF-Under-Attack.sh"
@@ -3707,7 +3686,7 @@ linux_ldnmp() {
                         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                         read -r choice
 
-                        case "$choice" in
+                        case $choice in
                             [Yy])
                                 remove fail2ban
                                 rm -rf /etc/fail2ban
@@ -3725,9 +3704,9 @@ linux_ldnmp() {
                         fail2ban_install_sshd
 
                         cd /data/docker_data/fail2ban/config/fail2ban/filter.d
-                        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/fail2ban-nginx-cc.conf"
+                        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/fail2ban-nginx-cc.conf"
                         cd /data/docker_data/fail2ban/config/fail2ban/jail.d
-                        curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
+                        curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                         sed -i "/cloudflare/d" "/data/docker_data/fail2ban/config/fail2ban/jail.d/nginx-docker-cc.conf"
 
                         fail2ban_status
@@ -3757,19 +3736,19 @@ linux_ldnmp() {
                             sed -i 's/worker_processes.*/worker_processes 4;/' "$nginx_dir/nginx.conf"
 
                             # php调优
-                            curl -fskL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
+                            curl -fsL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php:/usr/local/etc/php/conf.d/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php74:/usr/local/etc/php/conf.d/optimized_php.ini"
                             rm -f "$web_dir/optimized_php.ini"
 
                             # php调优
-                            curl -fskL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www-1.conf"
+                            curl -fsL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www-1.conf"
                             docker cp "$web_dir/www.conf" "php:/usr/local/etc/php-fpm.d/www.conf"
                             docker cp "$web_dir/www.conf" "php74:/usr/local/etc/php-fpm.d/www.conf"
                             rm -f "$web_dir/www.conf"
 
                             # mysql调优
-                            curl -fskL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/custom_mysql_config-1.cnf"
+                            curl -fsL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/custom_mysql_config-1.cnf"
                             docker cp "$web_dir/mysql_config.cnf" "mysql:/etc/mysql/conf.d/"
                             rm -f "$web_dir/mysql_config.cnf"
 
@@ -3786,19 +3765,19 @@ linux_ldnmp() {
                             sed -i 's/worker_processes.*/worker_processes 8;/' "$nginx_dir/nginx/nginx.conf"
 
                             # php调优
-                            curl -fskL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
+                            curl -fsL -o "$web_dir/optimized_php.ini" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php:/usr/local/etc/php/conf.d/optimized_php.ini"
                             docker cp "$web_dir/optimized_php.ini" "php74:/usr/local/etc/php/conf.d/optimized_php.ini"
                             rm -f "$web_dir/optimized_php.ini"
 
                             # php调优
-                            curl -fskL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www.conf"
+                            curl -fsL -o "$web_dir/www.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/www.conf"
                             docker cp "$web_dir/www.conf" php:/usr/local/etc/php-fpm.d/www.conf
                             docker cp "$web_dir/www.conf" php74:/usr/local/etc/php-fpm.d/www.conf
                             rm -f "$web_dir/www.conf"
 
                             # mysql调优
-                            curl -fskL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/custom_mysql_config.cnf"
+                            curl -fsL -o "$web_dir/mysql_config.cnf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/ldnmp/optimize/custom_mysql_config.cnf"
                             docker cp "$web_dir/mysql_config.cnf" mysql:/etc/mysql/conf.d/
                             rm -f "$web_dir/mysql_config.cnf"
 
@@ -3871,24 +3850,16 @@ linux_ldnmp() {
                             exec_cmd docker exec "$ldnmp_pods" sed -i "s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g" /etc/apk/repositories >/dev/null 2>&1
 
                             docker exec "$ldnmp_pods" apk update
-                            curl -fskL ${github_proxy}https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions
+                            curl -fsL ${github_proxy}https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions
                             docker exec "$ldnmp_pods" mkdir -p /usr/local/bin/
                             docker cp /usr/local/bin/install-php-extensions "$ldnmp_pods":/usr/local/bin/
                             docker exec "$ldnmp_pods" chmod +x /usr/local/bin/install-php-extensions
                             rm -f /usr/local/bin/install-php-extensions >/dev/null 2>&1
 
-                            docker exec "$ldnmp_pods" sh -c "\
-                                apk add --no-cache imagemagick imagemagick-dev \
-                                && apk add --no-cache git autoconf gcc g++ make pkgconfig \
-                                && rm -rf /tmp/imagick \
-                                && git clone https://github.com/Imagick/imagick /tmp/imagick \
-                                && cd /tmp/imagick \
-                                && phpize \
-                                && ./configure \
-                                && make \
-                                && make install \
-                                && echo 'extension=imagick.so' > /usr/local/etc/php/conf.d/imagick.ini \
-                                && rm -rf /tmp/imagick"
+                            docker exec "$ldnmp_pods" sh -c "apk add --no-cache imagemagick imagemagick-dev git autoconf gcc g++ make pkgconfig \
+                                && rm -rf /tmp/imagick && git clone ${github_proxy}https://github.com/Imagick/imagick /tmp/imagick \
+                                && cd /tmp/imagick && phpize && ./configure && make && make install \
+                                && echo 'extension=imagick.so' > /usr/local/etc/php/conf.d/imagick.ini && rm -rf /tmp/imagick"
 
                             docker exec "$ldnmp_pods" install-php-extensions mysqli pdo_mysql gd intl zip exif bcmath opcache redis
 
@@ -3919,7 +3890,7 @@ linux_ldnmp() {
                             echo -n -e "${yellow}长时间不更新环境的用户请慎重更新LDNMP环境，会有数据库更新失败的风险，确定更新LDNMP环境吗? (y/n): ${white}"
                             read -r choice
 
-                            case "$choice" in
+                            case $choice in
                                 [Yy])
                                     _yellow "完整更新LDNMP环境"
                                     cd "$web_dir"
@@ -3951,7 +3922,7 @@ linux_ldnmp() {
                 echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         if docker inspect "ldnmp" >/dev/null 2>&1; then
                             cd "$web_dir"
@@ -4107,9 +4078,9 @@ reinstall_system() {
 
     script_bin456789() {
         if [[ "$country" == "CN" ]];then
-            curl -fskL -O https://jihulab.com/bin456789/reinstall/-/raw/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+            curl -fsL -O https://jihulab.com/bin456789/reinstall/-/raw/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
         else
-            curl -fskL -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+            curl -fsL -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
         fi
     }
 
@@ -4180,7 +4151,7 @@ reinstall_system() {
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1)
                 reinstall_linux_MollyLau
                 bash InstallNET.sh -debian 12
@@ -4339,18 +4310,16 @@ reinstall_system() {
                 ;;
             43)
                 reinstall_win_bin456789
-                local url="https://massgrave.dev/windows_7_links"
-                local web_content=$(wget -q -O - "$url")
-                local iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_7[^"]*professional[^"]*x64[^"]*\.iso')
+                local web_content=$(wget -q -O - "https://massgrave.dev/windows_7_links")
+                local iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_7.*professional.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows 7 PROFESSIONAL'
                 reboot
                 exit
                 ;;
             44)
                 reinstall_win_bin456789
-                local url="https://massgrave.dev/windows_server_links"
-                local web_content=$(wget -q -O - "$url")
-                local iso_link=$(echo "$web_content" | grep -oP '(?<=href=")[^"]*cn[^"]*windows_server[^"]*2022[^"]*x64[^"]*\.iso')
+                local web_content=$(wget -q -O - "https://massgrave.dev/windows_server_links")
+                local iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_server.*2022.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows Server 2022 SERVERDATACENTER'
                 reboot
                 exit
@@ -4505,10 +4474,10 @@ set_default_qdisc() {
         echo "3. fq_codel    : 结合了公平排队和控制延迟的算法，通过主动丢包和公平分配带宽来减少延迟并提高多流的性能"
         short_separator
 
-        echo -n -e "${yellow}请输入选项并按回车键确认(回车使用默认值 fq): ${white}"
+        echo -n -e "${yellow}请输入选项并按回车键确认 (回车使用默认值: fq): ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1|"")
                 chosen_qdisc="fq"
                 break
@@ -4566,6 +4535,7 @@ bbr_on() {
 xanmod_bbr3() {
     local choice
     need_root
+    cd ~
 
     echo "XanMod BBR3管理"
     if dpkg -l | grep -q 'linux-xanmod'; then
@@ -4573,8 +4543,7 @@ xanmod_bbr3() {
             clear
             local kernel_version=$(uname -r)
             echo "已安装XanMod的BBRv3内核"
-            echo "当前内核版本:$kernel_version"
-
+            echo "当前内核版本: $kernel_version"
             echo ""
             echo "内核管理"
             short_separator
@@ -4596,14 +4565,14 @@ xanmod_bbr3() {
                     # 添加存储库
                     echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
-                    # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
-                    local kernel_version=$(curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
+                    # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
+                    local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
 
                     install linux-xanmod-x64v"$kernel_version"
 
                     _green "XanMod内核已更新，重启后生效"
-                    rm -f /etc/apt/sources.list.d/xanmod-release.list
-                    rm -f check_x86-64_psabi.sh*
+                    [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
+                    [ -f "check_x86-64_psabi.sh" ] && rm -f "check_x86-64_psabi.sh"
 
                     server_reboot
                     ;;
@@ -4631,10 +4600,10 @@ xanmod_bbr3() {
         echo "VPS是512M内存的，请提前添加1G虚拟内存，防止因内存不足失联！"
         long_separator
 
-        echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+        echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             [Yy])
                 if [ -r /etc/os-release ]; then
                     . /etc/os-release
@@ -4666,8 +4635,8 @@ xanmod_bbr3() {
                 # 添加存储库
                 echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
-                # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
-                local kernel_version=$(curl -fskL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | grep -oP 'x86-64-v\K\d+|x86-64-v\d+')
+                # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
+                local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
 
                 install linux-xanmod-x64v"$kernel_version"
 
@@ -4675,8 +4644,8 @@ xanmod_bbr3() {
                 bbr_on
 
                 _green "XanMod内核安装并启用BBR3成功，重启后生效！"
-                rm -f /etc/apt/sources.list.d/xanmod-release.list
-                rm -f check_x86-64_psabi.sh*
+                [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
+                [ -f "check_x86-64_psabi.sh" ] && rm -f "check_x86-64_psabi.sh"
 
                 server_reboot
                 ;;
@@ -4848,7 +4817,7 @@ cron_manager() {
 
         case $choice in
             1)
-                echo -n -e "${yellow}请输入新任务的执行命令:${white}"
+                echo -n -e "${yellow}请输入新任务的执行命令: ${white}"
                 read -r newquest
                 short_separator
                 echo "1. 每月任务                 2. 每周任务"
@@ -4860,7 +4829,7 @@ cron_manager() {
 
                 case $dingshi in
                     1)
-                        echo -n -e "${yellow}选择每月的几号执行任务?(1-30): ${white}"
+                        echo -n -e "${yellow}选择每月的几号执行任务? (1-30): ${white}"
                         read -r day
                         if [[ ! $day =~ ^[1-9]$|^[12][0-9]$|^30$ ]]; then
                             _red "无效的日期输入"
@@ -4871,7 +4840,7 @@ cron_manager() {
                         fi
                         ;;
                     2)
-                        echo -n -e "${yellow}选择周几执行任务?(0-6，0代表星期日): ${white}"
+                        echo -n -e "${yellow}选择周几执行任务? (0-6，0代表星期日): ${white}"
                         read -r weekday
                         if [[ ! $weekday =~ ^[0-6]$ ]]; then
                             _red "无效的星期输入"
@@ -4882,7 +4851,7 @@ cron_manager() {
                         fi
                         ;;
                     3)
-                        echo -n -e "${yellow}选择每天几点执行任务?(小时，0-23): ${white}"
+                        echo -n -e "${yellow}选择每天几点执行任务? (小时，0-23): ${white}"
                         read -r hour
                         if [[ ! $hour =~ ^[0-9]$|^[1][0-9]$|^[2][0-3]$ ]]; then
                             _red "无效的小时输入"
@@ -4893,7 +4862,7 @@ cron_manager() {
                         fi
                         ;;
                     4)
-                        echo -n -e "${yellow}输入每小时的第几分钟执行任务?(分钟,0-60):${white}"
+                        echo -n -e "${yellow}输入每小时的第几分钟执行任务? (分钟,0-60): ${white}"
                         read -r minute
                         if [[ ! $minute =~ ^[0-5][0-9]$ ]]; then
                             _red "无效的分钟输入"
@@ -4909,7 +4878,7 @@ cron_manager() {
                 esac
                 ;;
             2)
-                echo -n -e "${yellow}请输入需要删除任务的关键字:${white}"
+                echo -n -e "${yellow}请输入需要删除任务的关键字: ${white}"
                 read -r kquest
                 if crontab -l | grep -v "$kquest" | crontab -; then
                     _green "$kquest 定时任务已删除"
@@ -4937,8 +4906,8 @@ cron_manager() {
     done
 }
 
-output_status() {
-    output=$(awk 'BEGIN { rx_total = 0; tx_total = 0 }
+network_usage_status() {
+    network_usage_summary=$(awk 'BEGIN { rx_total = 0; tx_total = 0 }
         NR > 2 { rx_total += $2; tx_total += $10 }
         END {
             rx_units = "Bytes";
@@ -4997,10 +4966,10 @@ telegram_bot() {
     echo "到达阈值后会向用户发预警消息，流量重启服务器将重新计算"
     short_separator
                 
-    echo -n -e "${yellow}确定继续吗?(y/n):${white}"
+    echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
     read -r choice
 
-    case "$choice" in
+    case $choice in
         [Yy])
             cd ~
             install tmux bc jq
@@ -5010,7 +4979,7 @@ telegram_bot() {
                 chmod +x "${global_script_dir}/TG-check-notify.sh"
                 vim "${global_script_dir}/TG-check-notify.sh"
             else
-                curl -fskL -o "${global_script_dir}/TG-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-check-notify.sh"
+                curl -fsL -o "${global_script_dir}/TG-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-check-notify.sh"
                 # 计算文件哈希
                 TG_check_notify=$(sha256sum "${global_script_dir}/TG-check-notify.sh" | awk '{ print $1 }')
 
@@ -5031,7 +5000,7 @@ telegram_bot() {
             crontab -l | grep -v "${global_script_dir}/TG-check-notify.sh" | crontab - >/dev/null 2>&1
             (crontab -l ; echo "@reboot tmux new -d -s TG-check-notify '${global_script_dir}/TG-check-notify.sh'") | crontab - >/dev/null 2>&1
 
-            curl -fskL -o "${global_script_dir}/TG-SSH-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-SSH-check-notify.sh"
+            curl -fsL -o "${global_script_dir}/TG-SSH-check-notify.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/TG-SSH-check-notify.sh"
             # 计算文件哈希
             TG_SSH_check_notify=$(sha256sum "${global_script_dir}/TG-SSH-check-notify.sh" | awk '{ print $1 }')
 
@@ -5076,10 +5045,10 @@ redhat_kernel_update() {
         _yellow "导入ELRepo GPG 公钥"
         rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
         # 检测系统版本
-        os_version=$(rpm -q --qf "%{VERSION}" $(rpm -qf /etc/os-release) 2>/dev/null | awk -F '.' '{print $1}')
-        os_name=$(awk -F= '/^NAME/{print $2}' /etc/os-release)
+        local os_version=$(rpm -q --qf "%{VERSION}" $(rpm -qf /etc/*release) 2>/dev/null | awk -F '.' '{print $1}')
+        local os_name=$(grep ^ID= /etc/*release | awk -F'=' '{print $2}' | sed 's/"//g')
         # 确保支持的操作系统上运行
-        if [[ "$os_name" != *"Red Hat"* && "$os_name" != *"AlmaLinux"* && "$os_name" != *"Rocky"* && "$os_name" != *"Oracle"* && "$os_name" != *"CentOS"* ]]; then
+        if [[ "$os_name" != "rhel" && "$os_name" != "centos" && "$os_name" != "rocky" && "$os_name" != "almalinux" && "$os_name" != "oracle" && "$os_name" != "amazon" ]]; then
             _red "不支持的操作系统: $os_name"
             end_of
             linux_system_tools
@@ -5128,7 +5097,7 @@ redhat_kernel_update() {
             echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
             read -r choice
 
-            case "$choice" in
+            case $choice in
                 1)
                     dnf remove -y elrepo-release
                     rpm -qa | grep elrepo | grep kernel | xargs rpm -e --nodeps
@@ -5153,14 +5122,14 @@ redhat_kernel_update() {
         clear
         _yellow "请备份数据，将为你升级Linux内核"
         long_separator
-        echo "仅支持红帽系列发行版CentOS/RedHat/Alma/Rocky/oracle"
+        echo "仅支持红帽系列发行版RedHat/CentOS/Rocky/Almalinux/Oracle/Amazon"
         echo "升级Linux内核可提升系统性能和安全，建议有条件的尝试，生产环境谨慎升级！"
         long_separator
 
         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             [Yy])
                 check_swap
                 install_elrepo
@@ -5816,7 +5785,7 @@ linux_trash() {
                 sleep 2
                 ;;
             3)
-                echo -n "输入要还原的文件名:"
+                echo -n "输入要还原的文件名: "
                 read -r file_to_restore
                 if [ -e "$TRASH_DIR/$file_to_restore" ]; then
                     mv "$TRASH_DIR/$file_to_restore" "$HOME/"
@@ -5930,7 +5899,7 @@ cloudflare_ddns() {
                 read -r CFTTL
                 CFTTL=${CFTTL:-60}
 
-                curl -fskL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/cf-v4-ddns.sh"
+                curl -fsL -o ${global_script_dir}/cf-v4-ddns.sh "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/cf-v4-ddns.sh"
 
                 sed -i "/^CFKEY=$/s/CFKEY=$/CFKEY=$CFKEY/" ${global_script_dir}/cf-v4-ddns.sh
                 sed -i "/^CFUSER=$/s/CFUSER=$/CFUSER=$CFUSER/" ${global_script_dir}/cf-v4-ddns.sh
@@ -5992,10 +5961,10 @@ cloudflare_ddns() {
 
 server_reboot() {
     local choice
-    echo -n -e "${yellow}现在重启服务器吗?(y/n):${white}"
+    echo -n -e "${yellow}现在重启服务器吗? (y/n): ${white}"
     read -r choice
 
-    case "$choice" in
+    case $choice in
         [Yy])
             _green "已执行"
             reboot
@@ -6198,7 +6167,7 @@ EOF
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
-                    case "$choice" in
+                    case $choice in
                         1)
                             bak_dns
                             set_dns
@@ -6329,7 +6298,7 @@ EOF
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
-                    case "$choice" in
+                    case $choice in
                         1)
                             add_swap 1024
                             _green "已设置虚拟内存为1024MB"
@@ -6594,14 +6563,14 @@ EOF
 
                         case $choice in
                             1)
-                                echo -n -e "${yellow}请输入开放的端口号:${white}"
+                                echo -n -e "${yellow}请输入开放的端口号: ${white}"
                                 read -r o_port
                                 sed -i "/COMMIT/i -A INPUT -p tcp --dport $o_port -j ACCEPT" /etc/iptables/rules.v4
                                 sed -i "/COMMIT/i -A INPUT -p udp --dport $o_port -j ACCEPT" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
                                 ;;
                             2)
-                                echo -n -e "${yellow}请输入关闭的端口号:${white}"
+                                echo -n -e "${yellow}请输入关闭的端口号: ${white}"
                                 read -r c_port
                                 sed -i "/--dport $c_port/d" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
@@ -6645,13 +6614,13 @@ EOF
                                 iptables-restore < /etc/iptables/rules.v4
                                 ;;
                             6)
-                                echo -n -e "${yellow}请输入封锁的IP:${white}"
+                                echo -n -e "${yellow}请输入封锁的IP: ${white}"
                                 read -r c_ip
                                 sed -i "/COMMIT/i -A INPUT -s $c_ip -j DROP" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
                                 ;;
                             7)
-                                echo -n -e "${yellow}请输入清除的IP:${white}"
+                                echo -n -e "${yellow}请输入清除的IP: ${white}"
                                 read -r d_ip
                                 sed -i "/-A INPUT -s $d_ip/d" /etc/iptables/rules.v4
                                 iptables-restore < /etc/iptables/rules.v4
@@ -6681,10 +6650,10 @@ EOF
                         clear
                         echo "将为你安装防火墙，该防火墙仅支持Debian/Ubuntu"
                         short_separator
-                        echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                        echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                         read -r choice
 
-                        case "$choice" in
+                        case $choice in
                             [Yy])
                                 if [ -r /etc/os-release ]; then
                                     . /etc/os-release
@@ -6864,10 +6833,10 @@ EOF
                     elif [ -x "$(command -v fail2ban-client)" ] ; then
                     	clear
                     	echo "卸载旧版fail2ban"
-                    	echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                    	echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                     	read -r choice
 
-                    	case "$choice" in
+                    	case $choice in
                     		[Yy])
                                 remove fail2ban
                                 rm -rf /etc/fail2ban
@@ -6886,10 +6855,10 @@ EOF
                     	long_separator
                     	echo "工作原理:研判非法IP恶意高频访问SSH端口，自动进行IP封锁"
                     	long_separator
-                    	echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                    	echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                     	read -r choice
 
-                    	case "$choice" in
+                    	case $choice in
                     		[Yy])
                                 clear
                                 install_docker
@@ -6916,14 +6885,14 @@ EOF
                     echo "限流关机功能"
                     long_separator
                     echo "当前流量使用情况，重启服务器流量计算会清零！"
-                    output_status
-                    echo "$output"
+                    network_usage_status
+                    echo "$network_usage_summary"
 
-                    # 检查是否存在 limitoff.sh 文件
+                    # 检查是否存在limitoff.sh文件
                     if [ -f ${global_script_dir}/limitoff.sh ]; then
                         # 获取threshold_gb的值
-                        local rx_threshold_gb=$(grep -oP 'rx_threshold_gb=\K\d+' ${global_script_dir}/limitoff.sh)
-                        local tx_threshold_gb=$(grep -oP 'tx_threshold_gb=\K\d+' ${global_script_dir}/limitoff.sh)
+                        local rx_threshold_gb=$(sed -n 's/.*rx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
+                        local tx_threshold_gb=$(sed -n 's/.*tx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
                         echo -e "${green}当前设置的进站限流阈值为: ${yellow}${rx_threshold_gb}${green}GB${white}"
                         echo -e "${green}当前设置的出站限流阈值为: ${yellow}${tx_threshold_gb}${green}GB${white}"
                     else
@@ -6937,7 +6906,7 @@ EOF
                     echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
                     read -r choice
 
-                    case "$choice" in
+                    case $choice in
                         1)
                             echo "如果实际服务器就100G流量，可设置阈值为95G提前关机，以免出现流量误差或溢出"
                             echo -n "请输入进站流量阈值(单位为GB): "
@@ -6949,7 +6918,7 @@ EOF
                             reset_day=${reset_day:-1}
 
                             cd ${global_script_dir}
-                            curl -fskL -O "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/limitoff.sh"
+                            curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/limitoff.sh"
                             chmod +x ${global_script_dir}/limitoff.sh
                             sed -i "s/110/$rx_threshold_gb/g" ${global_script_dir}/limitoff.sh
                             sed -i "s/120/$tx_threshold_gb/g" ${global_script_dir}/limitoff.sh
@@ -6978,10 +6947,10 @@ EOF
                 echo "root私钥登录模式"
                 long_separator
                 echo "将会生成密钥对，更安全的方式SSH登录"
-                echo -n -e "${yellow}确定继续吗?(y/n)${white}"
+                echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         clear
                         add_sshkey
@@ -7000,7 +6969,7 @@ EOF
             26)
                 need_root
                 cd ~
-                curl -fskL -o "upgrade_openssh.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/upgrade_ssh.sh"
+                curl -fsL -o "upgrade_openssh.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/upgrade_ssh.sh"
                 chmod +x upgrade_openssh.sh
                 ./upgrade_openssh.sh
                 rm -f upgrade_openssh.sh
@@ -7109,10 +7078,10 @@ EOF
                 echo -e "10. Linux系统内核参数优化切换到${yellow}均衡优化模式${white}"
                 long_separator
 
-                echo -n -e "${yellow}确定一键调优吗?[y/n]${white}"
+                echo -n -e "${yellow}确定一键调优吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         clear
                         long_separator
@@ -7360,7 +7329,7 @@ linux_workspace() {
                             tmux_run
                             ;;
                         2)
-                            echo -n "请输入你要后台执行的命令，如: curl -fskL https://get.docker.com | sh:"
+                            echo -n "请输入你要后台执行的命令，如: curl -fsL https://get.docker.com | sh:"
                             read -r tmuxd
                             tmux_run_d
                             ;;
@@ -7391,6 +7360,7 @@ linux_workspace() {
 
 # =============== VPS测试脚本START ===============
 servertest_script() {
+    need_root
     local choice
     while true; do
         clear
@@ -7410,17 +7380,17 @@ servertest_script() {
         echo "14. Superspeed 三网测速"
         echo "15. Nxtrace 快速回程测试脚本 (北上广)"
         echo "16. Nxtrace 指定IP回程测试脚本"
-        echo "17. Ludashi2020 三网线路测试"
+        echo "17. Oneclickvirt 三网线路测试"
         echo "18. i-abc 多功能测速脚本"
-        echo "19. Chennhaoo 回程详细测试"
+        echo "19. Chennhaoo 三网回程TCP路由详细测试"
         short_separator
         _yellow "硬件性能测试"
-        echo "20. Yabs 性能测试"
-        echo "21. Icu/gb5 CPU性能测试脚本"
+        echo "25. Yabs 性能测试"
+        echo "26. Icu/gb5 CPU性能测试脚本"
         short_separator
         _yellow "综合性测试"
         echo "30. Bench 性能测试"
-        echo "31. Spiritysdx 融合怪测评"
+        echo "31. spiritLHLS 融合怪测评"
         echo "32. LemonBench 综合测试"
         echo "33. NodeBench VPS聚合测试"
         short_separator
@@ -7430,19 +7400,18 @@ servertest_script() {
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1)
                 clear
-                bash <(curl -Ls https://cdn.jsdelivr.net/gh/missuo/OpenAI-Checker/openai.sh)
+                bash <(curl -sL ${github_proxy}https://github.com/missuo/OpenAI-Checker/raw/main/openai.sh)
                 ;;
             2)
                 clear
-                bash <(curl -L -s ${github_proxy}https://raw.githubusercontent.com/lmc999/RegionRestrictionCheck/main/check.sh)
+                bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/lmc999/RegionRestrictionCheck/main/check.sh)
                 ;;
             3)
                 clear
-                install wget
-                wget -qO- "${github_proxy}https://github.com/yeahwu/check/raw/main/check.sh" | bash
+                bash <(curl -sL ${github_proxy}https://github.com/yeahwu/check/raw/main/check.sh)
                 ;;
             4)
                 clear
@@ -7459,12 +7428,11 @@ servertest_script() {
                 ;;
             12)
                 clear
-                install wget
-                wget -qO- git.io/besttrace | bash
+                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/besttrace.sh)
                 ;;
             13)
                 clear
-                curl -sL "${github_proxy}https://raw.githubusercontent.com/zhucaidan/mtr_trace/main/mtr_trace.sh" | bash
+                bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/zhucaidan/mtr_trace/main/mtr_trace.sh)
                 ;;
             14)
                 clear
@@ -7472,7 +7440,7 @@ servertest_script() {
                 ;;
             15)
                 clear
-                curl nxtrace.org/nt | bash
+                curl -sL nxtrace.org/nt | bash
                 # 北上广（电信+联通+移动+教育网）IPv4 / IPv6 ICMP快速测试，使用TCP SYN 而非ICMP进行测试
                 nexttrace --fast-trace --tcp
                 ;;
@@ -7497,12 +7465,12 @@ servertest_script() {
 
                 echo -n -e "${yellow}输入一个指定IP: ${white}"
                 read -r choice
-                curl nxtrace.org/nt | bash
-                nexttrace -M "$choice"
+                curl -sL nxtrace.org/nt | bash
+                nexttrace -M $choice
                 ;;
             17)
                 clear
-                curl ${github_proxy}https://raw.githubusercontent.com/ludashi2020/backtrace/main/install.sh -sSf | sh
+                bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/backtrace.sh) -d
                 ;;
             18)
                 clear
@@ -7513,23 +7481,23 @@ servertest_script() {
                 install wget
                 wget -N --no-check-certificate ${github_proxy}https://raw.githubusercontent.com/Chennhaoo/Shell_Bash/master/AutoTrace.sh && chmod +x AutoTrace.sh && bash AutoTrace.sh
                 ;;
-            20)
+            25)
                 clear
                 check_swap
-                curl -sL https://yabs.sh | bash -s -- -i -5
+                curl -sL ${github_proxy}https://github.com/masonr/yet-another-bench-script/raw/master/yabs.sh | bash -s -- -i -5
                 ;;
-            21)
+            26)
                 clear
                 check_swap
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/i-abc/GB5/main/gb5-test.sh)
                 ;;
             30)
                 clear
-                curl -Lso- bench.sh | bash
+                bash <(curl -Lso- ${github_proxy}https://github.com/teddysun/across/raw/master/bench.sh)
                 ;;
             31)
                 clear
-                curl -L https://gitlab.com/spiritysdx/za/-/raw/main/ecs.sh -o ecs.sh && chmod +x ecs.sh && bash ecs.sh
+                curl -sL ${github_proxy}https://github.com/spiritLHLS/ecs/raw/main/ecs.sh -o ecs.sh && chmod +x ecs.sh && bash ecs.sh
                 ;;
             32)
                 clear
@@ -7554,8 +7522,8 @@ servertest_script() {
 node_create() {
     if [[ "$country" == "CN" ]];then
         clear
-        _red "时刻铭记上网三要素:不评政治、不谈宗教、不碰黄賭毒，龙的传人需自律"
-        _red "本功能所提供的内容已触犯你的IP所在地相关法律法规请绕行！"
+        _err_msg "$(_red '时刻铭记上网三要素:不评政治、不谈宗教、不碰黄賭毒，龙的传人需自律')"
+        _err_msg "$(_red '本功能所提供的内容已触犯你的IP所在地相关法律法规请绕行！')"
         end_of
         honeok # 返回主菜单
     fi
@@ -7731,33 +7699,33 @@ oracle_script() {
             1)
                 clear
                 _yellow "活跃脚本: CPU占用10-20% 内存占用20%"
-                echo -n -e "${yellow}确定安装吗?(y/n):${white}"
+                echo -n -e "${yellow}确定安装吗? (y/n): ${white}"
                 read -r ins
-                
+
                 case "$ins" in
                     [Yy])
                         install_docker
 
-                        # 设置默认值
+                        # 默认值
                         DEFAULT_CPU_CORE=1
                         DEFAULT_CPU_UTIL="10-20"
                         DEFAULT_MEM_UTIL=20
                         DEFAULT_SPEEDTEST_INTERVAL=120
 
                         # 提示用户输入CPU核心数和占用百分比，如果回车则使用默认值
-                        echo -n -e "${yellow}请输入CPU核心数[默认:$DEFAULT_CPU_CORE]: ${white}"
+                        echo -n -e "${yellow}请输入CPU核心数 (默认:$DEFAULT_CPU_CORE): ${white}"
                         read -r cpu_core
                         cpu_core=${cpu_core:-$DEFAULT_CPU_CORE}
 
-                        echo -n -e "${yellow}请输入CPU占用百分比范围 (例如10-20) [默认:$DEFAULT_CPU_UTIL]: ${white}"
+                        echo -n -e "${yellow}请输入CPU占用百分比范围 (例如10-20) (默认:$DEFAULT_CPU_UTIL): ${white}"
                         read -r cpu_util
                         cpu_util=${cpu_util:-$DEFAULT_CPU_UTIL}
 
-                        echo -n -e "${yellow}请输入内存占用百分比 [默认:$DEFAULT_MEM_UTIL]: ${white}"
+                        echo -n -e "${yellow}请输入内存占用百分比 (默认:$DEFAULT_MEM_UTIL): ${white}"
                         read -r mem_util
                         mem_util=${mem_util:-$DEFAULT_MEM_UTIL}
 
-                        echo -n -e "${yellow}请输入Speedtest间隔时间 (秒) [默认:$DEFAULT_SPEEDTEST_INTERVAL]: ${white}"
+                        echo -n -e "${yellow}请输入Speedtest间隔时间 (秒) (默认:$DEFAULT_SPEEDTEST_INTERVAL): ${white}"
                         read -r speedtest_interval
                         speedtest_interval=${speedtest_interval:-$DEFAULT_SPEEDTEST_INTERVAL}
 
@@ -7768,7 +7736,7 @@ oracle_script() {
                             -e CPU_CORE="$cpu_core" \
                             -e MEM_UTIL="$mem_util" \
                             -e SPEEDTEST_INTERVAL="$speedtest_interval" \
-                            fogforest/lookbusy
+                            fogforest/lookbusy:latest
                         ;;
                     [Nn])
                         echo ""
@@ -7780,8 +7748,8 @@ oracle_script() {
                 ;;
             2)
                 clear
-                docker rm -f lookbusy
-                docker rmi fogforest/lookbusy
+                docker rm -f lookbusy >/dev/null 2>&1
+                docker rmi -f fogforest/lookbusy:latest >/dev/null 2>&1
                 _green "成功卸载甲骨文活跃脚本"
                 ;;
             3)
@@ -7789,14 +7757,14 @@ oracle_script() {
                 _yellow "重装系统"
                 short_separator
                 _yellow "注意: 重装有风险失联，不放心者慎用，重装预计花费15分钟，请提前备份数据！"
-                
-                echo -n -e "${yellow}确定继续吗?(y/n):${white}"
+
+                echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                 read -r choice
 
-                case "$choice" in
+                case $choice in
                     [Yy])
                         while true; do
-                            echo -n -e "${yellow}请选择要重装的系统:  1. Debian12 | 2. Ubuntu20.04${white}"
+                            echo -n -e "${yellow}请选择要重装的系统:  1. Debian12 | 2. Ubuntu20.04 : ${white}"
                             read -r sys_choice
 
                             case "$sys_choice" in
@@ -7814,7 +7782,7 @@ oracle_script() {
                             esac
                         done
 
-                        echo -n -e "${yellow}请输入你重装后的密码:${white}"
+                        echo -n -e "${yellow}请输入你重装后的密码: ${white}"
                         read -r vpspasswd
 
                         install wget
@@ -7854,11 +7822,10 @@ oracle_script() {
 # =============== 幻兽帕鲁START ===============
 palworld() {
     need_root
-    set_script_dir
     while true; do
         clear
 
-        if [ -f ${global_script_dir}/palworld.sh ]; then
+        if [ -f "~/palworld.sh" ]; then
             echo -e "${white}幻兽帕鲁脚本: ${green}已安装${white}"
         else
             echo -e "${white}幻兽帕鲁脚本: ${yellow}未安装${white}"
@@ -7879,24 +7846,24 @@ palworld() {
         case $choice in
             1)
                 cd ~
-                curl -fskL -o ${global_script_dir}/palworld.sh ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
-                chmod +x ${global_script_dir}/palworld.sh
+                curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
+                chmod +x palworld.sh
                 ;;
             2)
-                [ -f ${global_script_dir}/palworld.sh ] && rm -f ${global_script_dir}/palworld.sh
+                [ -f "~/palworld.sh" ] && rm -f "~/palworld.sh"
                 [ -L /usr/local/bin/p ] && rm -f /usr/local/bin/p
 
-                if [ ! -f ${global_script_dir}/palworld.sh ] && [ ! -L /usr/local/bin/p ]; then
+                if [ ! -f "~/palworld.sh" ] && [ ! -L /usr/local/bin/p ]; then
                     _red "幻兽帕鲁开服脚本未安装"
                 fi
                 ;;
             3)
-                if [ -f ${global_script_dir}/palworld.sh ]; then
-                    bash ${global_script_dir}/palworld.sh
+                if [ -f "~/palworld.sh" ]; then
+                    bash "~/palworld.sh"
                 else
-                    curl -fskL -o ${global_script_dir}/palworld.sh ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
-                    chmod +x ${global_script_dir}/palworld.sh
-                    bash ${global_script_dir}/palworld.sh
+                    curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
+                    chmod +x palworld.sh
+                    bash "~/palworld.sh"
                 fi
                 ;;
             0)
@@ -7941,7 +7908,7 @@ honeok() {
         echo -n -e "${yellow}请输入选项并按回车键确认: ${white}"
         read -r choice
 
-        case "$choice" in
+        case $choice in
             1) clear; system_info ;;
             2) clear; linux_update ;;
             3) clear; linux_clean ;;
@@ -7956,7 +7923,7 @@ honeok() {
             16) node_create ;;
             17) oracle_script ;;
             p) palworld ;;
-            0) _orange "Bye!"&& sleep 1 && clear && global_exit
+            0) _orange "Bye!"&& sleep 1 && clear && cleanup_exit
                exit 0 ;;
             *) _red "无效选项，请重新输入" ;;
         esac
@@ -7964,5 +7931,4 @@ honeok() {
     done
 }
 
-# 脚本入口
 honeok
