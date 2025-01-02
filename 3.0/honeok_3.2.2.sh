@@ -3,13 +3,15 @@
 # Description: lightweight shell scripting toolbox.
 #
 # Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
-# Blog: www.honeok.com
-# https://github.com/honeok/Tools
+# https://www.honeok.com
+# https://github.com/honeok/Tools/raw/master/honeok.sh
 #
 # Acks:
 #       @kejilion   <https://github.com/kejilion>
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
+#
+# shellcheck disable=all
 
 honeok_v='v3.2.2 (2025.01.03)'
 
@@ -32,7 +34,7 @@ _gray() { echo -e "${gray}$*${white}"; }
 _orange() { echo -e "${orange}$*${white}"; }
 _white() { echo -e "${white}$*${white}"; }
 
-_info_msg() { echo -e "\033[48;5;220m\033[1m提示${white} $*"; }
+_info_msg() { echo -e "\033[48;5;178m\033[1m\033[97m提示${white} $*"; }
 _err_msg() { echo -e "\033[41m\033[1m警告${white} $*"; }
 _suc_msg() { echo -e "\033[42m\033[1m成功${white} $*"; }
 
