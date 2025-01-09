@@ -477,7 +477,7 @@ cdn_check() {
     geo_check
 
     if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
-        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
+        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) -gt 3 ]]; then
         exec_ok=0  # 0 表示允许执行命令
         github_proxy="https://gh-proxy.com/"
     else
