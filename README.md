@@ -1,11 +1,13 @@
-# 🧰 Shellscript Tools
+<p align="center">
+  <img src="https://github.com/honeok/Tools/actions/workflows/check.yml/badge.svg" alt="Build Status" />
+  <img src="https://img.shields.io/github/license/honeok/Tools.svg?style=flat" alt="LICENSE" />
+  <img src="https://img.shields.io/github/last-commit/honeok/Tools" alt="Commit" />
+  <img src="https://img.shields.io/github/commit-activity/m/honeok/Tools.svg" alt="Commit Activity" />
+  <img src="https://img.shields.io/github/stars/honeok/Tools?style=flat" alt="GitHub Stars" />
+  <img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fhoneok%2FTools&count_bg=%233944BC&title_bg=%2363C5DA&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false" alt="Hits" />
+</p>
 
-[![Build Status](https://github.com/honeok/Tools/actions/workflows/check.yml/badge.svg)](https://github.com/honeok/Tools/actions/workflows/check.yml/badge.svg)
-[![LICENSE](https://img.shields.io/github/license/honeok/Tools.svg?style=flat)](./LICENSE)
-[![Commit](https://img.shields.io/github/last-commit/honeok/Tools)](https://github.com/honeok/Tools)
-[![Commit Activity](https://img.shields.io/github/commit-activity/m/honeok/Tools.svg)](https://github.com/honeok/Tools)
-[![GitHub Stars](https://img.shields.io/github/stars/honeok/Tools?style=flat)](https://github.com/honeok/Tools)
-[![Issues](https://img.shields.io/github/issues/honeok/Tools.svg)](https://img.shields.io/github/issues/honeok/Tools.svg)
+# 🧰 Shellscript Tools
 
 A lightweight Shell script toolbox designed for more convenient operations.
 
