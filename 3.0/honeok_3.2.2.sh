@@ -479,10 +479,10 @@ cdn_check() {
     if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
         $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) -gt 3 ]]; then
         exec_ok=0  # 0 表示允许执行命令
-        github_proxy="https://gh-proxy.com/"
+        readonly github_proxy="https://gh-proxy.com/"
     else
         exec_ok=1  # 1 表示不执行命令
-        github_proxy=""     # 不使用代理
+        readonly github_proxy=""     # 不使用代理
     fi
 }
 
