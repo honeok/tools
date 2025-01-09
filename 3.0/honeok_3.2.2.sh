@@ -58,9 +58,10 @@ echo $$ > "$honeok_pid"
 if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
     cd /root >/dev/null 2>&1
 fi
+
 # ============== 脚本退出执行相关 ==============
 # 终止信号捕获
-trap "cleanup_exit ; echo "" ; exit 0" SIGINT SIGQUIT SIGTERM EXIT
+trap "cleanup_exit" SIGINT SIGQUIT SIGTERM EXIT
 
 # 全局退出操作
 cleanup_exit() {
@@ -70,10 +71,13 @@ cleanup_exit() {
     [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f "/etc/apt/sources.list.d/xanmod-release.list"
     [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh"
     [ -f "$HOME/upgrade_ssh.sh" ] && rm -f "$HOME/upgrade_ssh.sh"
+
+    printf "\n"
+    exit 0
 }
 
 print_logo() {
-echo -e "${yellow}   __                      __     💀
+    echo -e "${yellow}   __                      __     💀
   / /  ___  ___  ___ ___  / /__
  / _ \/ _ \/ _ \/ -_) _ \/  '_/
 /_//_/\___/_//_/\__/\___/_/\_\ 
@@ -394,9 +398,13 @@ system_info() {
 # =============== 通用函数START ===============
 # 脚本当天及累计运行次数统计
 statistics_runtime() {
-    local count=$(wget --no-check-certificate -qO- --tries=2 --timeout=2 "https://hit.forvps.gq/https://raw.githubusercontent.com/honeok/Tools/master/honeok.sh" 2>&1 | grep -m1 -oE "[0-9]+[ ]+/[ ]+[0-9]+") &&
-    today=$(awk -F ' ' '{print $1}' <<< "$count") &&
-    total=$(awk -F ' ' '{print $3}' <<< "$count")
+    local runcount
+
+    runcount=$(curl -fskL -m 2 --retry 2 -o - "https://hit.forvps.gq/https://github.com/honeok/Tools/raw/master/honeok.sh" 2>&1 | grep -m1 -oE "[0-9]+[ ]+/[ ]+[0-9]+") &&
+    today_runcount=$(awk -F ' ' '{print $1}' <<< "$runcount") &&
+    total_runcount=$(awk -F ' ' '{print $3}' <<< "$runcount")
+
+    _yellow "脚本当天运行次数: ${today_runcount} 累计运行次数: ${total_runcount}"
 }
 
 ip_address() {
@@ -419,11 +427,23 @@ ip_address() {
 }
 
 geo_check() {
-    local cloudflare_api="https://dash.cloudflare.com/cdn-cgi/trace"
-    local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
+    local cloudflare_api ipinfo_api ipsb_api
 
-    country=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api" | sed -n 's/.*loc=\([^ ]*\).*/\1/p')
-    [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
+    cloudflare_api=$(curl -sL -m 10 -A "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0" "https://dash.cloudflare.com/cdn-cgi/trace" | sed -n 's/.*loc=\([^ ]*\).*/\1/p')
+    ipinfo_api=$(curl -sL --connect-timeout 5 https://ipinfo.io/country)
+    ipsb_api=$(curl -sL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"country_code":"\([^"]*\)".*/\1/p')
+
+    for api in "$cloudflare_api" "$ipinfo_api" "$ipsb_api"; do
+        if [ -n "$api" ]; then
+            readonly country="$api"
+            break
+        fi
+    done
+
+    if [ -z "$country" ]; then
+        _err_msg "$(_red '无法获取服务器所在地区，请检查网络后重试！')"
+        exit 1
+    fi
 }
 
 warp_check() {
@@ -7881,6 +7901,7 @@ palworld() {
 honeok() {
     local choice
 
+    statistics_runtime
     while true; do
         clear
         print_logo
