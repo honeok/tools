@@ -1,4 +1,4 @@
-name: DockerScript Sync
+name: Docker install Script sync
 
 on:
   schedule:
@@ -17,14 +17,11 @@ jobs:
       - name: Check repository
         uses: actions/checkout@v4.1.6
 
-      - name: Download latest get-docker.sh
+      - name: Download and compare get-docker.sh
         run: |
           curl -fsSkL -o "get-docker.sh" https://get.docker.com
-
-      - name: Compare files
-        run: |
-          if ! diff -q docker/install.sh get-docker.sh; then
-            mv get-docker.sh docker/install.sh
+          if ! cmp -s docker/install.sh get-docker.sh; then
+            mv -f get-docker.sh docker/install.sh
             echo "changed=true" >> $GITHUB_ENV
           else
             rm -f get-docker.sh
@@ -33,9 +30,9 @@ jobs:
 
       - name: Upload to repository
         uses: stefanzweifel/git-auto-commit-action@v5.0.1
-        if: env.changed == 'true'
+        if: ${{ env.changed == 'true' }}
         with:
-          commit_message: "chore: docker script sync by Github Actions"
+          commit_message: "chore: docker install script sync by Github Actions 🤖"
 
       - name: Delete old workflow runs
         uses: Mattraks/delete-workflow-runs@v2.0.6
