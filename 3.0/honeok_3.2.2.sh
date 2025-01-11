@@ -3,6 +3,7 @@
 # Description: lightweight shell scripting toolbox.
 #
 # Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
+#
 # https://www.honeok.com
 # https://github.com/honeok/Tools/raw/master/honeok.sh
 #
@@ -10,20 +11,20 @@
 #       @kejilion   <https://github.com/kejilion>
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
-#
+
 # shellcheck disable=all
 
-honeok_v='v3.2.2 (2025.01.03)'
+readonly honeok_v='v3.2.2 (2025.01.12)'
 
-yellow='\033[93m'
-red='\033[31m'
-green='\033[92m'
-blue='\033[94m'
-cyan='\033[96m'
-purple='\033[95m'
-gray='\033[37m'
-orange='\033[38;5;214m'
-white='\033[0m'
+readonly yellow='\033[93m'
+readonly red='\033[31m'
+readonly green='\033[92m'
+readonly blue='\033[94m'
+readonly cyan='\033[96m'
+readonly purple='\033[95m'
+readonly gray='\033[37m'
+readonly orange='\033[38;5;214m'
+readonly white='\033[0m'
 _yellow() { echo -e "${yellow}$*${white}"; }
 _red() { echo -e "${red}$*${white}"; }
 _green() { echo -e "${green}$*${white}"; }
