@@ -44,7 +44,7 @@ long_separator() { printf "%-40s\n" "-" | sed 's/\s/-/g'; }
 
 export DEBIAN_FRONTEND=noninteractive
 
-os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
+os_info=$(grep "^PRETTY_NAME=" /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
 
 honeok_pid="/tmp/honeok.pid"
 
@@ -55,10 +55,6 @@ fi
 
 # 将当前进程的PID写入文件
 echo $$ > "$honeok_pid"
-
-if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
-    cd /root >/dev/null 2>&1
-fi
 
 ### 脚本退出执行相关 ###
 
@@ -89,6 +85,7 @@ print_logo() {
 }
 
 ### 系统信息 ###
+
 # 获取虚拟化类型
 virt_check() {
     local processor_type=$(awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -355,15 +352,7 @@ system_info() {
     fi
 
     # 获取系统时间
-    # local current_time=$(date +"%Y-%m-%d %H:%M:%S")
-
-    # 获取北京时间
-    local china_time
-    if [[ "$country" == "CN" ]];then
-        china_time=$(date -d @$(($(curl -sL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
-    else
-        china_time=$(curl -fsL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | sed -n 's/.*"dateTime":\s*"\([^"]*\)\.[^"]*".*/\1/p' | sed 's/T/ /')
-    fi
+    local current_time=$(date +"%Y-%m-%d %H:%M:%S")
 
     echo "系统信息查询"
     short_separator
@@ -393,7 +382,7 @@ system_info() {
     short_separator
     echo "地理位置          : ${location}"
     echo "系统时区          : ${system_time}"
-    echo "北京时间          : ${china_time}"
+    echo "系统时间          : ${china_time}"
     short_separator
     echo ""
 }
@@ -478,7 +467,8 @@ cdn_check() {
     geo_check
 
     if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
-        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) -gt 3 ]]; then
+        # 响应时间超时
+        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://github.com/honeok/Tools/raw/master/README.md | awk '{if ($1 > 3) print 1; else print 0}') -eq 1 ]]; then
         exec_ok=0  # 0 表示允许执行命令
         readonly github_proxy="https://gh-proxy.com/"
     else
@@ -721,6 +711,7 @@ set_script_dir() {
 }
 
 ### 系统更新 ###
+
 # 修复dpkg中断问题
 fix_dpkg() {
     pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
@@ -756,6 +747,7 @@ linux_update() {
 }
 
 ### 系统清理 ###
+
 linux_clean() {
     _yellow "正在系统清理"
 
@@ -809,6 +801,7 @@ linux_clean() {
 }
 
 ### 常用工具 ###
+
 linux_tools() {
     while true; do
         clear_screen
@@ -1021,6 +1014,7 @@ linux_tools() {
 }
 
 ### BBR ###
+
 linux_bbr() {
     local choice
     clear_screen
@@ -1927,6 +1921,7 @@ docker_manager() {
 }
 
 ### LDNMP ###
+
 docker_compose() {
     local docker_compose_cmd
     # 检查 docker compose 版本
@@ -3995,6 +3990,7 @@ linux_ldnmp() {
 }
 
 ### 系统工具 ###
+
 restart_ssh() {
     restart sshd ssh >/dev/null 2>&1
 }
@@ -7178,6 +7174,7 @@ EOF
 }
 
 ### 工作区 ###
+
 tmux_run() {
     # 检查会话是否已经存在
     tmux has-session -t $session_name 2>/dev/null
@@ -7392,6 +7389,7 @@ linux_workspace() {
 }
 
 ### VPS测试脚本 ###
+
 servertest_script() {
     need_root
     local choice
@@ -7552,6 +7550,7 @@ servertest_script() {
 }
 
 ### 节点搭建 ###
+
 node_create() {
     if [[ "$country" == "CN" ]];then
         clear_screen
@@ -7708,6 +7707,7 @@ node_create() {
 }
 
 ### 甲骨文 ###
+
 oracle_script() {
     while true; do
         clear_screen
@@ -7853,6 +7853,7 @@ oracle_script() {
 }
 
 ### 幻兽帕鲁 ###
+
 palworld() {
     need_root
     while true; do
