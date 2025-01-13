@@ -14,17 +14,17 @@
 
 # shellcheck disable=all
 
-readonly honeok_v='v3.2.2 (2025.01.12)'
+readonly honeok_v='v3.2.2 (2025.01.13)'
 
-readonly yellow='\033[93m'
-readonly red='\033[31m'
-readonly green='\033[92m'
-readonly blue='\033[94m'
-readonly cyan='\033[96m'
-readonly purple='\033[95m'
-readonly gray='\033[37m'
-readonly orange='\033[38;5;214m'
-readonly white='\033[0m'
+yellow='\033[93m'
+red='\033[31m'
+green='\033[92m'
+blue='\033[94m'
+cyan='\033[96m'
+purple='\033[95m'
+gray='\033[37m'
+orange='\033[38;5;214m'
+white='\033[0m'
 _yellow() { echo -e "${yellow}$*${white}"; }
 _red() { echo -e "${red}$*${white}"; }
 _green() { echo -e "${green}$*${white}"; }
@@ -397,7 +397,7 @@ statistics_runtime() {
     today_runcount=$(awk -F ' ' '{print $1}' <<< "$runcount") &&
     total_runcount=$(awk -F ' ' '{print $3}' <<< "$runcount")
 
-    _yellow "脚本当天运行次数: ${today_runcount} 累计运行次数: ${total_runcount}"
+    echo -e "${blue}脚本当天运行次数:${white} ${today_runcount} ${blue}累计运行次数:${white} ${total_runcount}"
 }
 
 # 安全清屏
@@ -7913,12 +7913,12 @@ palworld() {
 honeok() {
     local choice
 
-    statistics_runtime
     while true; do
         clear_screen
         print_logo
         _purple "适配Ubuntu/Debian/CentOS/Alpine/Kali/Arch/RedHat/Fedora/Alma/Rocky系统"
         echo -e "${cyan}Author: honeok${white}  ${yellow}${honeok_v}${white}"
+        statistics_runtime
         short_separator
         echo "1.   系统信息查询"
         echo "2.   系统更新"
