@@ -13,6 +13,8 @@ honeok_v="v3.0.5 (2024.11.27)"
 # export LANG=en_US.UTF-8
 # set -x
 
+# shellcheck disable=all
+
 yellow='\033[93m'        # 亮黄色
 red='\033[91m'           # 亮红色
 green='\033[92m'         # 亮绿色

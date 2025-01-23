@@ -14,6 +14,8 @@
 # export LANG=en_US.UTF-8
 # set -x
 
+# shellcheck disable=all
+
 honeok_v="v3.1.1"
 submit_time=$(curl -fskL "api.github.com/repos/honeok/Tools/commits?path=honeok.sh" | grep -o '"date": "[^"]*' | head -n 1 | sed 's/"date": "//' | sed 's/T/./' | sed 's/^\(....\)-\(..\)-\(..\).*/\1.\2.\3/')
 

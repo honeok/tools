@@ -11,6 +11,8 @@
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
 
+# shellcheck disable=all
+
 honeok_v='v3.2.1 (2024.12.31)'
 
 yellow='\033[93m'

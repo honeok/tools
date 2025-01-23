@@ -6,6 +6,8 @@
 # Blog: https://www.honeok.com
 # Original Author: kejilion
 
+# shellcheck disable=all
+
 yellow='\033[1;33m'       # 黄色
 red='\033[1;31m'          # 红色
 magenta='\033[1;35m'      # 品红色

@@ -9,6 +9,8 @@ honeok_v="v3.0.4 (2024.10.21)"
 ## fork from kejilion shell script.
 ## Blog: https://blog.kejilion.pro
 
+# shellcheck disable=all
+
 yellow='\033[93m'        # 亮黄色
 red='\033[91m'           # 亮红色
 green='\033[92m'         # 亮绿色
