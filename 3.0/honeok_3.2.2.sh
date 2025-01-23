@@ -11,8 +11,16 @@
 #       @kejilion   <https://github.com/kejilion>
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
+#    __                         __  
+#   / /  ___   ___  ___  ___   / /__
+#  / _ \/ _ \ / _ \/ -_)/ _ \ /  '_/
+# /_//_/\___//_//_/\__/ \___//_/\_\ 
+#                                   
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 or later.
+# See <https://www.gnu.org/licenses/>
 
-# shellcheck disable=all
+# shellcheck disable=SC2164
 
 readonly honeok_v='v3.2.2 (2025.01.13)'
 
@@ -35,9 +43,9 @@ _gray() { echo -e "${gray}$*${white}"; }
 _orange() { echo -e "${orange}$*${white}"; }
 _white() { echo -e "${white}$*${white}"; }
 
-_info_msg() { echo -e "\033[48;5;178m\033[1m\033[97m提示${white} $*"; }
 _err_msg() { echo -e "\033[41m\033[1m警告${white} $*"; }
 _suc_msg() { echo -e "\033[42m\033[1m成功${white} $*"; }
+_info_msg() { echo -e "\033[43m\033[1;37m提示${white} $*"; }
 
 short_separator() { printf "%-20s\n" "-" | sed 's/\s/-/g'; }
 long_separator() { printf "%-40s\n" "-" | sed 's/\s/-/g'; }
@@ -45,8 +53,9 @@ long_separator() { printf "%-40s\n" "-" | sed 's/\s/-/g'; }
 export DEBIAN_FRONTEND=noninteractive
 
 os_info=$(grep "^PRETTY_NAME=" /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
+readonly os_info
 
-honeok_pid="/tmp/honeok.pid"
+readonly honeok_pid='/tmp/honeok.pid'
 
 if [ -f "$honeok_pid" ] && kill -0 "$(cat "$honeok_pid")" 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
@@ -6685,6 +6694,7 @@ EOF
                         case $choice in
                             [Yy])
                                 if [ -r /etc/os-release ]; then
+                                    # shellcheck source=/dev/null
                                     . /etc/os-release
                                     if [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
                                         echo "当前环境不支持，仅支持Debian和Ubuntu系统"
@@ -6920,8 +6930,9 @@ EOF
                     # 检查是否存在limitoff.sh文件
                     if [ -f ${global_script_dir}/limitoff.sh ]; then
                         # 获取threshold_gb的值
-                        local rx_threshold_gb=$(sed -n 's/.*rx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
-                        local tx_threshold_gb=$(sed -n 's/.*tx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
+                        local rx_threshold_gb tx_threshold_gb
+                        rx_threshold_gb=$(sed -n 's/.*rx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
+                        tx_threshold_gb=$(sed -n 's/.*tx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
                         echo -e "${green}当前设置的进站限流阈值为: ${yellow}${rx_threshold_gb}${green}GB${white}"
                         echo -e "${green}当前设置的出站限流阈值为: ${yellow}${tx_threshold_gb}${green}GB${white}"
                     else
@@ -6952,7 +6963,7 @@ EOF
                             sed -i "s/110/$rx_threshold_gb/g" ${global_script_dir}/limitoff.sh
                             sed -i "s/120/$tx_threshold_gb/g" ${global_script_dir}/limitoff.sh
                             check_crontab_installed
-                            crontab -l | grep -v '${global_script_dir}/limitoff.sh' | crontab -
+                            crontab -l | grep -v "${global_script_dir}/limitoff.sh" | crontab -
                             (crontab -l ; echo "* * * * * ${global_script_dir}/limitoff.sh") | crontab - >/dev/null 2>&1
                             crontab -l | grep -v 'reboot' | crontab -
                             (crontab -l ; echo "0 1 $reset_day * * reboot") | crontab - >/dev/null 2>&1
@@ -6960,7 +6971,7 @@ EOF
                             ;;
                         2)
                             check_crontab_installed
-                            crontab -l | grep -v '${global_script_dir}/limitoff.sh' | crontab -
+                            crontab -l | grep -v "${global_script_dir}/limitoff.sh" | crontab -
                             crontab -l | grep -v 'reboot' | crontab -
                             rm -f ${global_script_dir}/limitoff.sh
                             _green "限流关机已卸载"
@@ -7058,7 +7069,7 @@ EOF
                             optimize_high_performance
                             ;;
                         6)
-                            cd ~
+                            cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                             clear_screen
                             restore_defaults
                             ;;
@@ -7177,14 +7188,12 @@ EOF
 
 tmux_run() {
     # 检查会话是否已经存在
-    tmux has-session -t $session_name 2>/dev/null
-    # $?是一个特殊变量,保存上一个命令的退出状态
-    if [ $? != 0 ]; then
+    if ! tmux has-session -t "$session_name" 2>/dev/null; then
         # 会话不存在,创建一个新的会话
-        tmux new -s $session_name
+        tmux new -s "$session_name"
     else
         # 会话存在附加到这个会话
-        tmux attach-session -t $session_name
+        tmux attach-session -t "$session_name"
     fi
 }
 
@@ -7194,7 +7203,7 @@ tmux_run_d() {
 
     # 检查会话是否存在的函数
     session_exists() {
-        tmux has-session -t $1 2>/dev/null
+        tmux has-session -t "$1" 2>/dev/null
     }
 
     # 循环直到找到一个不存在的会话名称
@@ -7318,8 +7327,8 @@ linux_workspace() {
                         1)
                             install tmux
                             session_name="sshd"
-                            grep -q "tmux attach-session -t sshd" ~/.bashrc || echo -e "\n# 自动进入 tmux 会话\nif [[ -z \"\$TMUX\" ]]; then\n    tmux attach-session -t sshd || tmux new-session -s sshd\nfi" >> ~/.bashrc
-                            source ~/.bashrc
+                            grep -q "tmux attach-session -t sshd" "$HOME/.bashrc" || echo -e "\n# 自动进入 tmux 会话\nif [[ -z \"\$TMUX\" ]]; then\n    tmux attach-session -t sshd || tmux new-session -s sshd\nfi" >> "$HOME/.bashrc"
+                            source "$HOME/.bashrc"
                             tmux_run
                             ;;
                         2)
@@ -7497,7 +7506,7 @@ servertest_script() {
                 echo -n -e "${yellow}输入一个指定IP: ${white}"
                 read -r choice
                 curl -sL nxtrace.org/nt | bash
-                nexttrace -M $choice
+                nexttrace -M "$choice"
                 ;;
             17)
                 clear_screen
@@ -7677,7 +7686,10 @@ node_create() {
             41)
                 clear_screen
                 rm -rf /home/mtproxy >/dev/null 2>&1
-                mkdir /home/mtproxy && cd /home/mtproxy
+                if ! mkdir /home/mtproxy || ! cd /home/mtproxy; then
+                    _err_msg "$(_red '切换目录失败！')"
+                    return 1
+                fi
                 curl -fsSL -o mtproxy.sh https://github.com/ellermister/mtproxy/raw/master/mtproxy.sh && chmod +x mtproxy.sh && bash mtproxy.sh
                 sleep 1
                 ;;
@@ -7859,7 +7871,7 @@ palworld() {
     while true; do
         clear_screen
 
-        if [ -f "~/palworld.sh" ]; then
+        if [ -f "$HOME/palworld.sh" ]; then
             echo -e "${white}幻兽帕鲁脚本: ${green}已安装${white}"
         else
             echo -e "${white}幻兽帕鲁脚本: ${yellow}未安装${white}"
@@ -7879,25 +7891,25 @@ palworld() {
 
         case $choice in
             1)
-                cd ~
+                cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
                 chmod +x palworld.sh
                 ;;
             2)
-                [ -f "~/palworld.sh" ] && rm -f "~/palworld.sh"
+                [ -f "$HOME/palworld.sh" ] && rm -f "$HOME/palworld.sh"
                 [ -L /usr/local/bin/p ] && rm -f /usr/local/bin/p
 
-                if [ ! -f "~/palworld.sh" ] && [ ! -L /usr/local/bin/p ]; then
+                if [ ! -f "$HOME/palworld.sh" ] && [ ! -L /usr/local/bin/p ]; then
                     _red "幻兽帕鲁开服脚本未安装"
                 fi
                 ;;
             3)
-                if [ -f "~/palworld.sh" ]; then
-                    bash "~/palworld.sh"
+                if [ -f "$HOME/palworld.sh" ]; then
+                    bash "$HOME/palworld.sh"
                 else
                     curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
                     chmod +x palworld.sh
-                    bash "~/palworld.sh"
+                    bash "$HOME/palworld.sh"
                 fi
                 ;;
             0)
@@ -7950,7 +7962,7 @@ honeok() {
             4) linux_tools ;;
             5) linux_bbr ;;
             6) docker_manager ;;
-            7) clear_screen; install wget; wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh [option] [license/url/token] ;;
+            7) clear_screen; install wget; wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh "[option]" "[license/url/token]" ;;
             8) linux_ldnmp ;;
             13) linux_system_tools ;;
             14) linux_workspace ;;
