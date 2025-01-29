@@ -5872,8 +5872,8 @@ cloudflare_ddns() {
             echo -e "${white}Cloudflare ddns: ${yellow}未安装${white}"
             echo "使用动态解析之前请解析一个域名，如ddns.cloudflare.com到你的当前公网IP"
         fi
-        [ ! -z "${ipv4_address}" ] && echo "公网IPv4地址: ${ipv4_address}"
-        [ ! -z "${ipv6_address}" ] && echo "公网IPv6地址: ${ipv6_address}"
+        [ -n "${ipv4_address}" ] && echo "公网IPv4地址: ${ipv4_address}"
+        [ -n "${ipv6_address}" ] && echo "公网IPv6地址: ${ipv6_address}"
         short_separator
         echo "1. 设置DDNS动态域名解析     2. 删除DDNS动态域名解析"
         short_separator
@@ -6084,7 +6084,7 @@ linux_system_tools() {
                     linux_system_tools
                 fi
 
-                if ! grep -q 'export PYENV_ROOT="\$HOME/.pyenv"' ~/.bashrc; then
+                if ! grep -q "export PYENV_ROOT=\"$HOME/.pyenv\"" "$HOME/.bashrc"; then
                     if command -v yum >/dev/null 2>&1; then
                         install git
                         yum groupinstall "Development Tools" -y
@@ -6098,7 +6098,7 @@ linux_system_tools() {
                         make install
                         echo "/usr/local/openssl/lib" > /etc/ld.so.conf.d/openssl-1.1.1u.conf
                         ldconfig -v
-                        cd ..
+                        cd .. || return 1
 
                         export LDFLAGS="-L/usr/local/openssl/lib"
                         export CPPFLAGS="-I/usr/local/openssl/include"
@@ -6129,13 +6129,15 @@ EOF
                 fi
 
                 sleep 1
-                source ~/.bashrc
+                if [ -f "$HOME/.bashrc" ]; then
+                    source "$HOME/.bashrc"
+                fi
                 sleep 1
-                pyenv install $py_new_v
-                pyenv global $py_new_v
+                pyenv install "$py_new_v"
+                pyenv global "$py_new_v"
 
                 rm -rf /tmp/python-build.*
-                rm -rf $(pyenv root)/cache/*
+                rm -rf "$(pyenv root)/cache/"*
 
                 VERSION=$(python -V 2>&1 | awk '{print $2}')
                 echo -e "当前Python版本号: ${yellow}$VERSION${white}"
@@ -6328,10 +6330,9 @@ EOF
                     clear_screen
                     echo "设置虚拟内存"
                     # 获取当前虚拟内存使用情况
-                    swap_used=$(free -m | awk 'NR==3{print $3}')
+                    # swap_used=$(free -m | awk 'NR==3{print $3}')
                     swap_total=$(free -m | awk 'NR==3{print $2}')
                     swap_info=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {percentage=0} else {percentage=used*100/total}; printf "%dMB/%dMB (%d%%)", used, total, percentage}')
-
                     _yellow "当前虚拟内存: ${swap_info}"
                     short_separator
                     echo "1. 分配1024MB         2. 分配2048MB         3. 自定义大小         0. 退出"
@@ -6374,12 +6375,11 @@ EOF
                     echo "用户列表"
                     long_separator
                     printf "%-24s %-34s %-20s %-10s\n" "用户名" "用户权限" "用户组" "sudo权限"
-                    while IFS=: read -r username _ userid groupid _ _ homedir shell; do
+                    while IFS=: read -r username _ _ _ _ homedir _; do
                         groups=$(groups "$username" | cut -d : -f 2)
                         sudo_status=$(sudo -n -lU "$username" 2>/dev/null | grep -q '(ALL : ALL)' && echo "Yes" || echo "No")
                         printf "%-20s %-30s %-20s %-10s\n" "$username" "$homedir" "$groups" "$sudo_status"
                     done < /etc/passwd
-
                     echo ""
                     echo "账户操作"
                     short_separator
@@ -6500,10 +6500,12 @@ EOF
                 while true; do
                     clear_screen
                     # 获取当前系统时区
-                    local timezone=$(current_timezone)
+                    local timezone
+                    timezone=$(current_timezone)
 
                     # 获取当前系统时间
-                    local current_time=$(date +"%Y-%m-%d %H:%M:%S")
+                    local current_time
+                    current_time=$(date +"%Y-%m-%d %H:%M:%S")
 
                     # 显示时区和时间
                     _yellow "当前系统时区:$timezone"
@@ -7332,7 +7334,9 @@ linux_workspace() {
                             install tmux
                             session_name="sshd"
                             grep -q "tmux attach-session -t sshd" "$HOME/.bashrc" || echo -e "\n# 自动进入 tmux 会话\nif [[ -z \"\$TMUX\" ]]; then\n    tmux attach-session -t sshd || tmux new-session -s sshd\nfi" >> "$HOME/.bashrc"
-                            source "$HOME/.bashrc"
+                            if [ -f "$HOME/.bashrc" ]; then
+                                source "$HOME/.bashrc"
+                            fi
                             tmux_run
                             ;;
                         2)
