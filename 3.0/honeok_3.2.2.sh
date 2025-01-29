@@ -69,7 +69,7 @@ fi
 # 将当前进程的PID写入文件
 echo $$ > "$honeok_pid"
 
-### 脚本退出执行相关 ###
+## 脚本退出执行相关
 
 # 终止信号捕获
 trap "cleanup_exit" SIGINT SIGQUIT SIGTERM EXIT
@@ -97,7 +97,7 @@ print_logo() {
     _green "${os_text}"
 }
 
-### 系统信息 ###
+## 系统信息
 
 # 获取虚拟化类型
 virt_check() {
@@ -400,7 +400,7 @@ system_info() {
     echo ""
 }
 
-### 通用函数 ###
+## 通用函数定义
 
 # 脚本当天及累计运行次数统计
 statistics_runtime() {
@@ -723,7 +723,7 @@ set_script_dir() {
     fi
 }
 
-### 系统更新 ###
+## 系统更新
 
 # 修复dpkg中断问题
 fix_dpkg() {
@@ -759,7 +759,7 @@ linux_update() {
     return 0
 }
 
-### 系统清理 ###
+## 系统清理
 
 linux_clean() {
     _yellow "正在系统清理"
@@ -813,7 +813,7 @@ linux_clean() {
     return 0
 }
 
-### 常用工具 ###
+## 常用工具
 
 linux_tools() {
     while true; do
@@ -1026,7 +1026,7 @@ linux_tools() {
     done
 }
 
-### BBR ###
+## BBR
 
 linux_bbr() {
     local choice
@@ -1073,7 +1073,7 @@ linux_bbr() {
     fi
 }
 
-### Docker ###
+## Docker
 
 # Docker全局状态显示
 docker_global_status() {
@@ -1933,7 +1933,7 @@ docker_manager() {
     done
 }
 
-### LDNMP ###
+## LDNMP
 
 docker_compose() {
     local docker_compose_cmd
@@ -4002,7 +4002,7 @@ linux_ldnmp() {
     done
 }
 
-### 系统工具 ###
+## 系统工具
 
 restart_ssh() {
     restart sshd ssh >/dev/null 2>&1
@@ -7188,7 +7188,7 @@ EOF
     done
 }
 
-### 工作区 ###
+## 工作区
 
 tmux_run() {
     # 检查会话是否已经存在
@@ -7401,7 +7401,7 @@ linux_workspace() {
     done
 }
 
-### VPS测试脚本 ###
+## VPS测试脚本
 
 servertest_script() {
     need_root
@@ -7562,7 +7562,7 @@ servertest_script() {
     done
 }
 
-### 节点搭建 ###
+## 节点搭建
 
 node_create() {
     if [[ "$country" == "CN" ]];then
@@ -7722,7 +7722,7 @@ node_create() {
     done
 }
 
-### 甲骨文 ###
+## 甲骨文
 
 oracle_script() {
     while true; do
@@ -7868,7 +7868,7 @@ oracle_script() {
     done
 }
 
-### 幻兽帕鲁 ###
+## 幻兽帕鲁
 
 palworld() {
     need_root
