@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 #
-# Description: lightweight shell scripting toolbox.
+# Description: A lightweight toolbox for streamlining system administration, automation, 
+#              and DevOps tasks. It offers reusable functions and utilities for efficient 
+#              execution of common tasks like monitoring, backup, and automation.
 #
 # Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
 #
-# https://www.honeok.com
-# https://github.com/honeok/Tools/raw/master/honeok.sh
+# Blog:      🌐 https://www.honeok.com
+# GitHub:    🔗 https://github.com/honeok/Tools/raw/master/honeok.sh
 #
-# Acks:
+# Acknowledgments and References:
 #       @kejilion   <https://github.com/kejilion>
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
@@ -17,12 +19,14 @@
 # /_//_/\___//_//_/\__/ \___//_/\_\ 
 #                                   
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 or later.
-# See <https://www.gnu.org/licenses/>
+# it under the terms of the GNU General Public License, version 3 or later.
+# This program is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# GNU General Public License for more details: <https://www.gnu.org/licenses/>
 
 # shellcheck disable=SC2164
 
-readonly honeok_v='v3.2.2 (2025.01.13)'
+readonly honeok_v='v3.2.2 (2025.01.29)'
 
 yellow='\033[93m'
 red='\033[31m'
