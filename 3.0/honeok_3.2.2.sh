@@ -528,10 +528,12 @@ warp_manager() {
 
     if [[ "$warp_ipv4" == "on" || "$warp_ipv6" == "on" ]]; then
         _green "warp已安装！"
-    fi
-
-    if [ -f menu.sh ]; then
-        bash menu.sh
+        if [ -f menu.sh ]; then
+            bash menu.sh
+        else
+            install wget
+            wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh "[option]" "[license/url/token]"
+        fi
     else
         _yellow "正在安装warp！"
         install wget
@@ -575,16 +577,16 @@ install() {
         if ! command -v "$package" >/dev/null 2>&1; then
             _yellow "正在安装$package"
             if command -v dnf >/dev/null 2>&1; then
-                dnf update -y
-                dnf install epel-release -y
-                dnf install "$package" -y
+                dnf -y update
+                dnf install -y epel-release
+                dnf install -y "$package"
             elif command -v yum >/dev/null 2>&1; then
-                yum update -y
-                yum install epel-release -y
-                yum install "$package" -y
+                yum -y update
+                yum install -y epel-release
+                yum install -y "$package"
             elif command -v apt >/dev/null 2>&1; then
-                apt update -y
-                apt install "$package" -y
+                apt -y update
+                apt install -y "$package"
             elif command -v apk >/dev/null 2>&1; then
                 apk update
                 apk add "$package"
@@ -597,6 +599,9 @@ install() {
             elif command -v opkg >/dev/null 2>&1; then
                 opkg update
                 opkg install "$package"
+            elif command -v pkg >/dev/null 2>&1; then
+                pkg update
+                pkg install -y "$package"
             else
                 _red "未知的包管理器！"
                 return 1
@@ -631,6 +636,8 @@ remove() {
             zypper se -i "$package" >/dev/null 2>&1
         elif command -v opkg >/dev/null 2>&1; then
             opkg list-installed | grep -qw "$package"
+        elif command -v pkg >/dev/null 2>&1; then
+            pkg info "$package" >/dev/null 2>&1
         else
             _red "未知的包管理器！"
             return 1
@@ -642,19 +649,21 @@ remove() {
         _yellow "正在卸载$package"
         if check_installed "$package"; then
             if command -v dnf >/dev/null 2>&1; then
-                dnf remove "$package"* -y
+                dnf remove -y "$package"*
             elif command -v yum >/dev/null 2>&1; then
-                yum remove "$package"* -y
+                yum remove -y "$package"*
             elif command -v apt >/dev/null 2>&1; then
-                apt purge "$package"* -y
+                apt purge -y "$package"*
             elif command -v apk >/dev/null 2>&1; then
-                apk del "$package"* -y
+                apk del "$package"*
             elif command -v pacman >/dev/null 2>&1; then
                 pacman -Rns --noconfirm "$package"
             elif command -v zypper >/dev/null 2>&1; then
                 zypper remove -y "$package"
             elif command -v opkg >/dev/null 2>&1; then
-                opkg remove --force "$package"
+                opkg remove "$package"
+            elif command -v pkg >/dev/null 2>&1; then
+                pkg delete -y "$package"
             fi
         else
             echo -e "${red}${package}没有安装，跳过卸载${white}"
@@ -668,35 +677,47 @@ systemctl() {
     local cmd="$1"
     local service_name="$2"
 
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         service "$service_name" "$cmd"
     else
-        /usr/bin/systemctl "$cmd" "$service_name"
+        "$systemctl_cmd" "$cmd" "$service_name"
     fi
 }
 
 # 重载systemd管理的服务
 daemon_reload() {
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if ! command -v apk >/dev/null 2>&1; then
         if command -v systemctl >/dev/null 2>&1; then
-            /usr/bin/systemctl daemon-reload
+            "$systemctl_cmd" daemon-reload
         fi
     fi
 }
 
 disable() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         # Alpine使用OpenRC
         rc-update del "$service_name"
     else
-        /usr/bin/systemctl disable "$service_name"
+        "$systemctl_cmd" disable "$service_name"
     fi
 }
 
 # 设置服务为开机自启
 enable() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         if rc-update add "$service_name" default; then
             _suc_msg "$(_green "${service_name}已设置为开机自启")"
@@ -704,7 +725,7 @@ enable() {
             _err_msg "$(_red "${service_name}设置开机自启失败")"
         fi
     else
-        if /usr/bin/systemctl enable "$service_name"; then
+        if "$systemctl_cmd" enable "$service_name"; then
             _suc_msg "$(_green "${service_name}已设置为开机自启")"
         else
             _err_msg "$(_red "${service_name}设置开机自启失败")"
@@ -715,6 +736,9 @@ enable() {
 # 启动服务
 start() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         if service "$service_name" start; then
             _suc_msg "$(_green "${service_name}已启动")"
@@ -722,7 +746,7 @@ start() {
             _err_msg "$(_red "${service_name}启动失败")"
         fi
     else
-        if /usr/bin/systemctl start "$service_name"; then
+        if "$systemctl_cmd" start "$service_name"; then
             _suc_msg "$(_green "${service_name}已启动")"
         else
             _err_msg "$(_red "${service_name}启动失败")"
@@ -733,6 +757,9 @@ start() {
 # 停止服务
 stop() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         if service "$service_name" stop; then
             _suc_msg "$(_green "${service_name}已停止")"
@@ -740,7 +767,7 @@ stop() {
             _err_msg "$(_red "${service_name}停止失败")"
         fi
     else
-        if /usr/bin/systemctl stop "$service_name"; then
+        if "$systemctl_cmd" stop "$service_name"; then
             _suc_msg "$(_green "${service_name}已停止")"
         else
             _err_msg "$(_red "${service_name}停止失败")"
@@ -751,6 +778,9 @@ stop() {
 # 重启服务
 restart() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         if service "$service_name" restart; then
             _suc_msg "$(_green "${service_name}已重启")"
@@ -758,7 +788,7 @@ restart() {
             _err_msg "$(_red "${service_name}重启失败")"
         fi
     else
-        if /usr/bin/systemctl restart "$service_name"; then
+        if "$systemctl_cmd" restart "$service_name"; then
             _suc_msg "$(_green "${service_name}已重启")"
         else
             _err_msg "$(_red "${service_name}重启失败")"
@@ -769,6 +799,9 @@ restart() {
 # 重载服务
 reload() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         if service "$service_name" reload; then
             _suc_msg "$(_green "${service_name}已重载")"
@@ -776,7 +809,7 @@ reload() {
             _err_msg "$(_red "${service_name}重载失败")"
         fi
     else
-        if /usr/bin/systemctl reload "$service_name"; then
+        if "$systemctl_cmd" reload "$service_name"; then
             _suc_msg "$(_green "${service_name}已重载")"
         else
             _err_msg "$(_red "${service_name}重载失败")"
@@ -787,6 +820,9 @@ reload() {
 # 查看服务状态
 status() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         if service "$service_name" status; then
             _suc_msg "$(_green "${service_name}状态已显示")"
@@ -794,7 +830,7 @@ status() {
             _err_msg "$(_red "${service_name}状态显示失败")"
         fi
     else
-        if /usr/bin/systemctl status "$service_name"; then
+        if "$systemctl_cmd" status "$service_name"; then
             _suc_msg "$(_green "${service_name}状态已显示")"
         else
             _err_msg "$(_red "${service_name}状态显示失败")"
@@ -839,8 +875,8 @@ set_script_dir() {
 # 修复dpkg中断问题
 fix_dpkg() {
     pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for i in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
-        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
+    for lock in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
+        [ -f "$lock" ] && rm -f "$lock" >/dev/null 2>&1
     done
     dpkg --configure -a
 }
@@ -853,16 +889,21 @@ linux_update() {
         yum -y update
     elif command -v apt >/dev/null 2>&1; then
         fix_dpkg
-        apt update -y
-        apt full-upgrade -y
+        apt -y update
+        apt -y full-upgrade
     elif command -v apk >/dev/null 2>&1; then
-        apk update && apk upgrade
+        apk update
+        apk upgrade
     elif command -v pacman >/dev/null 2>&1; then
         pacman -Syu --noconfirm
     elif command -v zypper >/dev/null 2>&1; then
-        zypper refresh && zypper update
+        zypper refresh
+        zypper update
     elif command -v opkg >/dev/null 2>&1; then
         opkg update
+    elif command -v pkg >/dev/null 2>&1; then
+        pkg update
+        pkg -y upgrade
     else
         _red "未知的包管理器"
         return 1
@@ -917,6 +958,11 @@ linux_clean() {
     elif command -v opkg >/dev/null 2>&1; then
         rm -rf /var/log/*
         rm -rf /tmp/*
+	elif command -v pkg >/dev/null 2>&1; then
+		pkg autoremove -y
+		pkg clean -y
+		rm -rf /var/log/*
+		rm -rf /tmp/*
     else
         _red "未知的包管理器"
         return 1
