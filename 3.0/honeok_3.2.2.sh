@@ -449,8 +449,10 @@ clear_screen() {
 ip_address() {
     local ipv4_services=("https://ipv4.ip.sb" "https://ipv4.icanhazip.com" "https://v4.ident.me")
     local ipv6_services=("https://ipv6.ip.sb" "https://ipv6.icanhazip.com" "https://v6.ident.me")
+
     ipv4_address=""
     ipv6_address=""
+
     for service in "${ipv4_services[@]}"; do
         ipv4_address=$(curl -fsL4 -m 3 "$service")
         if [[ "$ipv4_address" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
