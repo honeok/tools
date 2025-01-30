@@ -476,10 +476,12 @@ geo_check() {
 
     for api in "$cloudflare_api" "$ipinfo_api" "$ipsb_api"; do
         if [ -n "$api" ]; then
-            readonly country="$api"
+            country="$api"
             break
         fi
     done
+
+    readonly country
 
     if [ -z "$country" ]; then
         _err_msg "$(_red '无法获取服务器所在地区，请检查网络后重试！')"
@@ -489,17 +491,22 @@ geo_check() {
 
 warp_check() {
     local response
-    local warp_ipv4="off"
-    local warp_ipv6="off"
     local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
 
+    # warp_ipv4和warp_ipv6作为全局变量
+    # declare -g warp_ipv4="off"
+    # declare -g warp_ipv6="off"
+    warp_ipv4="off"
+    warp_ipv6="off"
+
     # set -- "$cloudflare_api"
+
+    install curl >/dev/null 2>&1
 
     # 检查IPv4 WARP状态
     for url in $cloudflare_api; do
         response=$(curl -fsL4 -m 3 "$url" | grep warp | cut -d= -f2)
         if [ "$response" == "on" ]; then
-            # shellcheck disable=SC2034
             warp_ipv4="on"
             break
         fi
@@ -509,11 +516,27 @@ warp_check() {
     for url in $cloudflare_api; do
         response=$(curl -fsL6 -m 3 "$url" | grep warp | cut -d= -f2)
         if [ "$response" == "on" ]; then
-            # shellcheck disable=SC2034
             warp_ipv6="on"
             break
         fi
     done
+}
+
+warp_manager() {
+    need_root
+    warp_check
+
+    if [[ "$warp_ipv4" == "on" || "$warp_ipv6" == "on" ]]; then
+        _green "warp已安装！"
+    fi
+
+    if [ -f menu.sh ]; then
+        bash menu.sh
+    else
+        _yellow "正在安装warp！"
+        install wget
+        wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh "[option]" "[license/url/token]"
+    fi
 }
 
 # 设置地区相关的Github代理配置
@@ -8146,23 +8169,59 @@ honeok() {
         read -r choice
 
         case $choice in
-            1) clear_screen; system_info ;;
-            2) clear_screen; linux_update ;;
-            3) clear_screen; linux_clean ;;
-            4) linux_tools ;;
-            5) linux_bbr ;;
-            6) docker_manager ;;
-            7) clear_screen; install wget; wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh "[option]" "[license/url/token]" ;;
-            8) linux_ldnmp ;;
-            13) linux_system_tools ;;
-            14) linux_workspace ;;
-            15) servertest_script ;;
-            16) node_create ;;
-            17) oracle_script ;;
-            p) palworld ;;
-            0) _orange "Bye!"&& sleep 1 && clear_screen && cleanup_exit
-               exit 0 ;;
-            *) _red "无效选项，请重新输入" ;;
+            1)
+                clear_screen
+                system_info
+                ;;
+            2)
+                clear_screen
+                linux_update
+                ;;
+            3)
+                clear_screen
+                linux_clean
+                ;;
+            4)
+                linux_tools
+                ;;
+            5)
+                linux_bbr
+                ;;
+            6)
+                docker_manager
+                ;;
+            7)
+                clear_screen
+                warp_manager
+                ;;
+            8)
+                linux_ldnmp
+                ;;
+            13)
+                linux_system_tools
+                ;;
+            14)
+                linux_workspace
+                ;;
+            15)
+                servertest_script
+                ;;
+            16)
+                node_create
+                ;;
+            17)
+                oracle_script
+                ;;
+            p)
+                palworld
+                ;;
+            0)
+                _orange "Bye!" && sleep 1 && clear_screen && cleanup_exit
+                exit 0
+                ;;
+            *)
+                _red "无效选项，请重新输入"
+                ;;
         esac
         end_of
     done
