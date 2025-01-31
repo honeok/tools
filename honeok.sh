@@ -1,17 +1,37 @@
 #!/usr/bin/env bash
 #
-# Description: lightweight shell scripting toolbox.
+# Description: A lightweight toolbox for streamlining system administration, automation, 
+#              and DevOps tasks. It offers reusable functions and utilities for efficient 
+#              execution of common tasks like monitoring, backup, and automation.
 #
 # Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
-# Blog: www.honeok.com
-# https://github.com/honeok/Tools
 #
-# Acks:
+# Blog:   https://www.honeok.com
+# GitHub: https://github.com/honeok/Tools/raw/master/honeok.sh
+#
+# Acknowledgments and References:
 #       @kejilion   <https://github.com/kejilion>
 #       @teddysun   <https://github.com/teddysun>
 #       @spiritLHLS <https://github.com/spiritLHLS>
+#    __                         __  
+#   / /  ___   ___  ___  ___   / /__
+#  / _ \/ _ \ / _ \/ -_)/ _ \ /  '_/
+# /_//_/\___//_//_/\__/ \___//_/\_\ 
+#                                   
+# License Information:
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License, version 3 or later.
+#
+# This program is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
-honeok_v='v3.2.1 (2024.12.31)'
+# shellcheck disable=SC1091
+
+readonly honeok_v='v3.2.2 (2025.01.31)'
 
 yellow='\033[93m'
 red='\033[31m'
@@ -32,18 +52,19 @@ _gray() { echo -e "${gray}$*${white}"; }
 _orange() { echo -e "${orange}$*${white}"; }
 _white() { echo -e "${white}$*${white}"; }
 
-_info_msg() { echo -e "\033[48;5;220m\033[1m提示${white} $*"; }
 _err_msg() { echo -e "\033[41m\033[1m警告${white} $*"; }
 _suc_msg() { echo -e "\033[42m\033[1m成功${white} $*"; }
+_info_msg() { echo -e "\033[43m\033[1;37m提示${white} $*"; }
 
 short_separator() { printf "%-20s\n" "-" | sed 's/\s/-/g'; }
 long_separator() { printf "%-40s\n" "-" | sed 's/\s/-/g'; }
 
 export DEBIAN_FRONTEND=noninteractive
 
-os_info=$(grep '^PRETTY_NAME=' /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
+os_info=$(grep "^PRETTY_NAME=" /etc/*release | cut -d '"' -f 2 | sed 's/ (.*)//')
+readonly os_info
 
-honeok_pid="/tmp/honeok.pid"
+readonly honeok_pid='/tmp/honeok.pid'
 
 if [ -f "$honeok_pid" ] && kill -0 "$(cat "$honeok_pid")" 2>/dev/null; then
     _err_msg "$(_red '脚本已经在运行！如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
@@ -53,12 +74,10 @@ fi
 # 将当前进程的PID写入文件
 echo $$ > "$honeok_pid"
 
-if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
-    cd /root >/dev/null 2>&1
-fi
-# ============== 脚本退出执行相关 ==============
+## 脚本退出执行相关
+
 # 终止信号捕获
-trap "cleanup_exit ; echo "" ; exit 0" SIGINT SIGQUIT SIGTERM EXIT
+trap "cleanup_exit" SIGINT SIGQUIT SIGTERM EXIT
 
 # 全局退出操作
 cleanup_exit() {
@@ -68,10 +87,13 @@ cleanup_exit() {
     [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f "/etc/apt/sources.list.d/xanmod-release.list"
     [ -f "$HOME/check_x86-64_psabi.sh" ] && rm -f "$HOME/check_x86-64_psabi.sh"
     [ -f "$HOME/upgrade_ssh.sh" ] && rm -f "$HOME/upgrade_ssh.sh"
+
+    printf "\n"
+    exit 0
 }
 
 print_logo() {
-echo -e "${yellow}   __                      __     💀
+    echo -e "${yellow}   __                      __     💀
   / /  ___  ___  ___ ___  / /__
  / _ \/ _ \/ _ \/ -_) _ \/  '_/
 /_//_/\___/_//_/\__/\___/_/\_\ 
@@ -79,14 +101,18 @@ echo -e "${yellow}   __                      __     💀
     local os_text="当前操作系统: ${os_info}"
     _green "${os_text}"
 }
-# =============== 系统信息START ===============
+
+## 系统信息
+
 # 获取虚拟化类型
 virt_check() {
-    local processor_type=$(awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
-    local kernel_logs=""
-    local system_manufacturer=""
-    local system_product_name=""
-    local system_version=""
+    local processor_type kernel_logs system_manufacturer system_product_name system_version
+
+    processor_type=$(awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
+    kernel_logs=""
+    system_manufacturer=""
+    system_product_name=""
+    system_version=""
 
     if command -v dmesg >/dev/null 2>&1; then
         kernel_logs=$(dmesg 2>/dev/null)
@@ -147,11 +173,13 @@ system_info() {
     install curl >/dev/null 2>&1
 
     # 获取CPU型号
-    local cpu_model=$(grep -i 'model name' /proc/cpuinfo | head -n 1 | awk -F': ' '{print $2}') 
+    local cpu_model
+    cpu_model=$(grep -i 'model name' /proc/cpuinfo | head -n 1 | awk -F': ' '{print $2}') 
     cpu_model=${cpu_model:-$(lscpu | sed -n 's/^Model name:[[:space:]]*\(.*\)$/\1/p')}
 
     # 获取核心数
-    local cpu_cores=$(awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo 2>/dev/null)
+    local cpu_cores
+    cpu_cores=$(awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo 2>/dev/null)
     cpu_cores=${cpu_cores:-$(grep -c '^processor' /proc/cpuinfo || nproc)}
 
     # 获取CPU频率
@@ -206,14 +234,18 @@ system_info() {
     fi
 
     # 内存
-    local mem_usage=$(free -b | awk 'NR==2{printf "%.2f/%.2f MB (%.2f%%)", $3/1024/1024, $2/1024/1024, $3*100/$2}')
+    local mem_usage
+    mem_usage=$(free -b | awk 'NR==2{printf "%.2f/%.2f MB (%.2f%%)", $3/1024/1024, $2/1024/1024, $3*100/$2}')
 
     # 交换分区
-    local swap_usage=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {print "[ no swap partition ]"} else {percentage=used*100/total; printf "%dMB/%dMB (%d%%)", used, total, percentage}}')
+    local swap_usage
+    swap_usage=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {print "[ no swap partition ]"} else {percentage=used*100/total; printf "%dMB/%dMB (%d%%)", used, total, percentage}}')
 
     # 获取并格式化磁盘空间使用情况
-    local disk_info=$(df -h | grep -E "^/dev/" | grep -vE "tmpfs|devtmpfs|overlay|swap|loop")
-    local disk_output=""
+    local disk_info disk_output
+
+    disk_info=$(df -h | grep -E "^/dev/" | grep -vE "tmpfs|devtmpfs|overlay|swap|loop")
+    disk_output=""
 
     if [[ ${virt_type} =~ [Ll][Xx][Cc] ]]; then
         # 在LXC环境下获取根分区的信息并显示设备名称
@@ -221,10 +253,12 @@ system_info() {
     else
         # 处理磁盘信息
         while read -r line; do
-            local disk=$(echo "$line" | awk '{print $1}')      # 设备名称
-            local size=$(echo "$line" | awk '{print $2}')      # 总大小
-            local used=$(echo "$line" | awk '{print $3}')      # 已使用
-            local percent=$(echo "$line" | awk '{print $5}')   # 使用百分比（需要是第五个字段）
+            local disk size used percent
+
+            disk=$(echo "$line" | awk '{print $1}')      # 设备名称
+            size=$(echo "$line" | awk '{print $2}')      # 总大小
+            used=$(echo "$line" | awk '{print $3}')      # 已使用
+            percent=$(echo "$line" | awk '{print $5}')   # 使用百分比（需要是第五个字段）
 
             # 拼接磁盘信息
             disk_output+="${disk} ${used}/${size} (${percent})  "
@@ -232,16 +266,24 @@ system_info() {
     fi
 
     # 启动盘路径
-    local boot_partition=$(findmnt -n -o SOURCE / 2>/dev/null || mount | grep ' / ' | awk '{print $1}')
+    local boot_partition
+    boot_partition=$(findmnt -n -o SOURCE / 2>/dev/null || mount | grep ' / ' | awk '{print $1}')
 
     # 系统在线时间
-    local uptime_str=$(awk '{a=$1/86400;b=($1%86400)/3600;c=($1%3600)/60} {printf("%d days %d hour %d min\n",a,b,c)}' /proc/uptime)
+    local uptime_str
+    uptime_str=$(awk '{a=$1/86400;b=($1%86400)/3600;c=($1%3600)/60} {printf("%d days %d hour %d min\n",a,b,c)}' /proc/uptime)
 
     # 获取负载平均值
-    local load_average=$(command -v w >/dev/null 2>&1 && w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//' || uptime | awk -F'load average:' '{print $2}' | awk '{print $1, $2, $3}')
+    local load_average
+    if command -v w >/dev/null 2>&1; then
+        load_average=$(w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')
+    else
+        load_average=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1, $2, $3}')
+    fi
 
     # 计算CPU使用率，处理可能的除零错误
-    local cpu_usage=$(awk -v OFMT='%0.2f' '
+    local cpu_usage
+    cpu_usage=$(awk -v OFMT='%0.2f' '
         NR==1 {idle1=$5; total1=$2+$3+$4+$5+$6+$7+$8+$9}
         NR==2 {
             idle2=$5
@@ -271,10 +313,12 @@ system_info() {
     fi
 
     # 获取CPU架构
-    local cpu_architecture=$(uname -m 2>/dev/null || lscpu | awk -F ': +' '/Architecture/{print $2}' || echo "Full Unknown")
+    local cpu_architecture
+    cpu_architecture=$(uname -m 2>/dev/null || lscpu | awk -F ': +' '/Architecture/{print $2}' || echo "Full Unknown")
 
     # 获取内核版本信息
-    local kernel_version=$(uname -r || (command -v hostnamectl >/dev/null 2>&1 && hostnamectl | sed -n 's/^[[:space:]]*Kernel:[[:space:]]*Linux \?\(.*\)$/\1/p'))
+    local kernel_version
+    kernel_version=$(uname -r || (command -v hostnamectl >/dev/null 2>&1 && hostnamectl | sed -n 's/^[[:space:]]*Kernel:[[:space:]]*Linux \?\(.*\)$/\1/p'))
 
     # 获取网络拥塞控制算法
     local congestion_algorithm=""
@@ -306,14 +350,17 @@ system_info() {
     # 遍历/proc/net/dev文件中的每一行
     while read -r line; do
         # 提取接口名（接口名后面是冒号）
-        local interface=$(echo "$line" | awk -F: '{print $1}' | xargs)
+        local interface
+        interface=$(echo "$line" | awk -F: '{print $1}' | xargs)
 
         # 过滤掉不需要的行（只处理接口名）
         if [ -n "$interface" ] && [ "$interface" != "Inter-| Receive | Transmit" ] && [ "$interface" != "face |bytes packets errs drop fifo frame compressed multicast|bytes packets errs drop fifo colls carrier compressed" ]; then
             # 提取接收和发送字节数
-            local stats=$(echo "$line" | awk -F: '{print $2}' | xargs)
-            local recv_bytes=$(echo "$stats" | awk '{print $1}')
-            local sent_bytes=$(echo "$stats" | awk '{print $9}')
+            local stats recv_bytes sent_bytes
+
+            stats=$(echo "$line" | awk -F: '{print $2}' | xargs)
+            recv_bytes=$(echo "$stats" | awk '{print $1}')
+            sent_bytes=$(echo "$stats" | awk '{print $9}')
 
             # 累加接收和发送字节数
             total_recv_bytes=$((total_recv_bytes + recv_bytes))
@@ -332,29 +379,24 @@ system_info() {
     ip_address
 
     # 获取地理位置
-    local location=$(curl -fsL --connect-timeout 5 https://ipinfo.io/city || curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"city":\s*"\([^"]*\)".*/\1/p')
+    local location
+    location=$(curl -fsL --connect-timeout 5 https://ipinfo.io/city || curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"city":\s*"\([^"]*\)".*/\1/p')
 
     # 获取系统时区
+    local system_time
     if grep -q 'Alpine' /etc/issue; then
-        local system_time=$(date +"%Z %z")
+        system_time=$(date +"%Z %z")
     elif command -v timedatectl >/dev/null 2>&1; then
-        local system_time=$(timedatectl | awk '/Time zone/ {print $3}' | xargs)
+        system_time=$(timedatectl | awk '/Time zone/ {print $3}' | xargs)
     elif [ -f /etc/timezone ]; then
-        local system_time=$(cat /etc/timezone)
+        system_time=$(cat /etc/timezone)
     else
-        local system_time=$(date +"%Z %z")
+        system_time=$(date +"%Z %z")
     fi
 
     # 获取系统时间
-    # local current_time=$(date +"%Y-%m-%d %H:%M:%S")
-
-    # 获取北京时间
-    local china_time
-    if [[ "$country" == "CN" ]];then
-        china_time=$(date -d @$(($(curl -sL https://acs.m.taobao.com/gw/mtop.common.getTimestamp/ | awk -F'"t":"' '{print $2}' | cut -d '"' -f1) / 1000)) +"%Y-%m-%d %H:%M:%S")
-    else
-        china_time=$(curl -fsL "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Shanghai" | sed -n 's/.*"dateTime":\s*"\([^"]*\)\.[^"]*".*/\1/p' | sed 's/T/ /')
-    fi
+    local current_time
+    current_time=$(date +"%Y-%m-%d %H:%M:%S")
 
     echo "系统信息查询"
     short_separator
@@ -379,29 +421,43 @@ system_info() {
     echo "虚拟化架构        : ${virt_type}"
     short_separator
     echo "运营商            : ${isp_info}"
-    [ ! -z "${ipv4_address}" ] && echo "公网IPv4地址      : ${ipv4_address}"
-    [ ! -z "${ipv6_address}" ] && echo "公网IPv6地址      : ${ipv6_address}"
+    [ -n "${ipv4_address}" ] && echo "公网IPv4地址      : ${ipv4_address}"
+    [ -n "${ipv6_address}" ] && echo "公网IPv6地址      : ${ipv6_address}"
     short_separator
     echo "地理位置          : ${location}"
     echo "系统时区          : ${system_time}"
-    echo "北京时间          : ${china_time}"
+    echo "系统时间          : ${current_time}"
     short_separator
     echo ""
 }
 
-# =============== 通用函数START ===============
+## 通用函数定义
+
 # 脚本当天及累计运行次数统计
 statistics_runtime() {
-    local count=$(wget --no-check-certificate -qO- --tries=2 --timeout=2 "https://hit.forvps.gq/https://raw.githubusercontent.com/honeok/Tools/master/honeok.sh" 2>&1 | grep -m1 -oE "[0-9]+[ ]+/[ ]+[0-9]+") &&
-    today=$(awk -F ' ' '{print $1}' <<< "$count") &&
-    total=$(awk -F ' ' '{print $3}' <<< "$count")
+    local runcount
+
+    runcount=$(curl -fskL -m 2 --retry 2 -o - "https://hit.forvps.gq/https://github.com/honeok/Tools/raw/master/honeok.sh" 2>&1 | grep -m1 -oE "[0-9]+[ ]+/[ ]+[0-9]+") &&
+    today_runcount=$(awk -F ' ' '{print $1}' <<< "$runcount") &&
+    total_runcount=$(awk -F ' ' '{print $3}' <<< "$runcount")
+
+    echo -e "${blue}脚本当天运行次数:${white} ${today_runcount} ${blue}累计运行次数:${white} ${total_runcount}"
+}
+
+# 安全清屏
+clear_screen() {
+    if [ -t 1 ]; then
+        tput clear 2>/dev/null || echo -e "\033[2J\033[H" || clear
+    fi
 }
 
 ip_address() {
-    local ipv4_services=("ipv4.ip.sb" "ipv4.icanhazip.com" "v4.ident.me")
-    local ipv6_services=("ipv6.ip.sb" "ipv6.icanhazip.com" "v6.ident.me")
+    local ipv4_services=("https://ipv4.ip.sb" "https://ipv4.icanhazip.com" "https://v4.ident.me")
+    local ipv6_services=("https://ipv6.ip.sb" "https://ipv6.icanhazip.com" "https://v6.ident.me")
+
     ipv4_address=""
     ipv6_address=""
+
     for service in "${ipv4_services[@]}"; do
         ipv4_address=$(curl -fsL4 -m 3 "$service")
         if [[ "$ipv4_address" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -417,26 +473,78 @@ ip_address() {
 }
 
 geo_check() {
-    local cloudflare_api="https://dash.cloudflare.com/cdn-cgi/trace"
-    local user_agent="Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0"
+    local cloudflare_api ipinfo_api ipsb_api
 
-    country=$(curl -A "$user_agent" -m 10 -s "$cloudflare_api" | sed -n 's/.*loc=\([^ ]*\).*/\1/p')
-    [ -z "$country" ] && _err_msg "$(_red '无法获取服务器所在地区，请检查网络！')" && exit 1
+    cloudflare_api=$(curl -sL -m 10 -A "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0" "https://dash.cloudflare.com/cdn-cgi/trace" | sed -n 's/.*loc=\([^ ]*\).*/\1/p')
+    ipinfo_api=$(curl -sL --connect-timeout 5 https://ipinfo.io/country)
+    ipsb_api=$(curl -sL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"country_code":"\([^"]*\)".*/\1/p')
+
+    for api in "$cloudflare_api" "$ipinfo_api" "$ipsb_api"; do
+        if [ -n "$api" ]; then
+            country="$api"
+            break
+        fi
+    done
+
+    readonly country
+
+    if [ -z "$country" ]; then
+        _err_msg "$(_red '无法获取服务器所在地区，请检查网络后重试！')"
+        exit 1
+    fi
 }
 
 warp_check() {
-    local response warp_ipv4 warp_ipv6
+    local response
     local cloudflare_api="https://blog.cloudflare.com/cdn-cgi/trace https://dash.cloudflare.com/cdn-cgi/trace https://developers.cloudflare.com/cdn-cgi/trace"
+
+    # warp_ipv4和warp_ipv6作为全局变量
+    # declare -g warp_ipv4="off"
+    # declare -g warp_ipv6="off"
+
+    warp_ipv4="off"
+    warp_ipv6="off"
+
     # set -- "$cloudflare_api"
+
+    install curl >/dev/null 2>&1
+
+    # 检查IPv4 WARP状态
     for url in $cloudflare_api; do
         response=$(curl -fsL4 -m 3 "$url" | grep warp | cut -d= -f2)
-        [ "$response" == 'on' ] && { warp_ipv4=on; break; } || warp_ipv4=off
+        if [ "$response" == "on" ]; then
+            warp_ipv4="on"
+            break
+        fi
     done
 
+    # 检查IPv6 WARP状态
     for url in $cloudflare_api; do
         response=$(curl -fsL6 -m 3 "$url" | grep warp | cut -d= -f2)
-        [ "$response" == 'on' ] && { warp_ipv6=on; break; } || warp_ipv6=off
+        if [ "$response" == "on" ]; then
+            warp_ipv6="on"
+            break
+        fi
     done
+}
+
+warp_manager() {
+    need_root
+    warp_check
+
+    if [[ "$warp_ipv4" == "on" || "$warp_ipv6" == "on" ]]; then
+        _green "warp已安装！"
+        if [ -f menu.sh ]; then
+            bash menu.sh
+        else
+            install wget
+            wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh "[option]" "[license/url/token]"
+        fi
+    else
+        _yellow "正在安装warp！"
+        install wget
+        wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh "[option]" "[license/url/token]"
+    fi
 }
 
 # 设置地区相关的Github代理配置
@@ -445,12 +553,13 @@ cdn_check() {
     geo_check
 
     if [[ "$country" == "CN" || ( -z "$ipv4_address" && -n "$ipv6_address" ) || \
-        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://raw.githubusercontent.com/honeok/Tools/master/README.md) > 3 ]]; then
+        # 响应时间超时
+        $(curl -fsL -o /dev/null -w "%{time_total}" --max-time 5 https://github.com/honeok/Tools/raw/master/README.md | awk '{if ($1 > 3) print 1; else print 0}') -eq 1 ]]; then
         exec_ok=0  # 0 表示允许执行命令
-        github_proxy="https://gh-proxy.com/"
+        readonly github_proxy="https://gh-proxy.com/"
     else
         exec_ok=1  # 1 表示不执行命令
-        github_proxy=""     # 不使用代理
+        readonly github_proxy=""     # 不使用代理
     fi
 }
 
@@ -474,16 +583,16 @@ install() {
         if ! command -v "$package" >/dev/null 2>&1; then
             _yellow "正在安装$package"
             if command -v dnf >/dev/null 2>&1; then
-                dnf update -y
-                dnf install epel-release -y
-                dnf install "$package" -y
+                dnf -y update
+                dnf install -y epel-release
+                dnf install -y "$package"
             elif command -v yum >/dev/null 2>&1; then
-                yum update -y
-                yum install epel-release -y
-                yum install "$package" -y
+                yum -y update
+                yum install -y epel-release
+                yum install -y "$package"
             elif command -v apt >/dev/null 2>&1; then
-                apt update -y
-                apt install "$package" -y
+                apt update
+                apt install -y "$package"
             elif command -v apk >/dev/null 2>&1; then
                 apk update
                 apk add "$package"
@@ -496,6 +605,9 @@ install() {
             elif command -v opkg >/dev/null 2>&1; then
                 opkg update
                 opkg install "$package"
+            elif command -v pkg >/dev/null 2>&1; then
+                pkg update
+                pkg install -y "$package"
             else
                 _red "未知的包管理器！"
                 return 1
@@ -530,6 +642,8 @@ remove() {
             zypper se -i "$package" >/dev/null 2>&1
         elif command -v opkg >/dev/null 2>&1; then
             opkg list-installed | grep -qw "$package"
+        elif command -v pkg >/dev/null 2>&1; then
+            pkg info "$package" >/dev/null 2>&1
         else
             _red "未知的包管理器！"
             return 1
@@ -541,19 +655,21 @@ remove() {
         _yellow "正在卸载$package"
         if check_installed "$package"; then
             if command -v dnf >/dev/null 2>&1; then
-                dnf remove "$package"* -y
+                dnf remove -y "$package"*
             elif command -v yum >/dev/null 2>&1; then
-                yum remove "$package"* -y
+                yum remove -y "$package"*
             elif command -v apt >/dev/null 2>&1; then
-                apt purge "$package"* -y
+                apt purge -y "$package"*
             elif command -v apk >/dev/null 2>&1; then
-                apk del "$package"* -y
+                apk del "$package"*
             elif command -v pacman >/dev/null 2>&1; then
                 pacman -Rns --noconfirm "$package"
             elif command -v zypper >/dev/null 2>&1; then
                 zypper remove -y "$package"
             elif command -v opkg >/dev/null 2>&1; then
-                opkg remove --force "$package"
+                opkg remove "$package"
+            elif command -v pkg >/dev/null 2>&1; then
+                pkg delete -y "$package"
             fi
         else
             echo -e "${red}${package}没有安装，跳过卸载${white}"
@@ -567,96 +683,165 @@ systemctl() {
     local cmd="$1"
     local service_name="$2"
 
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         service "$service_name" "$cmd"
     else
-        /usr/bin/systemctl "$cmd" "$service_name"
+        "$systemctl_cmd" "$cmd" "$service_name"
     fi
 }
 
 # 重载systemd管理的服务
 daemon_reload() {
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if ! command -v apk >/dev/null 2>&1; then
         if command -v systemctl >/dev/null 2>&1; then
-            /usr/bin/systemctl daemon-reload
+            "$systemctl_cmd" daemon-reload
         fi
     fi
 }
 
 disable() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
         # Alpine使用OpenRC
         rc-update del "$service_name"
     else
-        /usr/bin/systemctl disable "$service_name"
+        "$systemctl_cmd" disable "$service_name"
     fi
 }
 
 # 设置服务为开机自启
 enable() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
-        rc-update add "$service_name" default
+        if rc-update add "$service_name" default; then
+            _suc_msg "$(_green "${service_name}已设置为开机自启")"
+        else
+            _err_msg "$(_red "${service_name}设置开机自启失败")"
+        fi
     else
-        /usr/bin/systemctl enable "$service_name"
+        if "$systemctl_cmd" enable "$service_name"; then
+            _suc_msg "$(_green "${service_name}已设置为开机自启")"
+        else
+            _err_msg "$(_red "${service_name}设置开机自启失败")"
+        fi
     fi
-    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已设置为开机自启")" || _err_msg "$(_red "${service_name}设置开机自启失败")"
 }
 
 # 启动服务
 start() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
-        service "$service_name" start
+        if service "$service_name" start; then
+            _suc_msg "$(_green "${service_name}已启动")"
+        else
+            _err_msg "$(_red "${service_name}启动失败")"
+        fi
     else
-        /usr/bin/systemctl start "$service_name"
+        if "$systemctl_cmd" start "$service_name"; then
+            _suc_msg "$(_green "${service_name}已启动")"
+        else
+            _err_msg "$(_red "${service_name}启动失败")"
+        fi
     fi
-    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已启动")" || _err_msg "$(_red "${service_name}启动失败")"
 }
 
 # 停止服务
 stop() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
-        service "$service_name" stop
+        if service "$service_name" stop; then
+            _suc_msg "$(_green "${service_name}已停止")"
+        else
+            _err_msg "$(_red "${service_name}停止失败")"
+        fi
     else
-        /usr/bin/systemctl stop "$service_name"
+        if "$systemctl_cmd" stop "$service_name"; then
+            _suc_msg "$(_green "${service_name}已停止")"
+        else
+            _err_msg "$(_red "${service_name}停止失败")"
+        fi
     fi
-    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已停止")" || _err_msg "$(_red "${service_name}停止失败")"
 }
 
 # 重启服务
 restart() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
-        service "$service_name" restart
+        if service "$service_name" restart; then
+            _suc_msg "$(_green "${service_name}已重启")"
+        else
+            _err_msg "$(_red "${service_name}重启失败")"
+        fi
     else
-        /usr/bin/systemctl restart "$service_name"
+        if "$systemctl_cmd" restart "$service_name"; then
+            _suc_msg "$(_green "${service_name}已重启")"
+        else
+            _err_msg "$(_red "${service_name}重启失败")"
+        fi
     fi
-    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已重启")" || _err_msg "$(_red "${service_name}重启失败")"
 }
 
 # 重载服务
 reload() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
-        service "$service_name" reload
+        if service "$service_name" reload; then
+            _suc_msg "$(_green "${service_name}已重载")"
+        else
+            _err_msg "$(_red "${service_name}重载失败")"
+        fi
     else
-        /usr/bin/systemctl reload "$service_name"
+        if "$systemctl_cmd" reload "$service_name"; then
+            _suc_msg "$(_green "${service_name}已重载")"
+        else
+            _err_msg "$(_red "${service_name}重载失败")"
+        fi
     fi
-    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}已重载")" || _err_msg "$(_red "${service_name}重载失败")"
 }
 
 # 查看服务状态
 status() {
     local service_name="$1"
+    local systemctl_cmd
+    systemctl_cmd=$(which systemctl 2>/dev/null)
+
     if command -v apk >/dev/null 2>&1; then
-        service "$service_name" status
+        if service "$service_name" status; then
+            _suc_msg "$(_green "${service_name}状态已显示")"
+        else
+            _err_msg "$(_red "${service_name}状态显示失败")"
+        fi
     else
-        /usr/bin/systemctl status "$service_name"
+        if "$systemctl_cmd" status "$service_name"; then
+            _suc_msg "$(_green "${service_name}状态已显示")"
+        else
+            _err_msg "$(_red "${service_name}状态显示失败")"
+        fi
     fi
-    [ $? -eq 0 ] && _suc_msg "$(_green "${service_name}状态已显示")" || _err_msg "$(_red "${service_name}状态显示失败")"
 }
 
 # 结尾任意键结束
@@ -665,13 +850,20 @@ end_of() {
     _yellow "按任意键继续"
     read -n 1 -s -r -p ""
     echo ""
-    clear
+    clear_screen
 }
 
 # 检查用户是否为root
 need_root() {
-    clear
-    [ "$EUID" -ne "0" ] && _err_msg "$(_red '该功能需要root用户才能运行！')" && end_of && honeok
+    clear_screen
+
+    if [ "$(id -ru)" -ne "0" ]; then
+        _err_msg "$(_red '该功能需要root用户才能运行！')" && end_of && honeok
+    fi
+
+    if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
+        cd /root >/dev/null 2>&1 || { _err_msg "$(_red '切换目录失败！')"; return 1; }
+    fi
 }
 
 # 定义全局脚本下载路径
@@ -687,13 +879,20 @@ set_script_dir() {
     fi
 }
 
-# =============== 系统更新START ===============
+## 系统更新
+
 # 修复dpkg中断问题
 fix_dpkg() {
-    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for i in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
-        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
+    local lockfiles=('/var/lib/dpkg/lock' '/var/lib/dpkg/lock-frontend')
+
+    pkill -15 -x apt dpkg || pkill -9 -x apt dpkg
+
+    for lockfile in "${lockfiles[@]}"; do
+        if [ -f "$lockfile" ]; then
+            rm -f "$lockfile" >/dev/null 2>&1
+        fi
     done
+
     dpkg --configure -a
 }
 
@@ -705,16 +904,21 @@ linux_update() {
         yum -y update
     elif command -v apt >/dev/null 2>&1; then
         fix_dpkg
-        apt update -y
-        apt full-upgrade -y
+        apt update
+        apt -y full-upgrade
     elif command -v apk >/dev/null 2>&1; then
-        apk update && apk upgrade
+        apk update
+        apk upgrade
     elif command -v pacman >/dev/null 2>&1; then
         pacman -Syu --noconfirm
     elif command -v zypper >/dev/null 2>&1; then
-        zypper refresh && zypper update
+        zypper refresh
+        zypper update
     elif command -v opkg >/dev/null 2>&1; then
         opkg update
+    elif command -v pkg >/dev/null 2>&1; then
+        pkg update
+        pkg -y upgrade
     else
         _red "未知的包管理器"
         return 1
@@ -722,19 +926,20 @@ linux_update() {
     return 0
 }
 
-# =============== 系统清理START ===============
+## 系统清理
+
 linux_clean() {
     _yellow "正在系统清理"
 
     if command -v dnf >/dev/null 2>&1; then
-        dnf autoremove -y
+        dnf -y autoremove
         dnf clean all
         dnf makecache
         journalctl --rotate
         journalctl --vacuum-time=3d # 删除所有早于3天前的日志
         journalctl --vacuum-size=200M
     elif command -v yum >/dev/null 2>&1; then
-        yum autoremove -y
+        yum -y autoremove
         yum clean all
         yum makecache
         journalctl --rotate
@@ -742,9 +947,9 @@ linux_clean() {
         journalctl --vacuum-size=200M
     elif command -v apt >/dev/null 2>&1; then
         fix_dpkg
-        apt autoremove --purge -y
-        apt clean -y
-        apt autoclean -y
+        apt -y autoremove --purge
+        apt -y clean
+        apt -y autoclean
         journalctl --rotate
         journalctl --vacuum-time=3d
         journalctl --vacuum-size=200M
@@ -754,7 +959,7 @@ linux_clean() {
         rm -rf /var/cache/apk/*
         rm -rf /tmp/*
     elif command -v pacman >/dev/null 2>&1; then
-        pacman -Rns $(pacman -Qdtq) --noconfirm
+        pacman -Rns "$(pacman -Qdtq)" --noconfirm
         pacman -Scc --noconfirm
         journalctl --rotate
         journalctl --vacuum-time=3d
@@ -768,6 +973,11 @@ linux_clean() {
     elif command -v opkg >/dev/null 2>&1; then
         rm -rf /var/log/*
         rm -rf /tmp/*
+	elif command -v pkg >/dev/null 2>&1; then
+		pkg -y autoremove
+		pkg -y clean
+		rm -rf /var/log/*
+		rm -rf /tmp/*
     else
         _red "未知的包管理器"
         return 1
@@ -775,10 +985,11 @@ linux_clean() {
     return 0
 }
 
-# =============== 常用工具START ===============
+## 常用工具
+
 linux_tools() {
     while true; do
-        clear
+        clear_screen
         echo "▶ 基础工具"
         short_separator
         echo "1. curl 下载工具                      2. wget下载工具"
@@ -808,170 +1019,170 @@ linux_tools() {
 
         case $choice in
             1)
-                clear
+                clear_screen
                 install curl
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 curl --help
                 ;;
             2)
-                clear
+                clear_screen
                 install wget
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 wget --help
                 ;;
             3)
-                clear
+                clear_screen
                 install sudo
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 sudo --help
                 ;;
             4)
-                clear
+                clear_screen
                 install socat
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 socat -h
                 ;;
             5)
-                clear
+                clear_screen
                 install htop
-                clear
+                clear_screen
                 htop
                 ;;
             6)
-                clear
+                clear_screen
                 install iftop
-                clear
+                clear_screen
                 iftop
                 ;;
             7)
-                clear
+                clear_screen
                 install unzip
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 unzip
                 ;;
             8)
-                clear
+                clear_screen
                 install tar
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 tar --help
                 ;;
             9)
-                clear
+                clear_screen
                 install tmux
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 tmux --help
                 ;;
             10)
-                clear
+                clear_screen
                 install ffmpeg
-                clear
+                clear_screen
                 _yellow "工具已安装，使用方法如下:"
                 ffmpeg --help
                 send_stats "安装ffmpeg"
                 ;;
             11)
-                clear
+                clear_screen
                 install btop
-                clear
+                clear_screen
                 btop
                 ;;
             12)
-                clear
+                clear_screen
                 install ranger
                 cd /
-                clear
+                clear_screen
                 ranger
-                cd ~
+                cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 ;;
             13)
-                clear
+                clear_screen
                 install gdu
                 cd /
-                clear
+                clear_screen
                 gdu
-                cd ~
+                cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 ;;
             14)
-                clear
+                clear_screen
                 install fzf
                 cd /
-                clear
+                clear_screen
                 fzf
-                cd ~
+                cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 ;;
             15)
-                clear
+                clear_screen
                 install vim
                 cd /
-                clear
+                clear_screen
                 vim -h
-                cd ~
+                cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 ;;
             16)
-                clear
+                clear_screen
                 install nano
                 cd /
-                clear
+                clear_screen
                 nano -h
-                cd ~
+                cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 ;;
             21)
-                clear
+                clear_screen
                 install cmatrix
-                clear
+                clear_screen
                 cmatrix
                 ;;
             22)
-                clear
+                clear_screen
                 install sl
-                clear
+                clear_screen
                 sl
                 ;;
             26)
-                clear
+                clear_screen
                 install bastet
-                clear
+                clear_screen
                 bastet
                 ;;
             27)
-                clear
+                clear_screen
                 install nsnake
-                clear
+                clear_screen
                 nsnake
                 ;;
             28)
-                clear
+                clear_screen
                 install ninvaders
-                clear
+                clear_screen
                 ninvaders
                 ;;
             31)
-                clear
+                clear_screen
                 install curl wget sudo socat htop iftop unzip tar tmux ffmpeg btop ranger gdu fzf cmatrix sl bastet nsnake ninvaders vim nano
                 ;;
             32)
-                clear
+                clear_screen
                 install curl wget sudo socat htop iftop unzip tar tmux ffmpeg btop ranger gdu fzf vim nano
                 ;;
             33)
-                clear
+                clear_screen
                 remove htop iftop unzip tmux ffmpeg btop ranger gdu fzf cmatrix sl bastet nsnake ninvaders vim nano
                 ;;
             41)
-                clear
+                clear_screen
                 echo -n -e "${yellow}请输入安装的工具名 (wget curl sudo htop): ${white}"
                 read -r installname
                 install "$installname"
                 ;;
             42)
-                clear
+                clear_screen
                 echo -n -e "${yellow}请输入卸载的工具名 (htop ufw tmux cmatrix): ${white}"
                 read -r removename
                 remove "$removename"
@@ -987,16 +1198,18 @@ linux_tools() {
     done
 }
 
-# =============== BBR START ===============
+## BBR
+
 linux_bbr() {
-    local choice
-    clear
+    local congestion_algorithm queue_algorithm choice
+
+    clear_screen
     if [ -f "/etc/alpine-release" ]; then
         while true; do
-            clear
-            local congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
-            local queue_algorithm=$(sysctl -n net.core.default_qdisc)
-            _yellow "当前TCP阻塞算法: "$congestion_algorithm" "$queue_algorithm""
+            clear_screen
+            congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control)
+            queue_algorithm=$(sysctl -n net.core.default_qdisc)
+            _yellow "当前TCP阻塞算法: ""$congestion_algorithm"" ""$queue_algorithm"""
 
             echo ""
             echo "BBR管理"
@@ -1033,14 +1246,16 @@ linux_bbr() {
     fi
 }
 
-## =============== Docker START ===============
+## Docker
 
 # Docker全局状态显示
 docker_global_status() {
-    local container_count=$(docker ps -a -q 2>/dev/null | wc -l)
-    local image_count=$(docker images -q 2>/dev/null | wc -l)
-    local network_count=$(docker network ls -q 2>/dev/null | wc -l)
-    local volume_count=$(docker volume ls -q 2>/dev/null | wc -l)
+    local container_count image_count network_count volume_count
+
+    container_count=$(docker ps -a -q 2>/dev/null | wc -l)
+    image_count=$(docker images -q 2>/dev/null | wc -l)
+    network_count=$(docker network ls -q 2>/dev/null | wc -l)
+    volume_count=$(docker volume ls -q 2>/dev/null | wc -l)
 
     if command -v docker >/dev/null 2>&1; then
         short_separator
@@ -1080,7 +1295,7 @@ docker_version() {
 
 install_docker_official() {
     if [[ "$country" == "CN" ]];then
-        cd ~
+        cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
         # curl -fsL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/docker/docker-install/master/install.sh" && chmod +x get-docker.sh
         curl -fsL -o "get-docker.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/docker/install.sh" && chmod +x get-docker.sh
         sh get-docker.sh --mirror Aliyun
@@ -1111,7 +1326,9 @@ install_add_docker() {
             install dnf-plugins-core
         fi
 
-        [ -f /etc/yum.repos.d/docker*.repo ] && rm -f /etc/yum.repos.d/docker*.repo >/dev/null 2>&1
+        for repo_file in /etc/yum.repos.d/docker*.repo; do
+            [ -f "$repo_file" ] && rm -f "$repo_file" >/dev/null 2>&1
+        done
 
         # 判断地区安装
         if [[ "$country" == "CN" ]];then
@@ -1170,10 +1387,11 @@ install_add_docker() {
 
 # Docker调优
 generate_docker_config() {
-    local config_file="/etc/docker/daemon.json"
-    local config_dir="$(dirname "$config_file")"
-    local is_china_server='false'
-    local cgroup_driver
+    local config_file config_dir is_china_server cgroup_driver
+
+    config_file='/etc/docker/daemon.json'
+    config_dir="$(dirname "$config_file")"
+    is_china_server='false'
 
     install jq
 
@@ -1287,11 +1505,13 @@ docker_ipv6_on() {
         echo "$required_ipv6_config" | jq . > "$config_file"
         restart_docker_retry
     else
+        local original_config current_ipv6
+
         # 使用jq处理配置文件的更新
-        local original_config=$(<"$config_file")
+        original_config=$(<"$config_file")
 
         # 检查当前配置是否已经有ipv6设置
-        local current_ipv6=$(echo "$original_config" | jq '.ipv6 // false')
+        current_ipv6=$(echo "$original_config" | jq '.ipv6 // false')
 
         # 更新配置，开启IPv6
         if [[ "$current_ipv6" == "false" ]]; then
@@ -1323,6 +1543,8 @@ docker_ipv6_off() {
     local config_file="/etc/docker/daemon.json"
     local lock_file="/tmp/docker_ipv6.lock"
 
+    local original_config updated_config current_ipv6
+
     # 检查锁文件是否存在，以及Docker启动状态
     if [ -f "$lock_file" ] || \
         ! docker info >/dev/null 2>&1 || \
@@ -1339,13 +1561,11 @@ docker_ipv6_off() {
     fi
 
     # 读取当前配置
-    local original_config=$(<"$config_file")
-
+    original_config=$(<"$config_file")
     # 使用jq处理配置文件的更新
     updated_config=$(echo "$original_config" | jq 'del(.["fixed-cidr-v6"]) | .ipv6 = false')
-
     # 检查当前的 ipv6 状态
-    local current_ipv6=$(echo "$original_config" | jq -r '.ipv6 // false')
+    current_ipv6=$(echo "$original_config" | jq -r '.ipv6 // false')
 
     # 对比原始配置与新配置
     if [[ "$current_ipv6" == "false" ]]; then
@@ -1372,7 +1592,8 @@ uninstall_docker() {
 
     # 停止并删除Docker服务和容器
     stop_and_remove_docker() {
-        local running_containers=$(docker ps -aq)
+        local running_containers
+        running_containers=$(docker ps -aq)
         [ -n "$running_containers" ] && docker rm -f "$running_containers" >/dev/null 2>&1
         stop docker >/dev/null 2>&1
         disable docker >/dev/null 2>&1
@@ -1418,7 +1639,7 @@ uninstall_docker() {
 
 docker_ps() {
     while true; do
-        clear
+        clear_screen
         echo "Docker容器列表"
         docker ps -a
         echo ""
@@ -1466,10 +1687,10 @@ docker_ps() {
                 docker restart "$dockername"
                 ;;
             6)
-                docker start $(docker ps -a -q)
+                docker start "$(docker ps -a -q)"
                 ;;
             7)
-                docker stop $(docker ps -q)
+                docker stop "$(docker ps -q)"
                 ;;
             8)
                 echo -n -e "${yellow}确定删除所有容器吗? (y/n): ${white}"
@@ -1477,7 +1698,7 @@ docker_ps() {
 
                 case $choice in
                     [Yy])
-                        docker rm -f $(docker ps -a -q)
+                        docker rm -f "$(docker ps -a -q)"
                         ;;
                     [Nn])
                         ;;
@@ -1487,7 +1708,7 @@ docker_ps() {
                 esac
                 ;;
             9)
-                docker restart $(docker ps -q)
+                docker restart "$(docker ps -q)"
                 ;;
             11)
                 echo -n "请输入容器名:"
@@ -1534,7 +1755,7 @@ docker_ps() {
 
 docker_image() {
     while true; do
-        clear
+        clear_screen
         echo "Docker镜像列表"
         docker image ls
         echo ""
@@ -1554,7 +1775,7 @@ docker_image() {
                 read -r imagenames
                 for name in $imagenames; do
                     echo -e "${yellow}正在获取镜像: $name${white}"
-                    docker pull $name
+                    docker pull "$name"
                 done
                 ;;
             2)
@@ -1562,14 +1783,14 @@ docker_image() {
                 read -r imagenames
                 for name in $imagenames; do
                     echo -e "${yellow}正在更新镜像: $name${white}"
-                    docker pull $name
+                    docker pull "$name"
                 done
                 ;;
             3)
                 echo -n "请输入镜像名(多个镜像名请用空格分隔): "
                 read -r imagenames
                 for name in $imagenames; do
-                    docker rmi -f $name
+                    docker rmi -f "$name"
                 done
                 ;;
             4)
@@ -1579,7 +1800,7 @@ docker_image() {
                 case $choice in
                     [Yy])
                         if [ -n "$(docker images -q)" ]; then
-                            docker rmi -f $(docker images -q)
+                            docker rmi -f "$(docker images -q)"
                         else
                             _yellow "没有镜像可删除"
                         fi
@@ -1604,7 +1825,7 @@ docker_image() {
 
 docker_manager() {
     while true; do
-        clear
+        clear_screen
         echo "▶ Docker管理"
         docker_global_status
         short_separator
@@ -1636,7 +1857,7 @@ docker_manager() {
 
         case $choice in
             1)
-                clear
+                clear_screen
                 if ! command -v docker >/dev/null 2>&1; then
                     install_add_docker
                 else
@@ -1661,11 +1882,13 @@ docker_manager() {
                 fi
                 ;;
             2)
-                clear
-                local image_count=$(docker images -q 2>/dev/null | wc -l)
-                local container_count=$(docker ps -a -q 2>/dev/null | wc -l)
-                local network_count=$(docker network ls -q 2>/dev/null | wc -l)
-                local volume_count=$(docker volume ls -q 2>/dev/null | wc -l)
+                clear_screen
+                local image_count container_count network_count volume_count
+
+                image_count=$(docker images -q 2>/dev/null | wc -l)
+                container_count=$(docker ps -a -q 2>/dev/null | wc -l)
+                network_count=$(docker network ls -q 2>/dev/null | wc -l)
+                volume_count=$(docker volume ls -q 2>/dev/null | wc -l)
 
                 # 显示镜像、容器、卷和网络列表
                 for resource in "镜像列表" "容器列表" "卷列表" "网络列表"; do
@@ -1698,7 +1921,7 @@ docker_manager() {
                 ;;
             5)
                 while true; do
-                    clear
+                    clear_screen
                     echo "Docker网络列表"
                     long_separator
                     docker network ls
@@ -1746,7 +1969,7 @@ docker_manager() {
                             echo -n "设置新网络名:"
                             read -r dockernames
 
-                            for dockername in "$dockernames"; do
+                            for dockername in $dockernames; do
                                 docker network connect "$dockernetwork" "$dockername"
                             done                  
                             ;;
@@ -1757,7 +1980,7 @@ docker_manager() {
                             echo -n "哪些容器退出该网络(多个容器名请用空格分隔): "
                             read -r dockernames
                             
-                            for dockername in "$dockernames"; do
+                            for dockername in $dockernames; do
                                 docker network disconnect "$dockernetwork" "$dockername"
                             done
                             ;;
@@ -1777,7 +2000,7 @@ docker_manager() {
                 ;;
             6)
                 while true; do
-                    clear
+                    clear_screen
                     echo "Docker卷列表"
                     docker volume ls
                     echo ""
@@ -1831,7 +2054,7 @@ docker_manager() {
                 done
                 ;;
             7)
-                clear
+                clear_screen
                 echo -n -e "${yellow}将清理无用的镜像容器网络，包括停止的容器，确定清理吗? (y/n): ${white}"
                 read -r choice
 
@@ -1847,11 +2070,11 @@ docker_manager() {
                 esac
                 ;;
             8)
-                clear
+                clear_screen
                 bash <(curl -sSL https://linuxmirrors.cn/docker.sh)
                 ;;
             9)
-                clear
+                clear_screen
                 mkdir -p /etc/docker && vim /etc/docker/daemon.json
                 restart docker
                 ;;
@@ -1859,15 +2082,15 @@ docker_manager() {
                 generate_docker_config
                 ;;
             11)
-                clear
+                clear_screen
                 docker_ipv6_on
                 ;;
             12)
-                clear
+                clear_screen
                 docker_ipv6_off
                 ;;
             20)
-                clear
+                clear_screen
                 echo -n -e "${yellow}确定卸载docker环境吗? (y/n): ${white}"
                 read -r choice
 
@@ -1893,7 +2116,8 @@ docker_manager() {
     done
 }
 
-# =============== LDNMP建站START ===============
+## LDNMP
+
 docker_compose() {
     local docker_compose_cmd
     # 检查 docker compose 版本
@@ -1933,14 +2157,17 @@ docker_compose() {
 
 ldnmp_global_status() {
     # 获取证书数量
-    local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
-    local site_count="站点: ${green}${cert_count}${white}"
+    local cert_count site_count
+    cert_count=$(find "${nginx_dir}/certs/" -name "*cert.pem" 2>/dev/null | wc -l)
+    site_count="站点: ${green}${cert_count}${white}"
 
     # 获取数据库数量
-    local database_count=0  # 初始化数据库计数
-    local db_root_passwd=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:[[:space:]]*\(.*\)/\1/p' "$web_dir/docker-compose.yml" 2>/dev/null)
+    local database_count db_root_passwd
+    database_count=0  # 初始化数据库计数
+    db_root_passwd=$(sed -n 's/.*MYSQL_ROOT_PASSWORD: *\(.*\)/\1/p' "$web_dir/docker-compose.yml" 2>/dev/null)
+
     if [ -n "$db_root_passwd" ]; then
-        database_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
+        database_count=$(docker exec mysql mysql -u root -p"$db_root_passwd" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" -c)
     fi
 
     local db_info="数据库: ${green}${database_count}${white}"
@@ -1991,21 +2218,24 @@ nginx_install_status() {
 }
 
 ldnmp_check_port() {
-    local check_cmd=$(command -v netstat >/dev/null 2>&1 && echo "netstat" || echo "ss")
+    local check_cmd containers
+
+    check_cmd=$(command -v netstat >/dev/null 2>&1 && echo "netstat" || echo "ss")
+
     for port in 80 443; do
-        local containers=$(docker ps --filter "publish=$port" --format "{{.ID}}" 2>/dev/null)
+        containers=$(docker ps --filter "publish=$port" --format "{{.ID}}" 2>/dev/null)
         if [ -n "$containers" ]; then
-            docker stop $containers >/dev/null 2>&1
+            docker stop "$containers" >/dev/null 2>&1
         else
             for pid in $($check_cmd -tulpn | grep ":$port " 2>/dev/null | awk '{print $7}' | cut -d'/' -f1); do
-                kill -9 $pid >/dev/null 2>&1
+                kill -9 "$pid" >/dev/null 2>&1
             done
         fi
     done
 }
 
 ldnmp_install_deps() {
-    clear
+    clear_screen
     install wget unzip tar
 }
 
@@ -2161,9 +2391,9 @@ install_nginx_conf() {
 }
 
 ldnmp_run() {
-    cd "$web_dir"
+    cd "$web_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
     docker_compose start
-    clear
+    clear_screen
 }
 
 nginx_http_on() {
@@ -2171,6 +2401,7 @@ nginx_http_on() {
     local ipv6_pattern='^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?))|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|(2[0-4][0-9]|[01]?[0-9][0-9]?)))))$'
 
     if [[ ($domain =~ $ipv4_pattern || $domain =~ $ipv6_pattern) ]]; then
+        # shellcheck disable=SC2016
         sed -i '/return 301\s+https:\/\/\$host\$request_uri;/s/^/#/' "$nginx_dir/conf.d/$domain.conf"
     fi
 }
@@ -2187,7 +2418,8 @@ install_ldnmp_standalone() {
 }
 
 install_nginx_standalone() {
-    local nginx_version=$(docker exec nginx nginx -v 2>&1 | sed -n 's/.*nginx\/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
+    local nginx_version
+    nginx_version=$(docker exec nginx nginx -v 2>&1 | sed -n 's/.*nginx\/\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
 
     need_root
     install_docker
@@ -2205,14 +2437,14 @@ install_nginx_standalone() {
     docker exec nginx chown -R nginx:nginx /var/cache/nginx/fastcgi
     nginx_check_restart
 
-    clear
+    clear_screen
     _green "Nginx安装完成！"
     _yellow "当前版本: $(_white "v$nginx_version")"
     echo ""
 }
 
 install_ldnmp_wordpress() {
-    clear
+    clear_screen
     webname="WordPress"
 
     ldnmp_install_status
@@ -2227,7 +2459,7 @@ install_ldnmp_wordpress() {
 
     wordpress_dir="$nginx_dir/html/$domain"
     [ ! -d "$wordpress_dir" ] && mkdir -p "$wordpress_dir"
-    cd "$wordpress_dir"
+    cd "$wordpress_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
     # curl -fsL -o latest.zip "https://wordpress.org/latest.zip" && unzip latest.zip && rm -f latest.zip
     # curl -fsL -o latest.zip "https://cn.wordpress.org/latest-zh_CN.zip" && unzip latest.zip && rm -f latest.zip
     curl -fsL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/wp-latest.zip" && unzip latest.zip && rm -f latest.zip
@@ -2306,7 +2538,7 @@ add_domain() {
     domain_regex="^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$"
     if [[ $domain =~ $domain_regex ]]; then
         # 检查域名是否已存在
-        if [ -e $nginx_dir/conf.d/$domain.conf ]; then
+        if [ -e $nginx_dir/conf.d/"$domain".conf ]; then
             _red "当前域名${domain}已被使用，请前往31站点管理，删除站点后再部署！${webname}"
             end_of
             linux_ldnmp
@@ -2365,14 +2597,14 @@ ldnmp_install_ssltls() {
             if command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
             # CentOS/RedHat系统生成EC类型证书
             openssl req -x509 -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
-                -keyout $certbot_dir/cert/live/$domain/privkey.pem \
-                -out $certbot_dir/cert/live/$domain/fullchain.pem -days 5475 \
+                -keyout $certbot_dir/cert/live/"$domain"/privkey.pem \
+                -out $certbot_dir/cert/live/"$domain"/fullchain.pem -days 5475 \
                 -subj "/C=US/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name"
             else
                 # 非CentOS/RedHat系统生成Ed25519类型证书
-                openssl genpkey -algorithm Ed25519 -out $certbot_dir/cert/live/$domain/privkey.pem
-                openssl req -x509 -key $certbot_dir/cert/live/$domain/privkey.pem \
-                    -out $certbot_dir/cert/live/$domain/fullchain.pem -days 5475 \
+                openssl genpkey -algorithm Ed25519 -out $certbot_dir/cert/live/"$domain"/privkey.pem
+                openssl req -x509 -key $certbot_dir/cert/live/"$domain"/privkey.pem \
+                    -out $certbot_dir/cert/live/"$domain"/fullchain.pem -days 5475 \
                     -subj "/C=US/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name"
             fi
         else
@@ -2397,7 +2629,7 @@ ldnmp_certs_status() {
     if [ ! -f "$file_path" ]; then
         _red "域名证书申请失败，请检测域名是否正确解析或更换域名重新尝试！"
         end_of
-        clear
+        clear_screen
         _info_msg "$(_yellow '再次尝试证书申请！')"
         add_domain
         ldnmp_install_ssltls
@@ -2406,7 +2638,7 @@ ldnmp_certs_status() {
 }
 
 ldnmp_add_db() {
-    DB_NAME=$(echo "$domain" | sed -e 's/[^A-Za-z0-9]/_/g')
+    DB_NAME="${domain//[^A-Za-z0-9]/_}"
 
     DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
     DB_USER=$(sed -n 's/.*MYSQL_USER:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
@@ -2423,14 +2655,14 @@ ldnmp_add_db() {
     }
 }
 
-reverse_proxy() {
-    ip_address
-    curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
-    sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
-    sed -i "s/0.0.0.0/$ipv4_address/g" "$nginx_dir/conf.d/$domain.conf"
-    sed -i "s/0000/$duankou/g" "$nginx_dir/conf.d/$domain.conf"
-    nginx_check_restart
-}
+#reverse_proxy() {
+#    ip_address
+#    curl -fsL -o "$nginx_dir/conf.d/$domain.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/reverse-proxy.conf"
+#    sed -i "s/domain.com/$domain/g" "$nginx_dir/conf.d/$domain.conf"
+#    sed -i "s/0.0.0.0/$ipv4_address/g" "$nginx_dir/conf.d/$domain.conf"
+#    sed -i "s/0000/$duankou/g" "$nginx_dir/conf.d/$domain.conf"
+#    nginx_check_restart
+#}
 
 nginx_check_restart() {
     if docker exec nginx nginx -t >/dev/null 2>&1;then
@@ -2461,11 +2693,12 @@ ldnmp_restart() {
     docker exec php chown -R www-data:www-data /var/www/html >/dev/null 2>&1
     docker exec php74 chown -R www-data:www-data /var/www/html >/dev/null 2>&1
 
-    cd $web_dir && docker_compose restart
+    cd $web_dir || { _err_msg "$(_red '切换目录失败！')"; return 1; }
+    docker_compose restart
 }
 
 nginx_upgrade() {
-    cd $web_dir
+    cd $web_dir || { _err_msg "$(_red '切换目录失败！')"; return 1; }
     docker rm -f nginx >/dev/null 2>&1
     docker images --filter=reference="honeok/nginx*" -q | xargs docker rmi -f >/dev/null 2>&1
     docker images --filter=reference="nginx*" -q | xargs docker rmi -f >/dev/null 2>&1
@@ -2482,7 +2715,7 @@ nginx_upgrade() {
 }
 
 ldnmp_display_success() {
-    clear
+    clear_screen
     _suc_msg "$(_green "您的${webname}搭建好了！")"
     echo "https://${domain}"
     short_separator
@@ -2490,7 +2723,7 @@ ldnmp_display_success() {
 }
 
 nginx_display_success() {
-    clear
+    clear_screen
     _suc_msg "$(_green "您的${webname}搭建好了！")"
     echo "https://${domain}"
 }
@@ -2503,18 +2736,18 @@ clean_webcache_standalone() {
     # 检查配置文件是否存在
     if [ -f "$config_file" ]; then
         # 从配置文件读取api_token和zone_id
-        read api_token email zone_ids < "$config_file"
+        read -r api_token email zone_ids < "$config_file"
         # 将zone_ids转换为数组
-        zone_ids=($zone_ids)
+        IFS=' ' read -r -a zone_ids <<< "$zone_ids"
     else
         # 提示用户是否清理缓存
-        echo -n "需要清理Cloudflare的缓存吗? (y/n): "
+        echo -n "需要清理Cloudflare缓存吗? (y/n): "
         read -r answer
         if [[ "$answer" == "y" ]]; then
             echo "CF信息保存在${config_file}，可以后期修改CF信息"
             echo -n "请输入你的api token: "
             read -r api_token
-            echo -n "请输入你的CF用户名: "
+            echo -n "请输入你的Cloudflare用户名: "
             read -r email
             echo -n "请输入 zone_id (多个用空格分隔): "
             read -r zone_ids
@@ -2575,22 +2808,22 @@ nginx_waf() {
 
 ldnmp_site_manage() {
     need_root
-    local domain expire_date formatted_date
-    local cert_count=$(ls ${nginx_dir}/certs/*cert.pem 2>/dev/null | wc -l)
-    local site_info="站点: ${green}${cert_count}${white}"
-    local DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
-    local database_count=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2> /dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | wc -l)
-    local db_info="数据库信息: ${green}${database_count}${white}"
+    local cert_count site_info DB_ROOT_PASSWD database_count db_info domain expire_date formatted_date
+    cert_count=$(find "${nginx_dir}/certs" -type f -name '*cert.pem' 2>/dev/null | wc -l)
+    site_info="站点: ${green}${cert_count}${white}"
+    DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
+    database_count=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "SHOW DATABASES;" 2>/dev/null | grep -Ev "Database|information_schema|mysql|performance_schema|sys" | grep -c .)
+    db_info="数据库信息: ${green}${database_count}${white}"
 
     while true; do
-        clear
+        clear_screen
         echo "LDNMP环境"
         short_separator
         ldnmp_version
 
         echo -e "${site_info}                      证书到期时间"
         short_separator
-        for cert_file in $(ls ${nginx_dir}/certs/*cert.pem); do
+        for cert_file in "${nginx_dir}/certs/"*cert.pem; do
             if [ -f "$cert_file" ]; then
                 domain=$(basename "$cert_file" | sed 's/_cert.pem//')
                 if [ -n "$domain" ]; then
@@ -2654,16 +2887,19 @@ ldnmp_site_manage() {
 
                 # mysql替换
                 ldnmp_add_db
-                local old_dbname=$(echo "$old_domain" | sed -e 's/[^A-Za-z0-9]/_/g')
+                local old_dbname
+                old_dbname="${old_domain//[^A-Za-z0-9]/_}"
 
-                docker exec mysql mysqldump -u root -p"$DB_ROOT_PASSWD" $old_dbname | docker exec -i mysql mysql -u root -p"$DB_ROOT_PASSWD" $DB_NAME
+                docker exec mysql mysqldump -u root -p"$DB_ROOT_PASSWD" "$old_dbname" | docker exec -i mysql mysql -u root -p"$DB_ROOT_PASSWD" "$DB_NAME"
                 docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE $old_dbname;"
 
-                local tables=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D $DB_NAME -e "SHOW TABLES;" | awk '{ if (NR>1) print $1 }')
+                local tables
+                tables=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D "$DB_NAME" -e "SHOW TABLES;" | awk '{ if (NR>1) print $1 }')
                 for table in $tables; do
-                    local columns=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D $DB_NAME -e "SHOW COLUMNS FROM $table;" | awk '{ if (NR>1) print $1 }')
+                    local columns
+                    columns=$(docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D "$DB_NAME" -e "SHOW COLUMNS FROM $table;" | awk '{ if (NR>1) print $1 }')
                     for column in $columns; do
-                        docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D $DB_NAME -e "UPDATE $table SET $column = REPLACE($column, '$old_domain', '$domain') WHERE $column LIKE '%$old_domain%';"
+                        docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -D "$DB_NAME" -e "UPDATE $table SET $column = REPLACE($column, '$old_domain', '$domain') WHERE $column LIKE '%$old_domain%';"
                     done
                 done
 
@@ -2731,7 +2967,7 @@ ldnmp_site_manage() {
                 read -r del_domain_list
 
                 if [ -z "$del_domain_list" ]; then
-                    _info_msg "$(_red '无效选项，请重新输入！')" && return
+                    _info_msg "$(_red '无效选项，请重新输入！')" && return 1
                 fi
 
                 for del_domain in $del_domain_list; do
@@ -2740,11 +2976,12 @@ ldnmp_site_manage() {
                     rm -rf "$nginx_dir/html/$del_domain"
                     rm -f "$nginx_dir/conf.d/$del_domain.conf" "$nginx_dir/certs/${del_domain}_key.pem" "$nginx_dir/certs/${del_domain}_cert.pem"
                     # 检查并删除证书目录
-                    [ -d "$cert_live_dir/$del_domain" ] && rm -rf "$cert_live_dir/$del_domain"
-                    [ -d "$cert_archive_dir/$del_domain" ] && rm -rf "$cert_archive_dir/$del_domain"
+                    [ -d "${cert_live_dir:?}/$del_domain" ] && rm -rf "${cert_live_dir:?}/$del_domain"
+                    [ -d "${cert_archive_dir:?}/$del_domain" ] && rm -rf "${cert_archive_dir:?}/$del_domain"
                     [ -f "$cert_renewal_dir/$del_domain.conf" ] && rm -f "$cert_renewal_dir/$del_domain.conf"
                     # 将域名转换为数据库名
-                    local del_database=$(echo "$del_domain" | sed -e 's/[^A-Za-z0-9]/_/g')
+                    local del_database
+                    del_database="${del_domain//[^A-Za-z0-9]/_}"
                     # 删除站点数据库
                     docker exec mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "DROP DATABASE IF EXISTS $del_database;" >/dev/null 2>&1
                 done
@@ -2812,7 +3049,11 @@ fail2ban_install_sshd() {
     local fail2ban_dir="/data/docker_data/fail2ban"
     local config_dir="$fail2ban_dir/config/fail2ban"
 
-    [ ! -d "$fail2ban_dir" ] && mkdir -p "$fail2ban_dir" && cd "$fail2ban_dir"
+    if [ ! -d "$fail2ban_dir" ]; then
+        mkdir -p "$fail2ban_dir"
+    fi
+
+    cd "$fail2ban_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
 
     curl -fsL -o "docker-compose.yml" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/fail2ban/ldnmp-docker-compose.yml"
 
@@ -2820,19 +3061,19 @@ fail2ban_install_sshd() {
 
     sleep 3
     if grep -q 'Alpine' /etc/issue; then
-        cd "$config_dir/filter.d"
+        cd "$config_dir/filter.d" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
         curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd.conf"
         curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-sshd-ddos.conf"
-        cd "$config_dir/jail.d/"
+        cd "$config_dir/jail.d/" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
         curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/alpine-ssh.conf"
     elif command -v dnf >/dev/null 2>&1; then
-        cd "$config_dir/jail.d/"
+        cd "$config_dir/jail.d/" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
         curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/centos-ssh.conf"
     else
         install rsyslog
         systemctl start rsyslog
         systemctl enable rsyslog
-        cd "$config_dir/jail.d/"
+        cd "$config_dir/jail.d/" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
         curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/linux-ssh.conf"
     fi
 }
@@ -2843,7 +3084,7 @@ linux_ldnmp() {
     nginx_dir="$web_dir/nginx"
 
     while true; do
-        clear
+        clear_screen
         echo "▶ LDNMP建站"
         ldnmp_global_status
         short_separator
@@ -2889,7 +3130,7 @@ linux_ldnmp() {
                 install_ldnmp_wordpress
                 ;;
             3)
-                clear
+                clear_screen
                 webname="Discuz论坛"
 
                 ldnmp_install_status
@@ -2904,7 +3145,7 @@ linux_ldnmp() {
 
                 discuz_dir="$nginx_dir/html/$domain"
                 [ ! -d "$discuz_dir" ] && mkdir -p "$discuz_dir"
-                cd "$discuz_dir"
+                cd "$discuz_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -o latest.zip "${github_proxy}https://github.com/kejilion/Website_source_code/raw/main/Discuz_X3.5_SC_UTF8_20240520.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
@@ -2917,7 +3158,7 @@ linux_ldnmp() {
                 echo "表前缀: discuz_"
                 ;;
             4)
-                clear
+                clear_screen
                 webname="可道云桌面"
 
                 ldnmp_install_status
@@ -2932,7 +3173,7 @@ linux_ldnmp() {
 
                 kdy_dir="$nginx_dir/html/$domain"
                 [ ! -d "$kdy_dir" ] && mkdir -p "$kdy_dir"
-                cd "$kdy_dir"
+                cd "$kdy_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -o latest.zip "${github_proxy}https://github.com/kalcaddle/kodbox/archive/tags/1.50.02.zip" && unzip -o latest.zip && rm -f latest.zip
                 mv "$kdy_dir/kodbox-*" "$kdy_dir/kodbox"
 
@@ -2946,7 +3187,7 @@ linux_ldnmp() {
                 echo "Redis地址: redis"
                 ;;
             5)
-                clear
+                clear_screen
                 webname="苹果CMS"
 
                 ldnmp_install_status
@@ -2961,9 +3202,9 @@ linux_ldnmp() {
 
                 cms_dir="$nginx_dir/html/$domain"
                 [ ! -d "$cms_dir" ] && mkdir -p "$cms_dir"
-                cd "$cms_dir"
+                cd "$cms_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -O "${github_proxy}https://github.com/magicblack/maccms_down/raw/master/maccms10.zip" && unzip maccms10.zip && mv maccms10-*/* . && rm -rf maccms10*
-                cd "$cms_dir/template/"
+                cd "$cms_dir/template/" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -O "https://github.com/kejilion/Website_source_code/raw/main/DYXS2.zip" && unzip DYXS2.zip && rm -f "$cms_dir/template/DYXS2.zip"
                 cp "$cms_dir/template/DYXS2/asset/admin/Dyxs2.php" "$cms_dir/application/admin/controller"
                 cp "$cms_dir/template/DYXS2/asset/admin/dycms.html" "$cms_dir/application/admin/view/system"
@@ -2984,7 +3225,7 @@ linux_ldnmp() {
                 echo "https://$domain/vip.php"
                 ;;
             6)
-                clear
+                clear_screen
                 webname="独角数卡"
 
                 ldnmp_install_status
@@ -2999,7 +3240,7 @@ linux_ldnmp() {
 
                 djsk_dir="$nginx_dir/html/$domain"
                 [ ! -d "$djsk_dir" ] && mkdir -p "$djsk_dir"
-                cd "$djsk_dir"
+                cd "$djsk_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -O "${github_proxy}https://github.com/assimon/dujiaoka/releases/download/2.0.6/2.0.6-antibody.tar.gz" && tar zxvf 2.0.6-antibody.tar.gz && rm -f 2.0.6-antibody.tar.gz
 
                 ldnmp_restart
@@ -3025,7 +3266,7 @@ linux_ldnmp() {
                 echo "登录时右上角如果出现红色error0请使用: sed -i 's/ADMIN_HTTPS=false/ADMIN_HTTPS=true/g' $djsk_dir/dujiaoka/.env"
                 ;;
             7)
-                clear
+                clear_screen
                 webname="Flarum论坛"
 
                 ldnmp_install_status
@@ -3040,7 +3281,7 @@ linux_ldnmp() {
 
                 flarum_dir="$nginx_dir/html/$domain"
                 [ ! -d "$flarum_dir" ] && mkdir -p "$flarum_dir"
-                cd "$flarum_dir"
+                cd "$flarum_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
 
                 docker exec php sh -c "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\""
                 docker exec php sh -c "php composer-setup.php"
@@ -3068,7 +3309,7 @@ linux_ldnmp() {
                 echo "管理员信息自行设置"
                 ;;
             8)
-                clear
+                clear_screen
                 webname="Typecho"
 
                 ldnmp_install_status
@@ -3083,7 +3324,7 @@ linux_ldnmp() {
 
                 typecho_dir="$nginx_dir/html/$domain"
                 [ ! -d "$typecho_dir" ] && mkdir -p "$typecho_dir"
-                cd "$typecho_dir"
+                cd "$typecho_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -o latest.zip "${github_proxy}https://github.com/typecho/typecho/releases/latest/download/typecho.zip" && unzip latest.zip && rm -f latest.zip
 
                 ldnmp_restart
@@ -3097,7 +3338,7 @@ linux_ldnmp() {
                 echo "表前缀: typecho_"
                 ;;
             20)
-                clear
+                clear_screen
                 webname="PHP动态站点"
 
                 ldnmp_install_status
@@ -3112,9 +3353,9 @@ linux_ldnmp() {
 
                 dyna_dir="$nginx_dir/html/$domain"
                 [ ! -d "$dyna_dir" ] && mkdir -p "$dyna_dir"
-                cd "$dyna_dir"
+                cd "$dyna_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
 
-                clear
+                clear_screen
                 echo -e "[${yellow}1/6${white}] 上传PHP源码"
                 short_separator
                 echo "目前只允许上传zip格式的源码包，请将源码包放到$dyna_dir目录下"
@@ -3125,13 +3366,13 @@ linux_ldnmp() {
                     curl -fsL -O "$url_download"
                 fi
 
-                unzip $(ls -t *.zip | head -n 1)
-                rm -f $(ls -t *.zip | head -n 1)
+                unzip "$(find . -maxdepth 1 -type f -name '*.zip' -print0 | xargs -0 ls -t | head -n 1)"
+                rm -f "$(find . -maxdepth 1 -name "*.zip" -print0 | xargs -0 ls -t | head -n 1)"
 
-                clear
+                clear_screen
                 echo -e "[${yellow}2/6${white}] index.php所在路径"
                 short_separator
-                find "$(realpath .)" -name "index.php" -print | xargs -I {} dirname {}
+                find "$(realpath .)" -name "index.php" -print0 | xargs -0 -I {} dirname {}
 
                 echo -n "请输入index.php的路径，如 ($nginx_dir/html/$domain/wordpress/): "
                 read -r index_path
@@ -3139,7 +3380,7 @@ linux_ldnmp() {
                 sed -i "s#root /var/www/html/$domain/#root $index_path#g" "$nginx_dir/conf.d/$domain.conf"
                 sed -i "s#$nginx_dir/#/var/www/#g" "$nginx_dir/conf.d/$domain.conf"
 
-                clear
+                clear_screen
                 echo -e "[${yellow}3/6${white}] 请选择PHP版本"
                 short_separator
                 echo -n "1. php最新版 | 2. php7.4: "
@@ -3159,7 +3400,7 @@ linux_ldnmp() {
                         ;;
                 esac
 
-                clear
+                clear_screen
                 echo -e "[${yellow}4/6${white}] 安装指定扩展"
                 short_separator
                 echo "已经安装的扩展"
@@ -3168,17 +3409,17 @@ linux_ldnmp() {
                 echo -n "$(echo -e "输入需要安装的扩展名称，如${yellow}SourceGuardian imap ftp${white}等，直接回车将跳过安装: ")"
                 read -r php_extensions
                 if [ -n "$php_extensions" ]; then
-                    docker exec $PHP_Version install-php-extensions $php_extensions
+                    docker exec "$PHP_Version" install-php-extensions "$php_extensions"
                 fi
 
-                clear
+                clear_screen
                 echo -e "[${yellow}5/6${white}] 编辑站点配置"
                 short_separator
                 echo "按任意键继续，可以详细设置站点配置，如伪静态等内容"
                 read -n 1 -s -r -p ""
                 vim "$nginx_dir/conf.d/$domain.conf"
 
-                clear
+                clear_screen
                 echo -e "[${yellow}6/6${white}] 数据库管理"
                 short_separator
                 echo -n "1. 搭建新站        2. 搭建老站有数据库备份: "
@@ -3192,18 +3433,18 @@ linux_ldnmp() {
                         echo -n "也可以输入下载链接，远程下载备份数据，直接回车将跳过远程下载:" 
                         read -r url_download_db
 
-                        cd /opt
+                        cd /opt || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                         if [ -n "$url_download_db" ]; then
                             curl -fsL -O "$url_download_db"
                         fi
-                        gunzip $(ls -t *.gz | head -n 1)
-                        latest_sql=$(ls -t *.sql | head -n 1)
+                        gunzip "$(find . -maxdepth 1 -name "*.gz" -print0 | xargs -0 ls -t | head -n 1)"
+                        latest_sql=$(find . -maxdepth 1 -name "*.sql" -print0 | xargs -0 ls -t | head -n 1)
                         DB_ROOT_PASSWD=$(sed -n 's/.*MYSQL_ROOT_PASSWORD:\s*\(.*\)/\1/p' "$web_dir/docker-compose.yml" | tr -d '[:space:]')
 
                         docker exec -i mysql mysql -u root -p"$DB_ROOT_PASSWD" "$DB_NAME" < "/opt/$latest_sql"
                         echo "数据库导入的表数据"
                         docker exec -i mysql mysql -u root -p"$DB_ROOT_PASSWD" -e "USE $DB_NAME; SHOW TABLES;"
-                        rm -f *.sql
+                        rm -f ./*.sql
                         _green "数据库导入完成"
                         ;;
                     *)
@@ -3229,7 +3470,7 @@ linux_ldnmp() {
                 install_nginx_standalone
                 ;;
             22)
-                clear
+                clear_screen
                 webname="站点重定向"
 
                 nginx_install_status
@@ -3249,7 +3490,7 @@ linux_ldnmp() {
                 nginx_display_success
                 ;;
             23)
-                clear
+                clear_screen
                 webname="反向代理-IP+端口"
 
                 nginx_install_status
@@ -3272,7 +3513,7 @@ linux_ldnmp() {
                 nginx_display_success
                 ;;
             24)
-                clear
+                clear_screen
                 webname="反向代理-域名"
 
                 nginx_install_status
@@ -3293,7 +3534,7 @@ linux_ldnmp() {
                 nginx_display_success
                 ;;
             25)
-                clear
+                clear_screen
                 webname="静态站点"
 
                 nginx_install_status
@@ -3307,9 +3548,9 @@ linux_ldnmp() {
 
                 static_dir="$nginx_dir/html/$domain"
                 [ ! -d "$static_dir" ] && mkdir -p "$static_dir"
-                cd "$static_dir"
+                cd "$static_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
 
-                clear
+                clear_screen
                 echo -e "[${yellow}1/2${white}] 上传静态源码"
                 short_separator
                 echo "目前只允许上传zip格式的源码包，请将源码包放到$static_dir目录下"
@@ -3320,13 +3561,13 @@ linux_ldnmp() {
                     curl -fsL -O "$url_download"
                 fi
 
-                unzip $(ls -t *.zip | head -n 1)
-                rm -f $(ls -t *.zip | head -n 1)
+                unzip "$(find . -maxdepth 1 -name "*.zip" -print0 | xargs -0 ls -t | head -n 1)"
+                rm -f "$(find . -maxdepth 1 -name "*.zip" -print0 | xargs -0 ls -t | head -n 1)"
 
-                clear
+                clear_screen
                 echo -e "[${yellow}2/6${white}] index.html所在路径"
                 short_separator
-                find "$(realpath .)" -name "index.html" -print | xargs -I {} dirname {}
+                find "$(realpath .)" -name "index.html" -exec dirname {} +
 
                 echo -n "请输入index.html的路径，如 ($nginx_dir/html/$domain/index/): "
                 read -r index_path
@@ -3343,14 +3584,15 @@ linux_ldnmp() {
                 ldnmp_site_manage
                 ;;
             32)
-                clear
+                clear_screen
+                local latest_tar
 
                 if docker ps --format '{{.Names}}' | grep -q '^ldnmp$'; then
                     cd $web_dir && docker_compose down
-                    cd .. && tar czvf web_$(date +"%Y%m%d%H%M%S").tar.gz web/
+                    cd .. && tar czvf "web_$(date +"%Y%m%d%H%M%S").tar.gz" web/
 
                     while true; do
-                        clear
+                        clear_screen
                         echo "备份文件已创建: /data/docker_data/web_$(date +"%Y%m%d%H%M%S").tar.gz"
                         echo -n -e "${yellow}要传送文件到远程服务器吗? (y/n): ${white}"
                         read -r choice
@@ -3364,7 +3606,7 @@ linux_ldnmp() {
                                     _err_msg "$(_red '请正确输入远端服务器IP')"
                                     continue
                                 fi
-                                local latest_tar=$(ls -t /data/docker_data/*.tar.gz | head -1)
+                                latest_tar=$(find /data/docker_data -maxdepth 1 -name "*.tar.gz" -print0 | xargs -0 ls -t | head -n 1)
                                 if [ -n "$latest_tar" ]; then
                                     ssh-keygen -f "/root/.ssh/known_hosts" -R "$remote_ip"
                                     sleep 2  # 添加等待时间
@@ -3388,7 +3630,7 @@ linux_ldnmp() {
                 fi
                 ;;
             33)
-                clear
+                clear_screen
                 set_script_dir
                 check_crontab_installed
 
@@ -3429,11 +3671,12 @@ linux_ldnmp() {
                 ;;
             34)
                 need_root
+                local filename
 
                 ldnmp_restore_check
                 echo "可用的站点备份"
                 short_separator
-                ls -lt /opt/*.tar.gz | awk '{print $NF}'
+                find /opt -maxdepth 1 -name "*.tar.gz" -print0 | xargs -0 ls -lt | awk '{print $NF}'
                 echo ""
                 echo -n "输入备份文件名还原指定备份 (回车还原最新备份，输入0退出): "
                 read -r filename
@@ -3444,7 +3687,7 @@ linux_ldnmp() {
                 fi
                 # 如果用户没有输入文件名，使用最新的压缩包
                 if [ -z "$filename" ]; then
-                    local filename=$(ls -t /opt/*.tar.gz | head -1)
+                    filename=$(find /opt -maxdepth 1 -name "*.tar.gz" -type f -exec stat --format='%Y %n' {} + | sort -n | tail -1 | cut -d' ' -f2-)
                 fi
                 if [ -n "$filename" ]; then
                     [ -f "$web_dir/docker-compose.yml" ] && cd $web_dir >/dev/null 2>&1 && docker_compose down >/dev/null 2>&1
@@ -3477,7 +3720,7 @@ linux_ldnmp() {
                         local cloudflare_message=""
                     fi
                     if docker inspect fail2ban >/dev/null 2>&1; then
-                        clear
+                        clear_screen
                         echo -e "服务器防御程序已启动 ${green}${cloudflare_message} ${waf_status}${white}"
                         short_separator
                         echo "1. 开启SSH防暴力破解              2. 关闭SSH防暴力破解"
@@ -3585,10 +3828,10 @@ linux_ldnmp() {
                                 curl -fsL -o "$nginx_dir/conf.d/default.conf" "${github_proxy}https://raw.githubusercontent.com/honeok/config/master/nginx/conf.d/default11.conf"
                                 nginx_check_restart
 
-                                cd /data/docker_data/fail2ban/config/fail2ban/jail.d
+                                cd /data/docker_data/fail2ban/config/fail2ban/jail.d || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                                 curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                                 
-                                cd /data/docker_data/fail2ban/config/fail2ban/action.d
+                                cd /data/docker_data/fail2ban/config/fail2ban/action.d || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                                 curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/cloudflare-docker.conf"
 
                                 sed -i "s/kejilion@outlook.com/$CFUSER/g" /data/docker_data/fail2ban/config/fail2ban/action.d/cloudflare-docker.conf
@@ -3646,8 +3889,9 @@ linux_ldnmp() {
                                 sed -i "s/BBBB/$CFKEY/g" "$global_script_dir/CF-Under-Attack.sh"
                                 sed -i "s/CCCC/$CFZoneID/g" "$global_script_dir/CF-Under-Attack.sh"
 
-                                local cron_job="*/5 * * * * $global_script_dir/CF-Under-Attack.sh >/dev/null 2>&1"
-                                local existing_cron=$(crontab -l 2>/dev/null | grep -F "$cron_job")
+                                local cron_job existing_cron
+                                cron_job="*/5 * * * * $global_script_dir/CF-Under-Attack.sh >/dev/null 2>&1"
+                                existing_cron=$(crontab -l 2>/dev/null | grep -F "$cron_job")
 
                                 if [ -z "$existing_cron" ]; then
                                     (crontab -l 2>/dev/null; echo "$cron_job") | crontab -
@@ -3665,7 +3909,7 @@ linux_ldnmp() {
                                 _green "站点WAF已关闭"
                                 ;;
                             50)
-                                cd /data/docker_data/fail2ban
+                                cd /data/docker_data/fail2ban || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                                 docker_compose down_all
 
                                 [ -d /data/docker_data/fail2ban ] && rm -rf /data/docker_data/fail2ban
@@ -3681,7 +3925,7 @@ linux_ldnmp() {
                                 ;;
                         esac
                     elif [ -x "$(command -v fail2ban-client)" ] ; then
-                        clear
+                        clear_screen
                         _yellow "卸载旧版Fail2ban"
                         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                         read -r choice
@@ -3700,12 +3944,12 @@ linux_ldnmp() {
                                 ;;
                         esac
                     else
-                        clear
+                        clear_screen
                         fail2ban_install_sshd
 
-                        cd /data/docker_data/fail2ban/config/fail2ban/filter.d
+                        cd /data/docker_data/fail2ban/config/fail2ban/filter.d || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                         curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/sh/main/fail2ban-nginx-cc.conf"
-                        cd /data/docker_data/fail2ban/config/fail2ban/jail.d
+                        cd /data/docker_data/fail2ban/config/fail2ban/jail.d || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                         curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/kejilion/config/main/fail2ban/nginx-docker-cc.conf"
                         sed -i "/cloudflare/d" "/data/docker_data/fail2ban/config/fail2ban/jail.d/nginx-docker-cc.conf"
 
@@ -3717,7 +3961,7 @@ linux_ldnmp() {
                 ;;
             36)
                 while true; do
-                    clear
+                    clear_screen
                     echo "优化LDNMP环境"
                     short_separator
                     echo "1. 标准模式              2. 高性能模式(推荐2H2G以上)"
@@ -3800,7 +4044,7 @@ linux_ldnmp() {
             37)
                 need_root
                 while true; do
-                    clear
+                    clear_screen
                     echo "更新LDNMP环境"
                     short_separator
                     ldnmp_version
@@ -3878,7 +4122,7 @@ linux_ldnmp() {
                         4)
                             local ldnmp_pods="redis"
 
-                            cd "$web_dir"
+                            cd "$web_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                             docker rm -f "$ldnmp_pods" >/dev/null 2>&1
                             docker images --filter=reference="$ldnmp_pods*" -q | xargs docker rmi -f >/dev/null 2>&1
                             docker_compose recreate "$ldnmp_pods"
@@ -3893,7 +4137,7 @@ linux_ldnmp() {
                             case $choice in
                                 [Yy])
                                     _yellow "完整更新LDNMP环境"
-                                    cd "$web_dir"
+                                    cd "$web_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                                     docker_compose down_all
 
                                     ldnmp_check_port
@@ -3925,14 +4169,14 @@ linux_ldnmp() {
                 case $choice in
                     [Yy])
                         if docker inspect "ldnmp" >/dev/null 2>&1; then
-                            cd "$web_dir"
+                            cd "$web_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                             docker_compose down_all
                             ldnmp_uninstall_certbot
                             uninstall_ngx_logrotate
                             rm -rf "$web_dir"
                             _green "LDNMP环境已卸载并清除相关依赖"
                         elif docker inspect "nginx" >/dev/null 2>&1 && [ -d "$nginx_dir" ]; then
-                            cd "$web_dir"
+                            cd "$web_dir" || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                             docker_compose down_all
                             ldnmp_uninstall_certbot
                             uninstall_ngx_logrotate
@@ -3961,7 +4205,8 @@ linux_ldnmp() {
     done
 }
 
-# =============== 系统工具START ===============
+## 系统工具
+
 restart_ssh() {
     restart sshd ssh >/dev/null 2>&1
 }
@@ -4003,10 +4248,12 @@ bak_dns() {
     local backupdns_config="/etc/resolv.conf.bak"
 
     # 检查源文件是否存在并执行备份
-    [[ -f "$dns_config" ]] && cp "$dns_config" "$backupdns_config" || _red "DNS配置文件不存在"
-
-    # 检查备份是否成功
-    [ $? -ne 0 ] && _red "备份DNS配置文件失败"
+    if [[ -f "$dns_config" ]]; then
+        cp "$dns_config" "$backupdns_config" || { _red "备份DNS配置文件失败"; return 1; }
+    else
+        _red "DNS配置文件不存在"
+        return 1
+    fi
 }
 
 set_dns() {
@@ -4019,8 +4266,6 @@ set_dns() {
     local tencent_ipv4="183.60.83.19"
     local ali_ipv6="2400:3200::1"
     local tencent_ipv6="2400:da00::6666"
-
-    local ipv6_addresses
 
     if [[ "$country" == "CN" ]];then
         {
@@ -4051,7 +4296,11 @@ rollbak_dns() {
 
     # 查找备份文件并执行恢复操作
     if [[ -f "$backupdns_config" ]]; then
-        cp "$backupdns_config" "$dns_config" && rm -f "$backupdns_config" || _red "恢复或删除文件失败"
+        if cp "$backupdns_config" "$dns_config"; then
+            rm -f "$backupdns_config"
+        else
+            _red "恢复文件失败"
+        fi
     else
         _red "未找到DNS配置文件备份"
     fi
@@ -4059,9 +4308,17 @@ rollbak_dns() {
 
 dns_lock() {
     if lsattr /etc/resolv.conf | grep -qi 'i'; then
-        chattr -i /etc/resolv.conf && _green "DNS文件已解锁，可以被修改" || _red "解锁DNS文件失败"
+        if chattr -i /etc/resolv.conf; then
+            _green "DNS文件已解锁，可以被修改"
+        else
+            _red "解锁DNS文件失败"
+        fi
     else
-        chattr +i /etc/resolv.conf && _green "DNS 文件已锁定，防止其他服务修改" || _red "锁定DNS文件失败"
+        if chattr +i /etc/resolv.conf; then
+            _green "DNS 文件已锁定，防止其他服务修改"
+        else
+            _red "锁定DNS文件失败"
+        fi
     fi
 }
 
@@ -4078,9 +4335,9 @@ reinstall_system() {
 
     script_bin456789() {
         if [[ "$country" == "CN" ]];then
-            curl -fsL -O https://jihulab.com/bin456789/reinstall/-/raw/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+            curl -fsL -O https://jihulab.com/bin456789/reinstall/-/raw/main/reinstall.sh || wget -O reinstall.sh "$_" && chmod +x reinstall.sh
         else
-            curl -fsL -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh $_ && chmod +x reinstall.sh
+            curl -fsL -O https://raw.githubusercontent.com/bin456789/reinstall/main/reinstall.sh || wget -O reinstall.sh "$_" && chmod +x reinstall.sh
         fi
     }
 
@@ -4118,7 +4375,7 @@ reinstall_system() {
     local choice
     while true; do
         need_root
-        clear
+        clear_screen
         echo -e "${red}注意: ${white}重装有风险失联，不放心者慎用重装预计花费15分钟，请提前备份数据！"
         _blue "感谢MollyLau大佬和bin456789大佬的脚本支持！"
         short_separator
@@ -4134,7 +4391,7 @@ reinstall_system() {
         echo "23. Alma Linux 9              24. Alma Linux 8"
         echo "25. Oracle Linux 9            26. Oracle Linux 8"
         echo "27. Fedora Linux 41           28. Fedora Linux 40"
-        echo "29. CentOS 9                  30. CentOS 7"
+        echo "29. CentOS 10                 30. CentOS 7"
         short_separator
         echo "31. Alpine Linux              32. Arch Linux"
         echo "33. Kali Linux                34. openEuler"
@@ -4202,55 +4459,55 @@ reinstall_system() {
                 ;;
             21)
                 reinstall_linux_bin456789
-                bash reinstall.sh rocky 9
+                bash reinstall.sh rocky 9 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             22)
                 reinstall_linux_bin456789
-                bash reinstall.sh rocky 8
+                bash reinstall.sh rocky 8 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             23)
                 reinstall_linux_bin456789
-                bash reinstall.sh almalinux 9
+                bash reinstall.sh almalinux 9 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             24)
                 reinstall_linux_bin456789
-                bash reinstall.sh almalinux 8
+                bash reinstall.sh almalinux 8 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             25)
                 reinstall_linux_bin456789
-                bash reinstall.sh oracle 9
+                bash reinstall.sh oracle 9 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             26)
                 reinstall_linux_bin456789
-                bash reinstall.sh oracle 8
+                bash reinstall.sh oracle 8 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             27)
                 reinstall_linux_bin456789
-                bash reinstall.sh fedora 41
+                bash reinstall.sh fedora 41 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             28)
                 reinstall_linux_bin456789
-                bash reinstall.sh fedora 40
+                bash reinstall.sh fedora 40 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             29)
                 reinstall_linux_bin456789
-                bash reinstall.sh centos 9
+                bash reinstall.sh centos 10 --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
@@ -4268,31 +4525,31 @@ reinstall_system() {
                 ;;
             32)
                 reinstall_linux_bin456789
-                bash reinstall.sh arch
+                bash reinstall.sh arch --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             33)
                 reinstall_linux_bin456789
-                bash reinstall.sh kali
+                bash reinstall.sh kali --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             34)
                 reinstall_linux_bin456789
-                bash reinstall.sh openeuler
+                bash reinstall.sh openeuler --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             35)
                 reinstall_linux_bin456789
-                bash reinstall.sh opensuse
+                bash reinstall.sh opensuse --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
             36)
                 reinstall_linux_bin456789
-                bash reinstall.sh gentoo
+                bash reinstall.sh gentoo --password 123@@@ --ssh-port 22
                 reboot
                 exit
                 ;;
@@ -4310,16 +4567,18 @@ reinstall_system() {
                 ;;
             43)
                 reinstall_win_bin456789
-                local web_content=$(wget -q -O - "https://massgrave.dev/windows_7_links")
-                local iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_7.*professional.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
+                local web_content iso_link
+                web_content=$(wget -q -O - "https://massgrave.dev/windows_7_links")
+                iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_7.*professional.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows 7 PROFESSIONAL'
                 reboot
                 exit
                 ;;
             44)
                 reinstall_win_bin456789
-                local web_content=$(wget -q -O - "https://massgrave.dev/windows_server_links")
-                local iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_server.*2022.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
+                local web_content iso_link
+                web_content=$(wget -q -O - "https://massgrave.dev/windows_server_links")
+                iso_link=$(echo "$web_content" | awk -F 'href="' '{for(i=2;i<=NF;i++) if ($i ~ /cn.*windows_server.*2022.*x64.*\.iso/) print $i}' | awk -F '"' '{print $1}')
                 bash reinstall.sh windows --iso="$iso_link" --image-name='Windows Server 2022 SERVERDATACENTER'
                 reboot
                 exit
@@ -4439,17 +4698,17 @@ set_timedate() {
     local timezone="$1"
     if grep -q 'Alpine' /etc/issue; then
         install tzdata
-        cp /usr/share/zoneinfo/${timezone} /etc/localtime
+        cp /usr/share/zoneinfo/"${timezone}" /etc/localtime
         hwclock --systohc
     else
-        timedatectl set-timezone ${timezone}
+        timedatectl set-timezone "${timezone}"
     fi
 }
 
 # 用于检查并设置net.core.default_qdisc参数
 set_default_qdisc() {
     local qdisc_control="net.core.default_qdisc"
-    local default_qdisc="fq"
+    # local default_qdisc="fq"
     local config_file="/etc/sysctl.conf"
     local current_value
     local choice
@@ -4533,15 +4792,14 @@ bbr_on() {
 }
 
 xanmod_bbr3() {
-    local choice
+    local choice kernel_version arch
     need_root
-    cd ~
 
     echo "XanMod BBR3管理"
     if dpkg -l | grep -q 'linux-xanmod'; then
         while true; do
-            clear
-            local kernel_version=$(uname -r)
+            clear_screen
+            kernel_version=$(uname -r)
             echo "已安装XanMod的BBRv3内核"
             echo "当前内核版本: $kernel_version"
             echo ""
@@ -4566,7 +4824,7 @@ xanmod_bbr3() {
                     echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
                     # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
-                    local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
+                    kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
 
                     install linux-xanmod-x64v"$kernel_version"
 
@@ -4592,7 +4850,7 @@ xanmod_bbr3() {
         done
     else
         # 未安装则安装
-        clear
+        clear_screen
         echo "请备份数据，将为你升级Linux内核开启XanMod BBR3"
         long_separator
         echo "仅支持Debian/Ubuntu并且仅支持x86_64架构"
@@ -4619,7 +4877,7 @@ xanmod_bbr3() {
                 fi
 
                 # 检查系统架构
-                local arch=$(dpkg --print-architecture)
+                arch=$(dpkg --print-architecture)
                 if [ "$arch" != "amd64" ]; then
                     _red "当前环境不支持，仅支持x86_64架构"
                     end_of
@@ -4636,7 +4894,7 @@ xanmod_bbr3() {
                 echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
 
                 # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
-                local kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
+                kernel_version=$(curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
 
                 install linux-xanmod-x64v"$kernel_version"
 
@@ -4665,7 +4923,7 @@ linux_mirror() {
     need_root
 
     while true; do
-        clear
+        clear_screen
         echo "选择更新源区域"
         echo "接入LinuxMirrors切换系统更新源"
         short_separator
@@ -4797,9 +5055,9 @@ cron_manager() {
     local choice newquest dingshi day weekday hour minute kquest
 
     while true; do
-        clear
+        clear_screen
         check_crontab_installed
-        clear
+        clear_screen
         echo "定时任务列表"
         short_separator
         crontab -l
@@ -4971,7 +5229,6 @@ telegram_bot() {
 
     case $choice in
         [Yy])
-            cd ~
             install tmux bc jq
             check_crontab_installed
 
@@ -5024,9 +5281,9 @@ telegram_bot() {
                 fi
             fi
 
-            source ~/.profile
+            source "$HOME/.profile"
 
-            clear
+            clear_screen
             _green "TG-bot预警系统已启动"
             _yellow "你还可以将${global_script_dir}目录中的TG-check-notify.sh预警文件放到其他机器上直接使用！"
             ;;
@@ -5045,8 +5302,9 @@ redhat_kernel_update() {
         _yellow "导入ELRepo GPG 公钥"
         rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
         # 检测系统版本
-        local os_version=$(rpm -q --qf "%{VERSION}" $(rpm -qf /etc/*release) 2>/dev/null | awk -F '.' '{print $1}')
-        local os_name=$(grep ^ID= /etc/*release | awk -F'=' '{print $2}' | sed 's/"//g')
+        local os_version os_name
+        os_version=$(rpm -q --qf "%{VERSION}" "$(rpm -qf /etc/*release)" 2>/dev/null | awk -F '.' '{print $1}')
+        os_name=$(grep "^ID=" /etc/*release | awk -F'=' '{print $2}' | sed 's/"//g')
         # 确保支持的操作系统上运行
         if [[ "$os_name" != "rhel" && "$os_name" != "centos" && "$os_name" != "rocky" && "$os_name" != "almalinux" && "$os_name" != "oracle" && "$os_name" != "amazon" ]]; then
             _red "不支持的操作系统: $os_name"
@@ -5081,7 +5339,7 @@ redhat_kernel_update() {
 
     if uname -r | grep -q 'elrepo'; then
         while true; do
-            clear
+            clear_screen
             kernel_version=$(uname -r)
             echo "您已安装elrepo内核"
             echo "当前内核版本: $kernel_version"
@@ -5119,7 +5377,7 @@ redhat_kernel_update() {
             esac
         done
     else
-        clear
+        clear_screen
         _yellow "请备份数据，将为你升级Linux内核"
         long_separator
         echo "仅支持红帽系列发行版RedHat/CentOS/Rocky/Almalinux/Oracle/Amazon"
@@ -5318,7 +5576,7 @@ clamav_scan() {
         return 1
     fi
 
-    echo -e "${yellow}正在扫描目录$@ ${white}"
+    echo -e "${yellow}正在扫描目录$* ${white}"
 
     # 构建mount参数
     local mount_params=""
@@ -5333,25 +5591,25 @@ clamav_scan() {
     done
 
     mkdir -p $clamav_dir/log/ >/dev/null 2>&1
-    > $clamav_dir/log/scan.log >/dev/null 2>&1
+    true > "$clamav_dir/log/scan.log" 2>/dev/null
 
     # 执行docker命令
     docker run -it --rm \
         --name clamav \
         --mount source=clam_db,target=/var/lib/clamav \
-        $mount_params \
+        "$mount_params" \
         -v $clamav_dir/log/:/var/log/clamav/ \
         clamav/clamav-debian:latest \
-        clamscan -r --log=/var/log/clamav/scan.log $scan_params
+        clamscan -r --log=/var/log/clamav/scan.log "$scan_params"
 
-    echo -e "${green}$@ 扫描完成 病毒报告存放在${white}$clamav_dir/log/scan.log"
+    echo -e "${green}$* 扫描完成 病毒报告存放在${white}$clamav_dir/log/scan.log"
     _yellow "如果有病毒请在scan.log中搜索FOUND关键字确认病毒位置"
 }
 
 clamav_antivirus() {
     need_root
     while true; do
-        clear
+        clear_screen
         echo "clamav病毒扫描工具"
         short_separator
         echo "clamav是一个开源的防病毒软件工具，主要用于检测和删除各种类型的恶意软件"
@@ -5388,7 +5646,7 @@ clamav_antivirus() {
 
                 install_docker
                 clamav_freshclam
-                clamav_scan $directories
+                clamav_scan "$directories"
                 docker volume rm clam_db >/dev/null 2>&1
                 end_of
                 ;;
@@ -5402,11 +5660,11 @@ clamav_antivirus() {
 file_manage() {
     need_root
     while true; do
-        clear
+        clear_screen
         echo "文件管理器"
         short_separator
         echo "当前路径"
-        echo "$(dirname "$(realpath "$0")")"
+        dirname "$(realpath "$0")"
         short_separator
         ls --color=auto -x
         short_separator
@@ -5426,81 +5684,135 @@ file_manage() {
         read -r choice
 
         case $choice in
-            1)  # 进入目录
+            1)
+                # 进入目录
                 echo -n "请输入目录名: "
                 read -r dirname
                 cd "$dirname" 2>/dev/null || _red "无法进入目录"
                 ;;
-            2)  # 创建目录
+            2)
+                # 创建目录
                 echo -n "请输入要创建的目录名: "
                 read -r dirname
-                mkdir -p "$dirname" && _green "目录已创建" || _red "创建失败"
+                if mkdir -p "$dirname"; then
+                    _green "目录已创建"
+                else
+                    _red "创建失败"
+                fi
                 ;;
-            3)  # 修改目录权限
+            3)
+                # 修改目录权限
                 echo -n "请输入目录名: "
                 read -r dirname
                 echo -n "请输入权限(如755): "
                 read -r perm
-                chmod "$perm" "$dirname" && _green "权限已修改" || _red "修改失败"
+                if chmod "$perm" "$dirname"; then
+                    _green "权限已修改"
+                else
+                    _red "修改失败"
+                fi
                 ;;
-            4)  # 重命名目录
+            4)
+                # 重命名目录
                 echo -n "请输入当前目录名: "
                 read -r current_name
                 echo -n "请输入新目录名: "
                 read -r new_name
-                mv "$current_name" "$new_name" && _green "目录已重命名" || _red "重命名失败"
+                if mv "$current_name" "$new_name"; then
+                    _green "目录已重命名"
+                else
+                    _red "重命名失败"
+                fi
                 ;;
-            5)  # 删除目录
+            5)
+                # 删除目录
                 echo -n "请输入要删除的目录名: "
                 read -r dirname
-                rm -rf "$dirname" && _green "目录已删除" || _red "删除失败"
+                if rm -rf "$dirname"; then
+                    _green "目录已删除"
+                else
+                    _red "删除失败"
+                fi
                 ;;
-            6)  # 返回上一级目录
+            6)
+                # 返回上一级目录
                 cd ..
                 ;;
-            11) # 创建文件
+            11)
+                # 创建文件
                 echo -n "请输入要创建的文件名: "
                 read -r filename
-                touch "$filename" && _green "文件已创建" || _red "创建失败"
+                if touch "$filename"; then
+                    _green "文件已创建"
+                else
+                    _red "创建失败"
+                fi
                 ;;
-            12) # 编辑文件
+            12)
+                # 编辑文件
                 echo -n "请输入要编辑的文件名: "
                 read -r filename
                 install vim
                 vim "$filename"
                 ;;
-            13) # 修改文件权限
+            13)
+                # 修改文件权限
                 echo -n "请输入文件名: "
                 read -r filename
                 echo -n "请输入权限(如 755): "
                 read -r perm
-                chmod "$perm" "$filename" && _green "权限已修改" || _red "修改失败"
+                if chmod "$perm" "$filename"; then
+                    _green "权限已修改"
+                else
+                    _red "修改失败"
+                fi
                 ;;
-            14) # 重命名文件
+            14)
+                # 重命名文件
                 echo -n "请输入当前文件名: "
                 read -r current_name
                 echo -n "请输入新文件名: "
                 read -r new_name
-                mv "$current_name" "$new_name" && _green "文件已重命名" || _red "重命名失败"
+                if mv "$current_name" "$new_name"; then
+                    _green "文件已重命名"
+                else
+                    _red "重命名失败"
+                fi
                 ;;
-            15) # 删除文件
+            15)
+                # 删除文件
                 echo -n "请输入要删除的文件名: "
                 read -r filename
-                rm -f "$filename" && _green "文件已删除" || _red "删除失败"
+                if rm -f "$filename"; then
+                    _green "文件已删除"
+                else
+                    _red "删除失败"
+                fi
                 ;;
-            21) # 压缩文件/目录
+            21)
+                # 压缩文件/目录
                 echo -n "请输入要压缩的文件/目录名: "
                 read -r name
                 install tar
-                tar -czvf "$name.tar.gz" "$name" &&  _green "已压缩为 $name.tar.gz" || _red "压缩失败"
+                if tar -czvf "$name.tar.gz" "$name"; then
+                    _green "已压缩为 $name.tar.gz"
+                else
+                    _red "压缩失败"
+                fi
                 ;;
-            22) # 解压文件/目录
+            22)
+                # 解压文件/目录
                 echo -n "请输入要解压的文件名(.tar.gz): "
                 read -r filename
                 install tar
-                tar -xzvf "$filename" && _green "已解压 $filename" || _red "解压失败"
+                if tar -xzvf "$filename"; then
+                    _green "已解压 $filename"
+                else
+                    _red "解压失败"
+                fi
                 ;;
-            23) # 移动文件或目录
+            23)
+                # 移动文件或目录
                 echo -n "请输入要移动的文件或目录路径: "
                 read -r src_path
                 if [ ! -e "$src_path" ]; then
@@ -5515,9 +5827,14 @@ file_manage() {
                     continue
                 fi
 
-                mv "$src_path" "$dest_path" && _green "文件或目录已移动到 $dest_path" || _red "移动文件或目录失败"
+                if mv "$src_path" "$dest_path"; then
+                    _green "文件或目录已移动到 $dest_path"
+                else
+                    _red "移动文件或目录失败"
+                fi
                 ;;
-            24) # 复制文件目录
+            24)
+                # 复制文件目录
                 echo -n "请输入要复制的文件或目录路径: "
                 read -r src_path
                 if [ ! -e "$src_path" ]; then
@@ -5533,9 +5850,14 @@ file_manage() {
                 fi
 
                 # 使用 -r 选项以递归方式复制目录
-                \cp -r "$src_path" "$dest_path" && _green "文件或目录已复制到 $dest_path" || _red "复制文件或目录失败"
+                if cp -r "$src_path" "$dest_path"; then
+                    _green "文件或目录已复制到 $dest_path"
+                else
+                    _red "复制文件或目录失败"
+                fi
                 ;;
-            25) # 传送文件至远端服务器
+            25)
+                # 传送文件至远端服务器
                 echo -n "请输入要传送的文件路径: "
                 read -r file_to_transfer
                 if [ ! -f "$file_to_transfer" ]; then
@@ -5571,11 +5893,10 @@ file_manage() {
                 sleep 2
 
                 # 使用scp传输文件
-                scp -P "$remote_port" -o StrictHostKeyChecking=no "$file_to_transfer" "$remote_user@$remote_ip:/opt/" <<EOF
+                if scp -P "$remote_port" -o StrictHostKeyChecking=no "$file_to_transfer" "$remote_user@$remote_ip:/opt/" <<EOF
 $remote_password
 EOF
-
-                if [ $? -eq 0 ]; then
+                then
                     _green "文件已传送至远程服务器/opt目录"
                 else
                     _red "文件传送失败"
@@ -5612,7 +5933,7 @@ linux_language() {
                     ;;
                 centos|rhel|almalinux|rocky|fedora)
                     install glibc-langpack-zh
-                    localectl set-locale LANG=${lang}
+                    localectl set-locale LANG="${lang}"
                     echo "LANG=${lang}" | tee /etc/locale.conf
                     echo -e "${green}系统语言已经修改为: $lang 重新连接SSH生效${white}"
                     end_of
@@ -5681,7 +6002,7 @@ shell_colorchange() {
 
     need_root
     while true; do
-        clear
+        clear_screen
         echo "命令行美化工具"
         short_separator
         echo -e "1. \033[1;32mroot \033[1;34mlocalhost \033[1;31m~ \033[0m${white}#"
@@ -5741,22 +6062,21 @@ shell_colorchange() {
 linux_trash() {
     need_root
 
-    local bashrc_profile="/root/.bashrc"
-    local TRASH_DIR="$HOME/.local/share/Trash/files"
+    local trash_dir="$HOME/.local/share/Trash/files"
 
     while true; do
         local trash_status
-        if ! grep -q "trash-put" "$bashrc_profile"; then
+        if ! grep -q "trash-put" "$HOME/.bashrc"; then
             trash_status="${yellow}未启用${white}"
         else
             trash_status="${green}已启用${white}"
         fi
 
-        clear
+        clear_screen
         echo -e "当前回收站 ${trash_status}"
         echo "启用后rm删除的文件先进入回收站，防止误删重要文件！"
         long_separator
-        ls -l --color=auto "$TRASH_DIR" 2>/dev/null || echo "回收站为空"
+        ls -l --color=auto "$trash_dir" 2>/dev/null || echo "回收站为空"
         short_separator
         echo "1. 启用回收站          2. 关闭回收站"
         echo "3. 还原内容            4. 清空回收站"
@@ -5770,26 +6090,26 @@ linux_trash() {
         case $choice in
             1)
                 install trash-cli
-                sed -i '/alias rm/d' "$bashrc_profile"
-                echo "alias rm='trash-put'" >> "$bashrc_profile"
-                source "$bashrc_profile"
-                echo "回收站已启用，删除的文件将移至回收站"
+                sed -i '/alias rm/d' "$HOME/.bashrc"
+                echo "alias rm='trash-put'" >> "$HOME/.bashrc"
+                source "$HOME/.bashrc"
+                _green "回收站已启用，删除的文件将移至回收站"
                 sleep 2
                 ;;
             2)
                 remove trash-cli
-                sed -i '/alias rm/d' "$bashrc_profile"
-                echo "alias rm='rm -i'" >> "$bashrc_profile"
-                source "$bashrc_profile"
-                echo "回收站已关闭，文件将直接删除"
+                sed -i '/alias rm/d' "$HOME/.bashrc"
+                echo "alias rm='rm -i'" >> "$HOME/.bashrc"
+                source "$HOME/.bashrc"
+                _yellow "回收站已关闭，文件将直接删除"
                 sleep 2
                 ;;
             3)
                 echo -n "输入要还原的文件名: "
-                read -r file_to_restore
-                if [ -e "$TRASH_DIR/$file_to_restore" ]; then
-                    mv "$TRASH_DIR/$file_to_restore" "$HOME/"
-                    echo -n -e "$file_to_restore ${green}已还原到主目录${white}"
+                read -r recover
+                if [ -e "$trash_dir/$recover" ]; then
+                    mv "$trash_dir/$recover" "$HOME/"
+                    echo -n -e "$recover ${green}已还原到主目录${white}"
                 else
                     _red "文件不存在"
                 fi
@@ -5820,7 +6140,7 @@ cloudflare_ddns() {
     local choice CFKEY CFUSER CFZONE_NAME CFRECORD_NAME CFRECORD_TYPE CFTTL
 
     while true; do
-        clear
+        clear_screen
         echo "Cloudflare ddns解析"
         short_separator
         if [ -f /usr/local/bin/cf-ddns.sh ] || [ -f ${global_script_dir}/cf-v4-ddns.sh ]; then
@@ -5830,8 +6150,8 @@ cloudflare_ddns() {
             echo -e "${white}Cloudflare ddns: ${yellow}未安装${white}"
             echo "使用动态解析之前请解析一个域名，如ddns.cloudflare.com到你的当前公网IP"
         fi
-        [ ! -z "${ipv4_address}" ] && echo "公网IPv4地址: ${ipv4_address}"
-        [ ! -z "${ipv6_address}" ] && echo "公网IPv6地址: ${ipv6_address}"
+        [ -n "${ipv4_address}" ] && echo "公网IPv4地址: ${ipv4_address}"
+        [ -n "${ipv6_address}" ] && echo "公网IPv6地址: ${ipv6_address}"
         short_separator
         echo "1. 设置DDNS动态域名解析     2. 删除DDNS动态域名解析"
         short_separator
@@ -5979,7 +6299,7 @@ server_reboot() {
 linux_system_tools() {
     local choice
     while true; do
-        clear
+        clear_screen
         echo "▶ 系统工具"
         short_separator
         echo "2. 修改登录密码"
@@ -6042,7 +6362,7 @@ linux_system_tools() {
                     linux_system_tools
                 fi
 
-                if ! grep -q 'export PYENV_ROOT="\$HOME/.pyenv"' ~/.bashrc; then
+                if ! grep -q "export PYENV_ROOT=\"$HOME/.pyenv\"" "$HOME/.bashrc"; then
                     if command -v yum >/dev/null 2>&1; then
                         install git
                         yum groupinstall "Development Tools" -y
@@ -6050,13 +6370,13 @@ linux_system_tools() {
 
                         curl -O https://www.openssl.org/source/openssl-1.1.1u.tar.gz
                         tar -xzf openssl-1.1.1u.tar.gz
-                        cd openssl-1.1.1u
+                        cd openssl-1.1.1u || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                         ./config --prefix=/usr/local/openssl --openssldir=/usr/local/openssl shared zlib
                         make
                         make install
                         echo "/usr/local/openssl/lib" > /etc/ld.so.conf.d/openssl-1.1.1u.conf
                         ldconfig -v
-                        cd ..
+                        cd .. || return 1
 
                         export LDFLAGS="-L/usr/local/openssl/lib"
                         export CPPFLAGS="-I/usr/local/openssl/include"
@@ -6087,13 +6407,13 @@ EOF
                 fi
 
                 sleep 1
-                source ~/.bashrc
+                source "$HOME/.bashrc"
                 sleep 1
-                pyenv install $py_new_v
-                pyenv global $py_new_v
+                pyenv install "$py_new_v"
+                pyenv global "$py_new_v"
 
                 rm -rf /tmp/python-build.*
-                rm -rf $(pyenv root)/cache/*
+                rm -rf "$(pyenv root)/cache/"*
 
                 VERSION=$(python -V 2>&1 | awk '{print $2}')
                 echo -e "当前Python版本号: ${yellow}$VERSION${white}"
@@ -6108,7 +6428,7 @@ EOF
                 need_root
 
                 while true; do
-                    clear
+                    clear_screen
 
                     sed -i 's/#Port/Port/' /etc/ssh/sshd_config
 
@@ -6143,7 +6463,7 @@ EOF
             7)
                 need_root
                 while true; do
-                    clear
+                    clear_screen
                     echo "优化DNS地址"
                     short_separator
                     echo "当前DNS地址"
@@ -6237,7 +6557,7 @@ EOF
                 ;;
             10)
                 while true; do
-                    clear
+                    clear_screen
                     echo "设置v4/v6优先级"
                     short_separator
                     ipv6_disabled=$(sysctl -n net.ipv6.conf.all.disable_ipv6)
@@ -6277,19 +6597,18 @@ EOF
                 done
                 ;;
             11)
-                clear
+                clear_screen
                 ss -tulnape
                 ;;
             12)
                 need_root
                 while true; do
-                    clear
+                    clear_screen
                     echo "设置虚拟内存"
                     # 获取当前虚拟内存使用情况
-                    swap_used=$(free -m | awk 'NR==3{print $3}')
+                    # swap_used=$(free -m | awk 'NR==3{print $3}')
                     swap_total=$(free -m | awk 'NR==3{print $2}')
                     swap_info=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {percentage=0} else {percentage=used*100/total}; printf "%dMB/%dMB (%d%%)", used, total, percentage}')
-
                     _yellow "当前虚拟内存: ${swap_info}"
                     short_separator
                     echo "1. 分配1024MB         2. 分配2048MB         3. 自定义大小         0. 退出"
@@ -6332,12 +6651,11 @@ EOF
                     echo "用户列表"
                     long_separator
                     printf "%-24s %-34s %-20s %-10s\n" "用户名" "用户权限" "用户组" "sudo权限"
-                    while IFS=: read -r username _ userid groupid _ _ homedir shell; do
+                    while IFS=: read -r username _ _ _ _ homedir _; do
                         groups=$(groups "$username" | cut -d : -f 2)
                         sudo_status=$(sudo -n -lU "$username" 2>/dev/null | grep -q '(ALL : ALL)' && echo "Yes" || echo "No")
                         printf "%-20s %-30s %-20s %-10s\n" "$username" "$homedir" "$groups" "$sudo_status"
                     done < /etc/passwd
-
                     echo ""
                     echo "账户操作"
                     short_separator
@@ -6406,7 +6724,7 @@ EOF
                 done
                 ;;
             14)
-                clear
+                clear_screen
                 echo "随机用户名"
                 short_separator
                 for i in {1..5}; do
@@ -6456,12 +6774,14 @@ EOF
             15)
                 need_root
                 while true; do
-                    clear
+                    clear_screen
                     # 获取当前系统时区
-                    local timezone=$(current_timezone)
+                    local timezone
+                    timezone=$(current_timezone)
 
                     # 获取当前系统时间
-                    local current_time=$(date +"%Y-%m-%d %H:%M:%S")
+                    local current_time
+                    current_time=$(date +"%Y-%m-%d %H:%M:%S")
 
                     # 显示时区和时间
                     _yellow "当前系统时区:$timezone"
@@ -6539,7 +6859,7 @@ EOF
                 need_root
                 while true; do
                     if dpkg -l | grep -q iptables-persistent; then
-                        clear
+                        clear_screen
                         echo "高级防火墙管理"
                         short_separator
                         iptables -L INPUT
@@ -6647,7 +6967,7 @@ EOF
                                 ;;
                         esac
                     else
-                        clear
+                        clear_screen
                         echo "将为你安装防火墙，该防火墙仅支持Debian/Ubuntu"
                         short_separator
                         echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
@@ -6656,6 +6976,7 @@ EOF
                         case $choice in
                             [Yy])
                                 if [ -r /etc/os-release ]; then
+                                    # shellcheck source=/dev/null
                                     . /etc/os-release
                                     if [ "$ID" != "debian" ] && [ "$ID" != "ubuntu" ]; then
                                         echo "当前环境不支持，仅支持Debian和Ubuntu系统"
@@ -6667,7 +6988,7 @@ EOF
                                     break
                                 fi
 
-                                clear
+                                clear_screen
                                 iptables_open
                                 remove iptables-persistent ufw
                                 rm -f /etc/iptables/rules.v4
@@ -6703,7 +7024,7 @@ EOF
             18)
                 need_root
                 while true; do
-                    clear
+                    clear_screen
                     current_hostname=$(hostname)
                     echo -e "当前主机名: $current_hostname"
                     short_separator
@@ -6751,7 +7072,7 @@ EOF
             21)
                 need_root
                 while true; do
-                    clear
+                    clear_screen
                     echo "本机host解析列表"
                     echo "如果你在这里添加解析匹配，将不再使用动态解析了"
                     cat /etc/hosts
@@ -6792,7 +7113,7 @@ EOF
                 need_root
                 while true; do
                     if docker inspect fail2ban >/dev/null 2>&1 ; then
-                    	clear
+                    	clear_screen
                     	echo "SSH防御程序已启动"
                     	short_separator
                     	echo "1. 查看SSH拦截记录"
@@ -6818,7 +7139,7 @@ EOF
                                 break
                                 ;;
                     		9)
-                                cd /data/docker_data/fail2ban
+                                cd /data/docker_data/fail2ban || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                                 docker_compose down_all
 
                                 [ -d /data/docker_data/fail2ban ] && rm -rf /data/docker_data/fail2ban
@@ -6831,7 +7152,7 @@ EOF
                                 ;;
                     	esac
                     elif [ -x "$(command -v fail2ban-client)" ] ; then
-                    	clear
+                    	clear_screen
                     	echo "卸载旧版fail2ban"
                     	echo -n -e "${yellow}确定继续吗? (y/n): ${white}"
                     	read -r choice
@@ -6849,7 +7170,7 @@ EOF
                                 ;;
                     	esac
                     else
-                    	clear
+                    	clear_screen
                     	echo "fail2ban是一个SSH防止暴力破解工具"
                     	echo "官网介绍: https://github.com/fail2ban/fail2ban"
                     	long_separator
@@ -6860,11 +7181,10 @@ EOF
 
                     	case $choice in
                     		[Yy])
-                                clear
+                                clear_screen
                                 install_docker
                                 fail2ban_install_sshd
 
-                                cd ~
                                 fail2ban_status
                                 _green "Fail2Ban防御程序已开启"
                                 end_of
@@ -6881,7 +7201,7 @@ EOF
                 need_root
                 set_script_dir
                 while true; do
-                    clear
+                    clear_screen
                     echo "限流关机功能"
                     long_separator
                     echo "当前流量使用情况，重启服务器流量计算会清零！"
@@ -6891,8 +7211,9 @@ EOF
                     # 检查是否存在limitoff.sh文件
                     if [ -f ${global_script_dir}/limitoff.sh ]; then
                         # 获取threshold_gb的值
-                        local rx_threshold_gb=$(sed -n 's/.*rx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
-                        local tx_threshold_gb=$(sed -n 's/.*tx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
+                        local rx_threshold_gb tx_threshold_gb
+                        rx_threshold_gb=$(sed -n 's/.*rx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
+                        tx_threshold_gb=$(sed -n 's/.*tx_threshold_gb=\([0-9]\+\).*/\1/p' "${global_script_dir}/limitoff.sh")
                         echo -e "${green}当前设置的进站限流阈值为: ${yellow}${rx_threshold_gb}${green}GB${white}"
                         echo -e "${green}当前设置的出站限流阈值为: ${yellow}${tx_threshold_gb}${green}GB${white}"
                     else
@@ -6917,13 +7238,13 @@ EOF
                             read -r reset_day
                             reset_day=${reset_day:-1}
 
-                            cd ${global_script_dir}
+                            cd ${global_script_dir} || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                             curl -fsL -O "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/limitoff.sh"
                             chmod +x ${global_script_dir}/limitoff.sh
                             sed -i "s/110/$rx_threshold_gb/g" ${global_script_dir}/limitoff.sh
                             sed -i "s/120/$tx_threshold_gb/g" ${global_script_dir}/limitoff.sh
                             check_crontab_installed
-                            crontab -l | grep -v '${global_script_dir}/limitoff.sh' | crontab -
+                            crontab -l | grep -v "${global_script_dir}/limitoff.sh" | crontab -
                             (crontab -l ; echo "* * * * * ${global_script_dir}/limitoff.sh") | crontab - >/dev/null 2>&1
                             crontab -l | grep -v 'reboot' | crontab -
                             (crontab -l ; echo "0 1 $reset_day * * reboot") | crontab - >/dev/null 2>&1
@@ -6931,7 +7252,7 @@ EOF
                             ;;
                         2)
                             check_crontab_installed
-                            crontab -l | grep -v '${global_script_dir}/limitoff.sh' | crontab -
+                            crontab -l | grep -v "${global_script_dir}/limitoff.sh" | crontab -
                             crontab -l | grep -v 'reboot' | crontab -
                             rm -f ${global_script_dir}/limitoff.sh
                             _green "限流关机已卸载"
@@ -6952,7 +7273,7 @@ EOF
 
                 case $choice in
                     [Yy])
-                        clear
+                        clear_screen
                         add_sshkey
                         ;;
                     [Nn])
@@ -6968,7 +7289,6 @@ EOF
                 ;;
             26)
                 need_root
-                cd ~
                 curl -fsL -o "upgrade_openssh.sh" "${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/upgrade_ssh.sh"
                 chmod +x upgrade_openssh.sh
                 ./upgrade_openssh.sh
@@ -6980,7 +7300,7 @@ EOF
             28)
                 need_root
                 while true; do
-                    clear
+                    clear_screen
                     echo "Linux系统内核参数优化"
                     long_separator
                     echo "提供多种系统参数调优模式,用户可以根据自身使用场景进行选择切换"
@@ -7001,36 +7321,30 @@ EOF
 
                     case $choice in
                         1)
-                            cd ~
-                            clear
+                            clear_screen
                             optimization_mode="高性能优化模式"
                             optimize_high_performance
                             ;;
                         2)
-                            cd ~
-                            clear
+                            clear_screen
                             optimize_balanced
                             ;;
                         3)
-                            cd ~
-                            clear
+                            clear_screen
                             optimize_web_server
                             ;;
                         4)
-                            cd ~
-                            clear
+                            clear_screen
                             optimization_mode="直播优化模式"
                             optimize_high_performance
                             ;;
                         5)
-                            cd ~
-                            clear
+                            clear_screen
                             optimization_mode="游戏服优化模式"
                             optimize_high_performance
                             ;;
                         6)
-                            cd ~
-                            clear
+                            clear_screen
                             restore_defaults
                             ;;
                         0)
@@ -7083,7 +7397,7 @@ EOF
 
                 case $choice in
                     [Yy])
-                        clear
+                        clear_screen
                         long_separator
                         linux_update
                         echo -e "[${green}OK${white}] 1/10. 更新系统到最新"
@@ -7130,7 +7444,7 @@ EOF
                 esac
                 ;;
             99)
-                clear
+                clear_screen
                 server_reboot
                 ;;
             0)
@@ -7144,17 +7458,16 @@ EOF
     done
 }
 
-# =============== 工作区START ===============
+## 工作区
+
 tmux_run() {
     # 检查会话是否已经存在
-    tmux has-session -t $session_name 2>/dev/null
-    # $?是一个特殊变量,保存上一个命令的退出状态
-    if [ $? != 0 ]; then
+    if ! tmux has-session -t "$session_name" 2>/dev/null; then
         # 会话不存在,创建一个新的会话
-        tmux new -s $session_name
+        tmux new -s "$session_name"
     else
         # 会话存在附加到这个会话
-        tmux attach-session -t $session_name
+        tmux attach-session -t "$session_name"
     fi
 }
 
@@ -7164,7 +7477,7 @@ tmux_run_d() {
 
     # 检查会话是否存在的函数
     session_exists() {
-        tmux has-session -t $1 2>/dev/null
+        tmux has-session -t "$1" 2>/dev/null
     }
 
     # 循环直到找到一个不存在的会话名称
@@ -7178,7 +7491,7 @@ tmux_run_d() {
 
 linux_workspace() {
     while true; do
-        clear
+        clear_screen
         echo "▶ 我的工作区"
         echo "系统将为你提供可以后台常驻运行的工作区，你可以用来执行长时间的任务"
         echo "即使你断开SSH，工作区中的任务也不会中断，后台常驻任务"
@@ -7206,68 +7519,68 @@ linux_workspace() {
 
         case $choice in
             1)
-                clear
+                clear_screen
                 install tmux
                 session_name="work1"
                 tmux_run
                 ;;
             2)
-                clear
+                clear_screen
                 install tmux
                 session_name="work2"
                 tmux_run
                 ;;
             3)
-                clear
+                clear_screen
                 install tmux
                 session_name="work3"
                 tmux_run
                 ;;
             4)
-                clear
+                clear_screen
                 install tmux
                 session_name="work4"
                 tmux_run
                 ;;
             5)
-                clear
+                clear_screen
                 install tmux
                 session_name="work5"
                 tmux_run
                 ;;
             6)
-                clear
+                clear_screen
                 install tmux
                 session_name="work6"
                 tmux_run
                 ;;
             7)
-                clear
+                clear_screen
                 install tmux
                 session_name="work7"
                 tmux_run
                 ;;
             8)
-                clear
+                clear_screen
                 install tmux
                 session_name="work8"
                 tmux_run
                 ;;
             9)
-                clear
+                clear_screen
                 install tmux
                 session_name="work9"
                 tmux_run
                 ;;
             10)
-                clear
+                clear_screen
                 install tmux
                 session_name="work10"
                 tmux_run
                 ;;
             98)
                 while true; do
-                    clear
+                    clear_screen
                     if grep -q 'tmux attach-session -t sshd || tmux new-session -s sshd' ~/.bashrc; then
                         tmux_sshd_status="${green}开启${white}"
                     else
@@ -7288,8 +7601,8 @@ linux_workspace() {
                         1)
                             install tmux
                             session_name="sshd"
-                            grep -q "tmux attach-session -t sshd" ~/.bashrc || echo -e "\n# 自动进入 tmux 会话\nif [[ -z \"\$TMUX\" ]]; then\n    tmux attach-session -t sshd || tmux new-session -s sshd\nfi" >> ~/.bashrc
-                            source ~/.bashrc
+                            grep -q "tmux attach-session -t sshd" "$HOME/.bashrc" || echo -e "\n# 自动进入 tmux 会话\nif [[ -z \"\$TMUX\" ]]; then\n    tmux attach-session -t sshd || tmux new-session -s sshd\nfi" >> "$HOME/.bashrc"
+                            source "$HOME/.bashrc"
                             tmux_run
                             ;;
                         2)
@@ -7307,7 +7620,7 @@ linux_workspace() {
                 ;;
             99)
                 while true; do
-                    clear
+                    clear_screen
                     echo "当前已存在的工作区列表"
                     short_separator
                     tmux list-sessions
@@ -7358,12 +7671,13 @@ linux_workspace() {
     done
 }
 
-# =============== VPS测试脚本START ===============
+## VPS测试脚本
+
 servertest_script() {
     need_root
     local choice
     while true; do
-        clear
+        clear_screen
         echo "▶ 测试脚本合集"
         short_separator
         _yellow "IP及解锁状态检测"
@@ -7402,50 +7716,50 @@ servertest_script() {
 
         case $choice in
             1)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://github.com/missuo/OpenAI-Checker/raw/main/openai.sh)
                 ;;
             2)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/lmc999/RegionRestrictionCheck/main/check.sh)
                 ;;
             3)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://github.com/yeahwu/check/raw/main/check.sh)
                 ;;
             4)
-                clear
+                clear_screen
                 # 原生检测脚本
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/xykt/RegionRestrictionCheck/main/check.sh)
                 ;;
             5)
-                clear
+                clear_screen
                 bash <(curl -Ls ${github_proxy}https://raw.githubusercontent.com/xykt/IPQuality/main/ip.sh)
                 ;;
             6)
-                clear
+                clear_screen
                 bash <(curl -L -s ${github_proxy}https://github.com/1-stream/RegionRestrictionCheck/raw/main/check.sh)
                 ;;
             12)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/besttrace.sh)
                 ;;
             13)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/zhucaidan/mtr_trace/main/mtr_trace.sh)
                 ;;
             14)
-                clear
+                clear_screen
                 bash <(curl -Lso- ${github_proxy}https://raw.githubusercontent.com/uxh/superspeed/master/superspeed.sh)
                 ;;
             15)
-                clear
+                clear_screen
                 curl -sL nxtrace.org/nt | bash
                 # 北上广（电信+联通+移动+教育网）IPv4 / IPv6 ICMP快速测试，使用TCP SYN 而非ICMP进行测试
                 nexttrace --fast-trace --tcp
                 ;;
             16)
-                clear
+                clear_screen
                 echo "Nxtrace指定IP回程测试脚本"
                 echo "可参考的IP列表"
                 short_separator
@@ -7466,45 +7780,45 @@ servertest_script() {
                 echo -n -e "${yellow}输入一个指定IP: ${white}"
                 read -r choice
                 curl -sL nxtrace.org/nt | bash
-                nexttrace -M $choice
+                nexttrace -M "$choice"
                 ;;
             17)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://github.com/honeok/cross/raw/master/backtrace.sh) -d
                 ;;
             18)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/i-abc/Speedtest/main/speedtest.sh)
                 ;;
             19)
-                clear
+                clear_screen
                 install wget
                 wget -N --no-check-certificate ${github_proxy}https://raw.githubusercontent.com/Chennhaoo/Shell_Bash/master/AutoTrace.sh && chmod +x AutoTrace.sh && bash AutoTrace.sh
                 ;;
             25)
-                clear
+                clear_screen
                 check_swap
                 curl -sL ${github_proxy}https://github.com/masonr/yet-another-bench-script/raw/master/yabs.sh | bash -s -- -i -5
                 ;;
             26)
-                clear
+                clear_screen
                 check_swap
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/i-abc/GB5/main/gb5-test.sh)
                 ;;
             30)
-                clear
+                clear_screen
                 bash <(curl -Lso- ${github_proxy}https://github.com/teddysun/across/raw/master/bench.sh)
                 ;;
             31)
-                clear
+                clear_screen
                 curl -sL ${github_proxy}https://github.com/spiritLHLS/ecs/raw/main/ecs.sh -o ecs.sh && chmod +x ecs.sh && bash ecs.sh
                 ;;
             32)
-                clear
+                clear_screen
                 curl -fsL ${github_proxy}https://raw.githubusercontent.com/LemonBench/LemonBench/main/LemonBench.sh | bash -s -- --fast
                 ;;
             33)
-                clear
+                clear_screen
                 bash <(curl -sL ${github_proxy}https://raw.githubusercontent.com/LloydAsp/NodeBench/main/NodeBench.sh)
                 ;;
             0)
@@ -7518,10 +7832,11 @@ servertest_script() {
     done
 }
 
-# =============== 节点搭建脚本START ===============
+## 节点搭建
+
 node_create() {
     if [[ "$country" == "CN" ]];then
-        clear
+        clear_screen
         _err_msg "$(_red '时刻铭记上网三要素:不评政治、不谈宗教、不碰黄賭毒，龙的传人需自律')"
         _err_msg "$(_red '本功能所提供的内容已触犯你的IP所在地相关法律法规请绕行！')"
         end_of
@@ -7530,7 +7845,7 @@ node_create() {
 
     local choice
     while true; do
-        clear
+        clear_screen
         echo "▶ 节点搭建脚本合集"
         short_separator
         _yellow "Sing-box多合一脚本/Argo隧道"
@@ -7569,98 +7884,101 @@ node_create() {
 
         case $choice in
             1)
-                clear
+                clear_screen
                 install wget
                 bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/sing-box/main/sing-box.sh) -c
                 ;;
             3)
-                clear
+                clear_screen
                 bash <(curl -Ls https://raw.githubusercontent.com/FranzKafkaYu/sing-box-yes/master/install.sh)
                 ;;
             5)
-                clear
+                clear_screen
                 install wget
                 bash <(wget -qO- -o- https://github.com/233boy/sing-box/raw/main/install.sh)
                 ;;
             6)
-                clear
+                clear_screen
                 install wget
                 bash <(wget -qO- -o- https://git.io/v2ray.sh)
                 ;;
             7)
-                clear
+                clear_screen
                 install wget
                 bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh)
                 ;;
             8)
-                clear
+                clear_screen
                 bash <(curl -sL https://raw.githubusercontent.com/dsadsadsss/vps-argo/main/install.sh)
                 ;;
             9)
-                clear
+                clear_screen
                 install wget
                 bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/sba/main/sba.sh)
                 ;;
             10)
-                clear
+                clear_screen
                 bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sb.sh)
                 ;;
             11)
-                clear
+                clear_screen
                 bash <(curl -fsSL https://github.com/vveg26/sing-box-reality-hysteria2/raw/main/install.sh)
                 ;;
             26)
-                clear
+                clear_screen
                 bash <(curl -Ls https://raw.githubusercontent.com/vaxilu/x-ui/master/install.sh)
                 ;;
             27)
-                clear
+                clear_screen
                 bash <(curl -Ls https://raw.githubusercontent.com/FranzKafkaYu/x-ui/master/install.sh)
                 ;;
             28)
-                clear
+                clear_screen
                 bash <(curl -Ls https://raw.githubusercontent.com/alireza0/x-ui/master/install.sh)
                 ;;
             29)
-                clear
+                clear_screen
                 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
                 ;;
             30)
-                clear
+                clear_screen
                 bash <(curl -Ls https://raw.githubusercontent.com/xeefei/3x-ui/master/install.sh)
                 ;;
             31)
-                clear
+                clear_screen
                 bash <(curl -fsSL https://raw.githubusercontent.com/jonssonyan/h-ui/main/install.sh)
                 ;;
             32)
-                clear
+                clear_screen
                 bash <(curl -fsSL https://raw.githubusercontent.com/Aurora-Admin-Panel/deploy/main/install.sh)
                 ;;
             40)
-                clear
+                clear_screen
                 install wget
                 wget https://git.io/vpn -O openvpn-install.sh && bash openvpn-install.sh
                 ;;
             41)
-                clear
+                clear_screen
                 rm -rf /home/mtproxy >/dev/null 2>&1
-                mkdir /home/mtproxy && cd /home/mtproxy
+                if ! mkdir /home/mtproxy || ! cd /home/mtproxy; then
+                    _err_msg "$(_red '切换目录失败！')"
+                    return 1
+                fi
                 curl -fsSL -o mtproxy.sh https://github.com/ellermister/mtproxy/raw/master/mtproxy.sh && chmod +x mtproxy.sh && bash mtproxy.sh
                 sleep 1
                 ;;
             50)
-                clear
+                clear_screen
                 install wget
                 wget --no-check-certificate -O gost.sh https://raw.githubusercontent.com/KANIKIG/Multi-EasyGost/master/gost.sh && chmod +x gost.sh && ./gost.sh
                 ;;
             51)
-                clear
+                clear_screen
                 install wget
                 wget --no-check-certificate -O gost.sh https://raw.githubusercontent.com/qqrrooty/EZgost/main/gost.sh && chmod +x gost.sh && ./gost.sh
                 ;;
             52)
-                clear
+                clear_screen
                 bash <(curl -L https://raw.githubusercontent.com/zhouh047/realm-oneclick-install/main/realm.sh) -i
                 ;;
             0)
@@ -7674,10 +7992,11 @@ node_create() {
     done
 }
 
-# =============== 甲骨文START ===============
+## 甲骨文
+
 oracle_script() {
     while true; do
-        clear
+        clear_screen
         echo "▶ 甲骨文云脚本合集"
         short_separator
         echo "1. 安装闲置机器活跃脚本"
@@ -7697,7 +8016,7 @@ oracle_script() {
 
         case $choice in
             1)
-                clear
+                clear_screen
                 _yellow "活跃脚本: CPU占用10-20% 内存占用20%"
                 echo -n -e "${yellow}确定安装吗? (y/n): ${white}"
                 read -r ins
@@ -7747,13 +8066,13 @@ oracle_script() {
                 esac
                 ;;
             2)
-                clear
+                clear_screen
                 docker rm -f lookbusy >/dev/null 2>&1
                 docker rmi -f fogforest/lookbusy:latest >/dev/null 2>&1
                 _green "成功卸载甲骨文活跃脚本"
                 ;;
             3)
-                clear
+                clear_screen
                 _yellow "重装系统"
                 short_separator
                 _yellow "注意: 重装有风险失联，不放心者慎用，重装预计花费15分钟，请提前备份数据！"
@@ -7797,11 +8116,11 @@ oracle_script() {
                 esac
                 ;;
             4)
-                clear
+                clear_screen
                 _yellow "该功能处于开发阶段，敬请期待！"
                 ;;
             5)
-                clear
+                clear_screen
                 add_sshpasswd
                 ;;
             6)
@@ -7819,13 +8138,14 @@ oracle_script() {
     done
 }
 
-# =============== 幻兽帕鲁START ===============
+## 幻兽帕鲁
+
 palworld() {
     need_root
     while true; do
-        clear
+        clear_screen
 
-        if [ -f "~/palworld.sh" ]; then
+        if [ -f "$HOME/palworld.sh" ]; then
             echo -e "${white}幻兽帕鲁脚本: ${green}已安装${white}"
         else
             echo -e "${white}幻兽帕鲁脚本: ${yellow}未安装${white}"
@@ -7845,25 +8165,25 @@ palworld() {
 
         case $choice in
             1)
-                cd ~
+                cd ~ || { _err_msg "$(_red '切换目录失败！')"; return 1; }
                 curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
                 chmod +x palworld.sh
                 ;;
             2)
-                [ -f "~/palworld.sh" ] && rm -f "~/palworld.sh"
+                [ -f "$HOME/palworld.sh" ] && rm -f "$HOME/palworld.sh"
                 [ -L /usr/local/bin/p ] && rm -f /usr/local/bin/p
 
-                if [ ! -f "~/palworld.sh" ] && [ ! -L /usr/local/bin/p ]; then
+                if [ ! -f "$HOME/palworld.sh" ] && [ ! -L /usr/local/bin/p ]; then
                     _red "幻兽帕鲁开服脚本未安装"
                 fi
                 ;;
             3)
-                if [ -f "~/palworld.sh" ]; then
-                    bash "~/palworld.sh"
+                if [ -f "$HOME/palworld.sh" ]; then
+                    bash "$HOME/palworld.sh"
                 else
                     curl -fsL -O ${github_proxy}https://raw.githubusercontent.com/honeok/Tools/master/palworld.sh
                     chmod +x palworld.sh
-                    bash "~/palworld.sh"
+                    bash "$HOME/palworld.sh"
                 fi
                 ;;
             0)
@@ -7880,10 +8200,11 @@ honeok() {
     local choice
 
     while true; do
-        clear
+        clear_screen
         print_logo
         _purple "适配Ubuntu/Debian/CentOS/Alpine/Kali/Arch/RedHat/Fedora/Alma/Rocky系统"
         echo -e "${cyan}Author: honeok${white}  ${yellow}${honeok_v}${white}"
+        statistics_runtime
         short_separator
         echo "1.   系统信息查询"
         echo "2.   系统更新"
@@ -7909,23 +8230,59 @@ honeok() {
         read -r choice
 
         case $choice in
-            1) clear; system_info ;;
-            2) clear; linux_update ;;
-            3) clear; linux_clean ;;
-            4) linux_tools ;;
-            5) linux_bbr ;;
-            6) docker_manager ;;
-            7) clear; install wget; wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh [option] [license/url/token] ;;
-            8) linux_ldnmp ;;
-            13) linux_system_tools ;;
-            14) linux_workspace ;;
-            15) servertest_script ;;
-            16) node_create ;;
-            17) oracle_script ;;
-            p) palworld ;;
-            0) _orange "Bye!"&& sleep 1 && clear && cleanup_exit
-               exit 0 ;;
-            *) _red "无效选项，请重新输入" ;;
+            1)
+                clear_screen
+                system_info
+                ;;
+            2)
+                clear_screen
+                linux_update
+                ;;
+            3)
+                clear_screen
+                linux_clean
+                ;;
+            4)
+                linux_tools
+                ;;
+            5)
+                linux_bbr
+                ;;
+            6)
+                docker_manager
+                ;;
+            7)
+                clear_screen
+                warp_manager
+                ;;
+            8)
+                linux_ldnmp
+                ;;
+            13)
+                linux_system_tools
+                ;;
+            14)
+                linux_workspace
+                ;;
+            15)
+                servertest_script
+                ;;
+            16)
+                node_create
+                ;;
+            17)
+                oracle_script
+                ;;
+            p)
+                palworld
+                ;;
+            0)
+                _orange "Bye!" && sleep 1 && clear_screen && cleanup_exit
+                exit 0
+                ;;
+            *)
+                _red "无效选项，请重新输入"
+                ;;
         esac
         end_of
     done
