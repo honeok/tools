@@ -37,10 +37,16 @@ fi
 
 # 清理dpkg锁文件
 fix_dpkg() {
-    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for i in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
-        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
+    local lockfiles=('/var/lib/dpkg/lock' '/var/lib/dpkg/lock-frontend')
+
+    pkill -15 -x apt dpkg || pkill -9 -x apt dpkg
+
+    for file in "${lockfiles[@]}"; do
+        if [ -f "$file" ]; then
+            rm -f "$file" >/dev/null 2>&1
+        fi
     done
+
     dpkg --configure -a
 }
 
