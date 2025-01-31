@@ -874,10 +874,16 @@ set_script_dir() {
 
 # 修复dpkg中断问题
 fix_dpkg() {
-    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for lock in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
-        [ -f "$lock" ] && rm -f "$lock" >/dev/null 2>&1
+    local lockfiles=('/var/lib/dpkg/lock' '/var/lib/dpkg/lock-frontend')
+
+    pkill -15 -x apt dpkg || pkill -9 -x apt dpkg
+
+    for lockfile in "${lockfiles[@]}"; do
+        if [ -f "$lockfile" ]; then
+            rm -f "$lockfile" >/dev/null 2>&1
+        fi
     done
+
     dpkg --configure -a
 }
 
