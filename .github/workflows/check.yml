@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches:
+      - master
     paths:
       - '*.sh'
       - '**/*.sh'
@@ -11,33 +13,16 @@ on:
       - '**/*.sh'
   workflow_dispatch:
 
-permissions:
-  contents: write
-  actions: write
-
 jobs:
   shellcheck:
+    name: Shellcheck
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.6
+        uses: actions/checkout@v4.2.0
 
-      - name: Install shellcheck
-        run: |
-          if ! command -v shellcheck >/dev/null 2>&1; then
-            sudo apt-get update && sudo apt-get install shellcheck -y
-          fi
-      - name: Lint changed *.sh files
-        run: |
-          # 遍历所有.sh文件
-          find . -type f -name "*.sh" -exec shellcheck {} \;
-
-      - name: Delete old workflow runs
-        uses: Mattraks/delete-workflow-runs@v2.0.6
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
         with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          retain_days: 0
-          keep_minimum_runs: 0
-          delete_run_by_conclusion_pattern: "cancelled, skipped, success"
+          files: '**/*.sh'
