@@ -3,7 +3,7 @@
 # Description: Automates the backup process of website data for the LDNMP (Linux, Docker, Nginx, MySQL, PHP) stack.
 #              This script ensures the regular backup of web-related files, protecting the integrity of the website's data.
 #
-# Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
+# Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 #
 # License Information:
 # This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +20,7 @@
 cd /data/docker_data/web && tar czvf "web_$(date +"%Y%m%d%H%M%S").tar.gz" .
 
 # 将归档传输到另一台VPS的/opt目录
-cd /data/docker_data/web && find /data/docker_data/web -name "*.tar.gz" -type f -print0 | xargs -0 ls -1t | head -n 1 | xargs -0 -I {} sshpass -p 123456 scp -o StrictHostKeyChecking=no -P 22 {} root@0.0.0.0:/opt/
+find . -name "*.tar.gz" -type f -print0 | xargs -0 ls -1t | head -n 1 | xargs -0 -I {} sshpass -p 123456 scp -o StrictHostKeyChecking=no -P 22 {} root@0.0.0.0:/opt/
 
 # 保留最新的5个归档，删除其余的
-cd /data/docker_data/web && find /data/docker_data/web -name "*.tar.gz" -type f -print0 | xargs -0 ls -1t | tail -n +6 | xargs -0 rm -f
+find . -name "*.tar.gz" -type f -print0 | xargs -0 ls -1t | tail -n +6 | xargs -0 rm -f
