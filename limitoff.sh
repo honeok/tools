@@ -2,9 +2,20 @@
 #
 # Description: Automatically shuts down the server when rate-limiting is triggered.
 #
-# Forked and modified from Kejilion's script.
+# Forked and Modified By: Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 #
-# Copyright (C) 2024 honeok <honeok@duck.com>
+# Original Project: https://github.com/kejilion/sh
+#
+# License Information:
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License, version 3 or later.
+#
+# This program is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
 rx_threshold_gb=110
 tx_threshold_gb=120
