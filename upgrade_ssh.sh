@@ -2,16 +2,27 @@
 #
 # Description: openssh high risk vulnerability repair.
 #
-# Forked and modified from Kejilion's script.
+# Forked and Modified By: Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 #
-# Copyright (C) 2024 honeok <honeok@duck.com>
+# Original Project: https://github.com/kejilion/sh
+#
+# License Information:
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License, version 3 or later.
+#
+# This program is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
 export DEBIAN_FRONTEND=noninteractive
 
 separator() { printf "%-15s\n" "-" | sed 's/\s/-/g'; }
 
 if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
-    cd /root >/dev/null 2>&1
+    cd /root >/dev/null 2>&1 || { echo '切换目录失败！'; return 1; }
 fi
 
 # 期望的ssh版本
@@ -19,17 +30,23 @@ desired_ssh_version="9.9p1"
 
 # 获取操作系统类型
 if [ -f /etc/os-release ]; then
-    . /etc/os-release && system_id=$ID
+    system_id=$(awk -F= '$1=="ID"{gsub(/"/,"",$2); print $2}' /etc/os-release)
 else
     echo "无法检测操作系统类型" && exit 1
 fi
 
 # 清理dpkg锁文件
 fix_dpkg() {
-    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for i in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
-        [ -f "$i" ] && rm -f "$i" >/dev/null 2>&1
+    local lockfiles=('/var/lib/dpkg/lock' '/var/lib/dpkg/lock-frontend')
+
+    pkill -15 -x apt dpkg || pkill -9 -x apt dpkg
+
+    for lockfile in "${lockfiles[@]}"; do
+        if [ -f "$lockfile" ]; then
+            rm -f "$lockfile" >/dev/null 2>&1
+        fi
     done
+
     dpkg --configure -a
 }
 
@@ -83,7 +100,8 @@ restart_ssh() {
 
 # 设置路径优先级
 set_path_priority() {
-    local new_ssh_dir=$(dirname "$(which sshd)")
+    local new_ssh_dir
+    new_ssh_dir=$(dirname "$(which sshd)")
 
     if [[ ":$PATH:" != *":$new_ssh_dir:"* ]]; then
         export PATH="$new_ssh_dir:$PATH"
@@ -102,8 +120,8 @@ verify_installation() {
 
 # 检查OpenSSH版本
 main() {
-    local choice
-    local current_version=$(ssh -V 2>&1 | awk '{print $1}' | cut -d_ -f2 | cut -d'p' -f1)
+    local current_version choice
+    current_version=$(ssh -V 2>&1 | awk '{print $1}' | cut -d_ -f2 | cut -d'p' -f1)
 
     # 版本范围
     local min_version="8.5"
