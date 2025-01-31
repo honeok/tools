@@ -1,13 +1,25 @@
 #!/usr/bin/env bash
 #
-# Description: automatically renew SSL certificates using Certbot in Docker.
+# Description: Automates SSL certificate renewal using Certbot in a Docker environment.
+#              Ensures timely renewal of certificates and minimizes downtime.
 #
-# Forked and modified from Kejilion's script.
+# Forked and Modified By: Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 #
-# Copyright (C) 2024 honeok <honeok@duck.com>
+# Original Project: https://github.com/kejilion/sh
+#
+# License Information:
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License, version 3 or later.
+#
+# This program is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
 # 定义证书存储目录
-certs_directory="/data/docker_data/certbot/cert/live/"
+certs_directory='/data/docker_data/certbot/cert/live/'
 
 days_before_expiry=5  # 设置在证书到期前几天触发续签
 
@@ -17,6 +29,7 @@ short_separator() {
 
 iptables_open() {
     local table
+
     for table in iptables ip6tables; do
         if ! command -v $table >/dev/null 2>&1; then
             continue
@@ -30,7 +43,7 @@ iptables_open() {
 }
 
 # 遍历所有证书文件
-for cert_dir in $certs_directory*; do
+for cert_dir in "$certs_directory"*; do
     # 获取域名
     domain=$(basename "$cert_dir")
 
@@ -55,7 +68,7 @@ for cert_dir in $certs_directory*; do
     current_timestamp=$(date +%s)
 
     # 计算距离过期还有几天
-    days_until_expiry=$(( ($expiration_timestamp - $current_timestamp) / 86400 ))
+    days_until_expiry=$(( (expiration_timestamp - current_timestamp) / 86400 ))
 
     # 检查是否需要续签(在满足续签条件的情况下)
     if [ $days_until_expiry -le $days_before_expiry ]; then
@@ -66,15 +79,15 @@ for cert_dir in $certs_directory*; do
 
         iptables_open 
 
-        docker run -it --rm --name certbot \
+        docker run --rm --name certbot \
             -p 80:80 -p 443:443 \
             -v "/data/docker_data/certbot/cert:/etc/letsencrypt" \
             -v "/data/docker_data/certbot/data:/var/lib/letsencrypt" \
-            certbot/certbot certonly --standalone -d $domain --email honeok@email.com \
+            certbot/certbot certonly --standalone -d "$domain" --email honeok@email.com \
             --agree-tos --no-eff-email --force-renewal --key-type ecdsa
 
-        cp /data/docker_data/certbot/cert/live/$domain/fullchain.pem /data/docker_data/web/nginx/certs/${domain}_cert.pem >/dev/null 2>&1
-        cp /data/docker_data/certbot/cert/live/$domain/privkey.pem /data/docker_data/web/nginx/certs/${domain}_key.pem >/dev/null 2>&1
+        cp /data/docker_data/certbot/cert/live/"$domain"/fullchain.pem /data/docker_data/web/nginx/certs/"${domain}"_cert.pem >/dev/null 2>&1
+        cp /data/docker_data/certbot/cert/live/"$domain"/privkey.pem /data/docker_data/web/nginx/certs/"${domain}"_key.pem >/dev/null 2>&1
 
         openssl rand -out "/data/docker_data/web/nginx/certs/ticket12.key" 48
         openssl rand -out "/data/docker_data/web/nginx/certs/ticket13.key" 80
