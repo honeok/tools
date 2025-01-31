@@ -27,4 +27,4 @@ jobs:
         with:
           files: '**/*.sh'
           ignore_paths: >-
-            docker/**/*.sh
+            docker/install.sh
