@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# shellcheck disable=all
+
 ln -sf ~/palworld.sh /usr/local/bin/p
 
 ip_address() {
