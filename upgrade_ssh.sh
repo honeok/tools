@@ -41,9 +41,9 @@ fix_dpkg() {
 
     pkill -15 -x apt dpkg || pkill -9 -x apt dpkg
 
-    for file in "${lockfiles[@]}"; do
-        if [ -f "$file" ]; then
-            rm -f "$file" >/dev/null 2>&1
+    for lockfile in "${lockfiles[@]}"; do
+        if [ -f "$lockfile" ]; then
+            rm -f "$lockfile" >/dev/null 2>&1
         fi
     done
 
