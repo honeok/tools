@@ -18,15 +18,20 @@
 #  / _ \/ _ \ / _ \/ -_)/ _ \ /  '_/
 # /_//_/\___//_//_/\__/ \___//_/\_\ 
 #                                   
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License, version 3 or later.
+# License Information:
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License, version 3 or later.
+#
 # This program is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
-# GNU General Public License for more details: <https://www.gnu.org/licenses/>
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
 # shellcheck disable=SC1091
 
-readonly honeok_v='v3.2.2 (2025.01.30)'
+readonly honeok_v='v3.2.2 (2025.01.31)'
 
 yellow='\033[93m'
 red='\033[31m'
@@ -496,6 +501,7 @@ warp_check() {
     # warp_ipv4和warp_ipv6作为全局变量
     # declare -g warp_ipv4="off"
     # declare -g warp_ipv6="off"
+
     warp_ipv4="off"
     warp_ipv6="off"
 
@@ -585,7 +591,7 @@ install() {
                 yum install -y epel-release
                 yum install -y "$package"
             elif command -v apt >/dev/null 2>&1; then
-                apt -y update
+                apt update
                 apt install -y "$package"
             elif command -v apk >/dev/null 2>&1; then
                 apk update
@@ -850,7 +856,10 @@ end_of() {
 # 检查用户是否为root
 need_root() {
     clear_screen
-    [ "$EUID" -ne "0" ] && _err_msg "$(_red '该功能需要root用户才能运行！')" && end_of && honeok
+
+    if [ "$(id -ru)" -ne "0" ]; then
+        _err_msg "$(_red '该功能需要root用户才能运行！')" && end_of && honeok
+    fi
 
     if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "/root" ]; then
         cd /root >/dev/null 2>&1 || { _err_msg "$(_red '切换目录失败！')"; return 1; }
@@ -895,7 +904,7 @@ linux_update() {
         yum -y update
     elif command -v apt >/dev/null 2>&1; then
         fix_dpkg
-        apt -y update
+        apt update
         apt -y full-upgrade
     elif command -v apk >/dev/null 2>&1; then
         apk update
@@ -923,14 +932,14 @@ linux_clean() {
     _yellow "正在系统清理"
 
     if command -v dnf >/dev/null 2>&1; then
-        dnf autoremove -y
+        dnf -y autoremove
         dnf clean all
         dnf makecache
         journalctl --rotate
         journalctl --vacuum-time=3d # 删除所有早于3天前的日志
         journalctl --vacuum-size=200M
     elif command -v yum >/dev/null 2>&1; then
-        yum autoremove -y
+        yum -y autoremove
         yum clean all
         yum makecache
         journalctl --rotate
@@ -938,9 +947,9 @@ linux_clean() {
         journalctl --vacuum-size=200M
     elif command -v apt >/dev/null 2>&1; then
         fix_dpkg
-        apt autoremove --purge -y
-        apt clean -y
-        apt autoclean -y
+        apt -y autoremove --purge
+        apt -y clean
+        apt -y autoclean
         journalctl --rotate
         journalctl --vacuum-time=3d
         journalctl --vacuum-size=200M
@@ -965,8 +974,8 @@ linux_clean() {
         rm -rf /var/log/*
         rm -rf /tmp/*
 	elif command -v pkg >/dev/null 2>&1; then
-		pkg autoremove -y
-		pkg clean -y
+		pkg -y autoremove
+		pkg -y clean
 		rm -rf /var/log/*
 		rm -rf /tmp/*
     else
