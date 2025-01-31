@@ -2,28 +2,43 @@
 #
 # Description: Automatically toggles Cloudflare's 5-second challenge based on website load every 5 minutes.
 #
-# Forked and modified from Kejilion's script.
+# Forked and Modified By: Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 #
-# Copyright (C) 2024 honeok <honeok@duck.com>
+# Original Project: https://github.com/kejilion/sh
+#
+# License Information:
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License, version 3 or later.
+#
+# This program is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
 email="AAAA"
 api_key="BBBB"
 zone_id="CCCC"
 load_threshold=5.0  # 高负载阈值
 
-telegram_bot_token="输入TG机器人API"
-chat_id="输入TG用户ID"
+TELEGRAM_BOT_TOKEN="输入TG机器人API"
+CHAT_ID="输入TG用户ID"
 
 # 发送Telegram通知
 telegram_notify() {
     local message=$1
-    curl -s -X POST "https://api.telegram.org/bot$telegram_bot_token/sendMessage" -d "chat_id=$chat_id" -d "text=$message"
+    curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" -d "chat_id=$CHAT_ID" -d "text=$message"
 }
 
 # 获取当前系统负载
-current_load=$(uptime | awk -F'load average:' '{ print $2 }' | cut -d, -f1 | sed 's/^[ \t]*//;s/[ \t]*$//' || \
-    (command -v w >/dev/null 2>&1 && w | head -1 | awk -F'load average:' '{print $2}' | cut -d, -f1 | sed 's/^[ \t]*//;s/[ \t]*$//' || \
-    cat /proc/loadavg | awk '{print $1}'))
+if command -v uptime >/dev/null 2>&1; then
+    current_load=$(uptime | awk -F'load average:' '{ print $2 }' | cut -d, -f1 | sed 's/^[ \t]*//;s/[ \t]*$//')
+elif command -v w >/dev/null 2>&1; then
+    current_load=$(w | head -1 | awk -F'load average:' '{print $2}' | cut -d, -f1 | sed 's/^[ \t]*//;s/[ \t]*$//')
+else
+    current_load=$(awk '{print $1}' /proc/loadavg)
+fi
 
 echo "当前系统负载: $current_load"
 
@@ -63,7 +78,7 @@ response=$(curl -s -X PATCH "https://api.cloudflare.com/client/v4/zones/$zone_id
     -H "Content-Type: application/json" \
     --data "{\"value\":\"$new_status\"}")
 
-if [[ $(echo $response | jq -r '.success') == "true" ]]; then
+if [[ $(echo "$response" | jq -r '.success') == "true" ]]; then
     echo "成功更新Under Attack模式状态为: $new_status"
 else
     echo "更新Under Attack模式状态失败"
