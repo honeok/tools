@@ -1,31 +1,80 @@
-#!/bin/bash
+#!/usr/bin/env bash
+#
+# Description: Real-time monitoring and alerting of CPU, memory, disk usage, traffic, and SSH logins via Telegram Bot.
+#
+# Forked and Modified By: Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
+#
+# Original Project: https://github.com/kejilion/sh
+#
+# License Information:
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License, version 3 or later.
+#
+# This program is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see <https://www.gnu.org/licenses/>.
 
 # 你需要配置Telegram Bot Token和Chat ID
 TELEGRAM_BOT_TOKEN="输入TG的机器人API"
 CHAT_ID="输入TG的接收通知的账号ID"
 
+# 可以修改监控阈值设置
+cpu_threshold=70
+mem_threshold=70
+disk_threshold=70
+network_threshold_gb=1000
 
-# 你可以修改监控阈值设置
-CPU_THRESHOLD=70
-MEMORY_THRESHOLD=70
-DISK_THRESHOLD=70
-NETWORK_THRESHOLD_GB=1000
+ip_address() {
+    local ipv4_services=("https://ipv4.ip.sb" "https://ipv4.icanhazip.com" "https://v4.ident.me")
 
+    ipv4_address=""
 
-
-# 获取设备信息的变量
-country=$(curl -s ipinfo.io/$public_ip/country)
-isp_info=$(curl -s ipinfo.io/org | sed -e 's/\"//g' | awk -F' ' '{print $2}')
-
-ipv4_address=$(curl -s ipv4.ip.sb)
-masked_ip=$(echo $ipv4_address | awk -F'.' '{print "*."$3"."$4}')
-
-# 发送Telegram通知的函数
-send_tg_notification() {
-    local MESSAGE=$1
-    curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" -d "chat_id=$CHAT_ID" -d "text=$MESSAGE"
+    for service in "${ipv4_services[@]}"; do
+        ipv4_address=$(curl -fsL4 -m 3 "$service")
+        if [[ "$ipv4_address" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            break
+        fi
+    done
 }
 
+geo_check() {
+    local cloudflare_api ipinfo_api ipsb_api
+
+    cloudflare_api=$(curl -fsL -m 10 -A "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/81.0" "https://dash.cloudflare.com/cdn-cgi/trace" | sed -n 's/.*loc=\([^ ]*\).*/\1/p')
+    ipinfo_api=$(curl -fsL --connect-timeout 5 https://ipinfo.io/country)
+    ipsb_api=$(curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"country_code":"\([^"]*\)".*/\1/p')
+
+    for api in "$cloudflare_api" "$ipinfo_api" "$ipsb_api"; do
+        if [ -n "$api" ]; then
+            country="$api"
+            break
+        fi
+    done
+
+    readonly country
+
+    if [ -z "$country" ]; then
+        echo "无法获取服务器所在地区，请检查网络后重试！"
+        exit 1
+    fi
+}
+
+ip_address
+geo_check
+
+# 获取设备信息
+isp_info=$(curl -fsL --connect-timeout 5 https://ipinfo.io/org | sed -e 's/\"//g' | awk -F' ' '{print $2}')
+
+ip_masked=$(echo "$ipv4_address" | awk -F'.' '{print "*."$3"."$4}')
+
+# 发送Telegram通知的函数
+send_telegram_message() {
+    local message="$1"
+    curl -fsL -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" -d "chat_id=$CHAT_ID" -d "text=$message"
+}
 
 # 获取CPU使用率
 get_cpu_usage() {
@@ -34,7 +83,7 @@ get_cpu_usage() {
 }
 
 # 获取内存使用率
-get_memory_usage() {
+get_mem_usage() {
     free | awk '/Mem/ {printf("%.0f"), $3/$2 * 100}'
 }
 
@@ -62,37 +111,36 @@ get_tx_bytes() {
 }
 
 # 检查并发送通知
-check_and_notify() {
-    local USAGE=$1
-    local TYPE=$2
-    local THRESHOLD=$3
-    local CURRENT_VALUE=$4
+check_and_message() {
+    local usage="$1"
+    local type="$2"
+    local threshold="$3"
+    # local current_value="$4"
 
-    if (( $(echo "$USAGE > $THRESHOLD" | bc -l) )); then
-        send_tg_notification "警告: ${isp_info}-${country}-${masked_ip} 的 $TYPE 使用率已达到 $USAGE%，超过阈值 $THRESHOLD%。"
+    if (( $(echo "$usage > $threshold" | bc -l) )); then
+        send_telegram_message "警告: ${isp_info}-${country}-${ip_masked} 的 $type 使用率已达到 $usage%，超过阈值 $threshold%。"
     fi
 }
 
-# 主循环
 while true; do
-    CPU_USAGE=$(get_cpu_usage)
-    MEMORY_USAGE=$(get_memory_usage)
-    DISK_USAGE=$(get_disk_usage)
-    RX_GB=$(get_rx_bytes)
-    TX_GB=$(get_tx_bytes)
+    cpu_usage=$(get_cpu_usage)
+    mem_usage=$(get_mem_usage)
+    disk_usage=$(get_disk_usage)
+    rx_gb=$(get_rx_bytes)
+    tx_gb=$(get_tx_bytes)
 
-    check_and_notify $CPU_USAGE "CPU" $CPU_THRESHOLD $CPU_USAGE
-    check_and_notify $MEMORY_USAGE "内存" $MEMORY_THRESHOLD $MEMORY_USAGE
-    check_and_notify $DISK_USAGE "硬盘" $DISK_THRESHOLD $DISK_USAGE
+    check_and_message "$cpu_usage" "CPU" $cpu_threshold "$cpu_usage"
+    check_and_message "$mem_usage" "内存" $mem_threshold "$mem_usage"
+    check_and_message "$disk_usage" "硬盘" $disk_threshold "$disk_usage"
 
     # 检查入站流量是否超过阈值
-    if (( $(echo "$RX_GB > $NETWORK_THRESHOLD_GB" | bc -l) )); then
-        send_tg_notification "警告: ${isp_info}-${country}-${masked_ip} 的入站流量已达到 ${RX_GB}GB，超过阈值 ${NETWORK_THRESHOLD_GB}GB。"
+    if (( $(echo "$rx_gb > $network_threshold_gb" | bc -l) )); then
+        send_telegram_message "警告: ${isp_info}-${country}-${ip_masked} 的入站流量已达到 ${rx_gb}GB，超过阈值 ${network_threshold_gb}GB。"
     fi
 
     # 检查出站流量是否超过阈值
-    if (( $(echo "$TX_GB > $NETWORK_THRESHOLD_GB" | bc -l) )); then
-        send_tg_notification "警告: ${isp_info}-${country}-${masked_ip} 的出站流量已达到 ${TX_GB}GB，超过阈值 ${NETWORK_THRESHOLD_GB}GB。"
+    if (( $(echo "$tx_gb > $network_threshold_gb" | bc -l) )); then
+        send_telegram_message "警告: ${isp_info}-${country}-${ip_masked} 的出站流量已达到 ${tx_gb}GB，超过阈值 ${network_threshold_gb}GB。"
     fi
 
     # 休眠5分钟
