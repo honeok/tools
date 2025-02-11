@@ -1,4 +1,4 @@
-name: Build and publish PHP7.4
+name: build and publish php7.4
 
 on:
   workflow_dispatch:
@@ -6,7 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: "Build PHP7.4 image"
+    name: "build php74 image"
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
     steps:
       - name: Check out repository
@@ -26,13 +28,13 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push PHP7.4 image
+      - name: Build and push php7.4 image
         uses: docker/build-push-action@v6.11.0
         with:
           context: "{{defaultContext}}:ldnmp/php"
           file: Dockerfile_7.4
           push: true
           tags: |
-            honeok/php:7.4.33-fpm-alpine3.16
-            honeok/php:7.4-fpm-alpine
+            "${{ env.DOCKER_USERNAME }}/php:7.4.33-fpm-alpine3.16"
+            "${{ env.DOCKER_USERNAME }}/php:7.4-fpm-alpine"
           platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
