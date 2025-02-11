@@ -1,4 +1,4 @@
-name: Build and publish Nginx
+name: build and publish nginx
 
 on:
   workflow_dispatch:
@@ -8,7 +8,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    name: "Build Nginx image"
+    name: "build nginx image"
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
     steps:
       - name: Check out repository
@@ -33,13 +35,13 @@ jobs:
           chmod +x ldnmp/nginx/build.sh
           bash ldnmp/nginx/build.sh
 
-      - name: Get current version
+      - name: Check and get version
         run: |
-          CURRENT_NGINX_VERSION=$(docker run --rm honeok/nginx:alpine nginx -V 2>&1 | grep 'nginx version:' | awk -F'/' '{print $2}')
-          if [[ -z $CURRENT_NGINX_VERSION ]]; then
+          CURRENT_VERSION=$(docker run --rm honeok/nginx:alpine nginx -V 2>&1 | grep 'nginx version:' | awk -F'/' '{print $2}')
+          if [[ -z $CURRENT_VERSION ]]; then
               echo "ERROR: current nginx version retrieval failed!" && exit 1
           fi
-          echo "CURRENT_NGINX_VERSION=${CURRENT_NGINX_VERSION}" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
           ALPINE_TAG=$(docker run --rm nginx:alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')
           if [[ -z $ALPINE_TAG ]]; then
               echo "ERROR: current nginx tag retrieval failed" && exit 1
@@ -48,24 +50,24 @@ jobs:
 
       - name: Compare nginx version
         run: |
-          if [[ "$(echo -e "${{ env.LATEST_NGINX_VERSION }}\n${{ env.CURRENT_NGINX_VERSION }}" | sort -V | head -n1)" != "${{ env.LATEST_NGINX_VERSION }}" ]]; then
-            echo "BUILD_DOCKER_IMAGE=true" >> $GITHUB_ENV
+          if [[ "$(echo -e "${{ env.LATEST_VERSION }}\n${{ env.CURRENT_VERSION }}" | sort -V | head -n1)" != "${{ env.LATEST_VERSION }}" ]]; then
+              echo "BUILD_IMAGE=true" >> $GITHUB_ENV
           else
-            echo "BUILD_DOCKER_IMAGE=false" >> $GITHUB_ENV
+              echo "BUILD_IMAGE=false" >> $GITHUB_ENV
           fi
 
-      - name: Build and push Nginx image
-        if: env.BUILD_DOCKER_IMAGE == 'true'
+      - name: Build and push nginx image
+        if: env.BUILD_IMAGE == 'true'
         uses: docker/build-push-action@v6.11.0
         with:
           context: "{{defaultContext}}:ldnmp/nginx"
           file: Dockerfile
           push: true
           tags: |
-            "honeok/nginx:${{ env.LATEST_NGINX_VERSION }}-alpine${{ env.ALPINE_TAG }}"
-            "honeok/nginx:alpine"
+            "${{ env.DOCKER_USERNAME }}/nginx:${{ env.LATEST_VERSION }}-alpine${{ env.ALPINE_TAG }}"
+            "${{ env.DOCKER_USERNAME }}/nginx:alpine"
           platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/riscv64,linux/s390x
           build-args: |
-            NGINX_VERSION=${{ env.LATEST_NGINX_VERSION }}
+            NGINX_VERSION=${{ env.LATEST_VERSION }}
             ZSTD_VERSION=${{ env.ZSTD_VERSION }}
             CORERULESET_VERSION=${{ env.CORERULESET_VERSION }}
