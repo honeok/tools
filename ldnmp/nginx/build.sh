@@ -20,7 +20,7 @@ set \
     -o nounset \
     -o pipefail
 
-LATEST_NGINX_VERSION=""
+LATEST_VERSION=""
 ZSTD_VERSION=""
 CORERULESET_VERSION=""
 
@@ -56,23 +56,23 @@ install() {
 
 install jq curl
 
-LATEST_NGINX_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name | sub("release-"; "")')
+LATEST_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name | sub("release-"; "")')
 ZSTD_VERSION=$(curl -s https://api.github.com/repos/facebook/zstd/releases/latest | jq -r '.tag_name | sub("^v"; "")')
 CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | jq -r '.tag_name | sub("^v"; "")')
 
-for version in "$LATEST_NGINX_VERSION" "$ZSTD_VERSION" "$CORERULESET_VERSION"; do
+for version in "$LATEST_VERSION" "$ZSTD_VERSION" "$CORERULESET_VERSION"; do
     if [[ ! "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
         echo "Invalid version format: $version" >&2
         exit 1
     fi
 done
 
-echo "Latest NGINX version: $LATEST_NGINX_VERSION"
+echo "Latest NGINX version: $LATEST_VERSION"
 echo "Latest ZSTD version: $ZSTD_VERSION"
 echo "Latest CORERULESET version: $CORERULESET_VERSION"
 
 {
-    echo "LATEST_NGINX_VERSION=${LATEST_NGINX_VERSION}"
+    echo "LATEST_VERSION=${LATEST_VERSION}"
     echo "ZSTD_VERSION=${ZSTD_VERSION}"
     echo "CORERULESET_VERSION=${CORERULESET_VERSION}"
 } >> "$GITHUB_ENV"
