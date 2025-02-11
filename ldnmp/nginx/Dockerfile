@@ -1,7 +1,7 @@
 # Description: Install Brotli, Zstandard compression, and ModSecurity WAF for enhanced NGINX security and performance
 #
-# Copyright (C) 2024 -2025 kejilion <https://github.com/kejilion>
-# Copyright (C) 2025 honeok <honeok@duck.com>
+# Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
+# Copyright (C) 2024 - 2025 kejilion <lion12776@outlook.com>
 #
 # License Information:
 # This program is free software: you can redistribute it and/or modify it under
@@ -20,7 +20,8 @@ ARG NGX_IMAGE_TAG="alpine"
 FROM alpine:latest AS builder
 
 # Docker Build Arguments
-ARG NGINX_VERSION ZSTD_VERSION
+ARG NGINX_VERSION
+ARG ZSTD_VERSION
 
 ARG NGX_J="4"
 
@@ -38,6 +39,7 @@ RUN set -ex \
         libtool \
         libxml2-dev \
         libxslt-dev \
+        linux-headers \
         lmdb-dev \
         lua-dev \
         openssl-dev \
@@ -45,19 +47,18 @@ RUN set -ex \
         pkgconfig \
         yajl-dev \
         zlib-dev \
-        linux-headers \
     && cd /tmp \
     && curl -L "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -o nginx-${NGINX_VERSION}.tar.gz \
     && tar -zxf nginx-${NGINX_VERSION}.tar.gz \
     && git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli \
-    && git clone --depth 1 https://github.com/SpiderLabs/ModSecurity \
+    && git clone --depth 1 https://github.com/owasp-modsecurity/ModSecurity \
     && cd ModSecurity \
     && git submodule init \
     && git submodule update \
     && ./build.sh \
     && ./configure \
-    && make \
-    && make install \
+    && make -j${NGX_J} \
+    && make -j${NGX_J} install \
     && cd /tmp \
     && git clone https://github.com/owasp-modsecurity/ModSecurity-nginx \
     && cd ModSecurity-nginx \
@@ -76,7 +77,7 @@ RUN set -ex \
         --add-dynamic-module=../ngx_brotli \
         --add-dynamic-module=../ModSecurity-nginx \
         --add-dynamic-module=../zstd-nginx-module \
-    && make modules \
+    && make -j${NGX_J} modules \
     && apk del .build-deps \
     && rm -rf /var/cache/apk/*
 
