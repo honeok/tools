@@ -60,7 +60,7 @@ jobs:
           tags: |
             "honeok/nginx:${{ env.LATEST_NGINX_VERSION }}-alpine${{ env.LATEST_NGX_TAG }}"
             "honeok/nginx:alpine"
-          platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/s390x
+          platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
           build-args: |
             NGINX_VERSION=${{ env.LATEST_NGINX_VERSION }}
             ZSTD_VERSION=${{ env.ZSTD_VERSION }}
