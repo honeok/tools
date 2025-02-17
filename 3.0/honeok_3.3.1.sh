@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #
-# Description: lightweight toolbox for system administration, automation, and DevOps, 
-#              with reusable functions for tasks like monitoring, backup, and automation.
+# Description: lightweight Shell script toolbox designed for more convenient operations.
 #
 # Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
 #
@@ -9,10 +8,6 @@
 #        kejilion <lion12776@outlook.com>
 #        Teddysun <i@teddysun.com>
 #        spiritLHLS <https://t.me/spiritlhl>
-#    __                         __
-#   / /  ___   ___  ___  ___   / /__
-#  / _ \/ _ \ / _ \/ -_)/ _ \ /  '_/
-# /_//_/\___//_//_/\__/ \___//_/\_\
 #
 # Licensed under the GNU General Public License, version 2 only.
 # This program is distributed WITHOUT ANY WARRANTY.
