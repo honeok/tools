@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 #
-# Description: A lightweight toolbox for simplifying system administration, automation, and DevOps tasks with reusable functions and utilities.
+# Description: lightweight toolbox for system administration, automation, and DevOps, 
+#              with reusable functions for tasks like monitoring, backup, and automation.
 #
-# Copyright (C) 2021 - 2025 honeok <honeok@duck.com> https://www.honeok.com
+# Copyright (C) 2021 - 2025 honeok <honeok@duck.com>
 #
 # References and Acknowledgments:
-#     kejilion <lion12776@outlook.com>
-#     Teddysun <i@teddysun.com>
-#     spiritLHLS <https://t.me/spiritlhl>
+#        kejilion <lion12776@outlook.com>
+#        Teddysun <i@teddysun.com>
+#        spiritLHLS <https://t.me/spiritlhl>
 #    __                         __
 #   / /  ___   ___  ___  ___   / /__
 #  / _ \/ _ \ / _ \/ -_)/ _ \ /  '_/
