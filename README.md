@@ -45,7 +45,7 @@ For users in Mainland China:
 ```shell
 bash <(curl -sL https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
 ```
-或
+or
 ```shell
 curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
 ```
