@@ -9,32 +9,39 @@
   <img src="https://hits.seeyoufarm.com/api/count/keep/badge.svg?url=https%3A%2F%2Fgithub.com%2Fhoneok%2FTools%2Fraw%2Fmaster%2Fhoneok.sh" alt="Hits" />
 </p>
 
-A lightweight Shell script toolbox designed for more convenient operations.
+```shell
+#    __                         __
+#   / /  ___   ___  ___  ___   / /__
+#  / _ \/ _ \ / _ \/ -_)/ _ \ /  '_/
+# /_//_/\___//_//_/\__/ \___//_/\_\
+```
 
-## 项目说明
+lightweight Shell script toolbox designed for more convenient operations.
 
-- **轻量级**：基于Shell脚本，执行快速，资源占用低。
-- **跨平台支持**：支持多种Linux发行版，轻松在不同环境中部署和管理。
-- **自动化管理**：简化操作，自动化处理常见的服务器运维任务。
-- **高可扩展性**：可以根据需求自由定制和扩展功能，灵活满足各种使用场景。
-- **代理支持**：支持通过国内外不同镜像源下载和执行，适配不同网络环境。
+## Project Overview
 
-## 一键安装与使用
+- **Lightweight**: Based on Shell scripts, it executes quickly and consumes minimal resources.
+- **Cross-Platform Support**: Compatible with multiple Linux distributions, making deployment and management across various environments easy.
+- **Automation Management**: Simplifies operations by automating common server maintenance tasks.
+- **High Extensibility**: Allows for easy customization and expansion to meet various use case requirements.
+- **Proxy Support**: Supports downloading and execution through different domestic and international mirror sources, adapting to various network environments.
 
-**支持在Linux系统上运行所有功能**
+## One-Click Installation and Usage
 
-无需复杂配置，通过以下简单命令即可快速启动并使用
+**All features are supported on Linux systems.**
 
-国外服务器
+No complex configuration required. Just run the following simple commands to quickly start and use:
+
+For international users:
 ```shell
 bash <(curl -sL https://github.com/honeok/Tools/raw/master/honeok.sh)
 ```
-或
+or
 ```shell
 curl -sL -O https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
 ```
 
-国内服务器
+For users in Mainland China:
 ```shell
 bash <(curl -sL https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh)
 ```
@@ -43,9 +50,9 @@ bash <(curl -sL https://cdn.611611.best/https://github.com/honeok/Tools/raw/mast
 curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/honeok.sh && chmod +x ./honeok.sh && ./honeok.sh
 ```
 
-## 支持的系统
+## Supported Systems
 
-| 系统                                                                                                                                                                                                                                                        |
+| Systems                                                                                                                                                                                                                                                        |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | <img width="16" height="16" src="https://canonical-subiquity.readthedocs-hosted.com/en/latest/_static/favicon.png" /> Ubuntu                                                                                                                                    |
 | <img width="16" height="16" src="https://www.debian.org/favicon.ico" /> Debian                                                                                                                                                                                  |
@@ -61,7 +68,7 @@ curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/h
 
 ## License
 
-This project is licensed under the GPL-3.0 License. See the [LICENSE](./LICENSE) file for more details.
+This project is licensed under the GPL-2.0 License. See the [LICENSE](./LICENSE) file for more details.
 
 ## ⭐ Star History
 
@@ -70,7 +77,7 @@ This project is licensed under the GPL-3.0 License. See the [LICENSE](./LICENSE)
 ## 🙏 Thanks
 
 - kejilion：[https://github.com/kejilion/sh](https://github.com/kejilion/sh)
-- 秋水逸冰：[https://github.com/teddysun/across](https://github.com/teddysun/across)
+- Teddysun：[https://github.com/teddysun/across](https://github.com/teddysun/across)
 - spiritLHLS：[https://github.com/spiritLHLS/ecs](https://github.com/spiritLHLS/ecs)
 
-感谢你的支持！如果你喜欢这个项目，欢迎给我一个⭐Star！
+Thank you for your support! If you like this project, feel free to give it a ⭐Star!
