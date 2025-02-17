@@ -70,9 +70,9 @@ curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/h
 
 This project is licensed under the GPL-2.0 License. See the [LICENSE](./LICENSE) file for more details.
 
-## ⭐ Star History
+## ⭐ Stargazers over time
 
-[![Star History Chart](https://api.star-history.com/svg?repos=honeok/Tools&type=Date)](https://star-history.com/#honeok/Tools&Date)
+[![Stargazers over time](https://starchart.cc/honeok/Tools.svg?variant=light)](https://starchart.cc/honeok/Tools)
 
 ## 🙏 Thanks
 
