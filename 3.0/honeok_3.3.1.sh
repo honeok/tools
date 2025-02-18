@@ -4597,7 +4597,7 @@ reinstall_system() {
 }
 
 check_swap() {
-    # 获取当前总交换空间大小（以MB为单位）
+    # 获取当前总交换空间大小 (以MB为单位)
     local swap_total
     swap_total=$(free -m | awk 'NR==3{print $2}')
 
@@ -4621,7 +4621,7 @@ check_swap() {
 
 add_swap() {
     virt_check
-    local new_swap=$1
+    local new_swap="$1"
 
     # VPS虚拟化校验排除LXC和OpenVZ
     if [[ "$virt_type" =~ ^(openvz|lxc|lxd)$ ]]; then
@@ -6593,7 +6593,7 @@ EOF
                     # swap_used=$(free -m | awk 'NR==3{print $3}')
                     swap_total=$(free -m | awk 'NR==3{print $2}')
                     swap_info=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {percentage=0} else {percentage=used*100/total}; printf "%dMB/%dMB (%d%%)", used, total, percentage}')
-                    _yellow "当前虚拟内存: ${swap_info}"
+                    _yellow "当前虚拟内存 ${swap_info}"
                     short_separator
                     echo "1. 分配1024MB         2. 分配2048MB         3. 自定义大小         0. 退出"
                     short_separator
@@ -6611,9 +6611,9 @@ EOF
                             _green "已设置虚拟内存为2048MB"
                             ;;
                         3)
-                            echo -n "请输入虚拟内存大小MB:"
+                            echo -n "请输入虚拟内存大小MB: "
                             read -r new_swap
-                            if [[ "$new_swap" =~ ^[0-9]+$ ]] && [ "$new_swap" -gt 0 ]; then
+                            if [[ "$new_swap" =~ ^[0-9]+$ ]] && [[ "$new_swap" -gt 0 ]]; then
                                 add_swap "$new_swap"
                                 _green "已设置自定义虚拟内存为 ${new_swap}MB"
                             else
