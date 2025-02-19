@@ -3,7 +3,7 @@ name: Shellcheck
 on:
   push:
     branches:
-      - develop
+      - dev
     paths:
       - '*.sh'
       - '**/*.sh'
