@@ -5,7 +5,6 @@
   <img src="https://img.shields.io/github/license/honeok/Tools.svg?style=flat" alt="LICENSE" />
   <img src="https://img.shields.io/github/last-commit/honeok/Tools" alt="Commit" />
   <img src="https://img.shields.io/github/commit-activity/m/honeok/Tools.svg" alt="Commit Activity" />
-  <img src="https://img.shields.io/github/stars/honeok/Tools?style=flat" alt="GitHub Stars" />
   <img src="https://hits.seeyoufarm.com/api/count/keep/badge.svg?url=https%3A%2F%2Fgithub.com%2Fhoneok%2FTools%2Fraw%2Fmaster%2Fhoneok.sh" alt="Hits" />
 </p>
 
@@ -68,7 +67,7 @@ curl -sL -O https://cdn.611611.best/https://github.com/honeok/Tools/raw/master/h
 
 ## License
 
-This project is licensed under the GPL-2.0 License. See the [LICENSE](./LICENSE) file for more details.
+This project is licensed under the Apache License 2.0. See the [LICENSE](./LICENSE) file for more details.
 
 ## ⭐ Stargazers over time
 
