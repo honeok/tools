@@ -1,23 +1,16 @@
 #!/usr/bin/env bash
 #
-# Description: Automatically update your Cloudflare DNS record to the current IP.
-#              Retrieves Cloudflare Domain ID and lists zones as a convenience.
+# Description: Automatically update Cloudflare DNS to the current IP.
+#              Lists zones and retrieves Domain ID for convenience.
 #
 # Modified By: Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
-#              Modifications made to improve efficiency, compatibility, and code style.
+#              Improvements for efficiency, compatibility, and style.
 #
-# Original Project: https://github.com/yulewang/cloudflare-api-v4-ddns
+# Based: https://github.com/yulewang/cloudflare-api-v4-ddns
 #
-# License Information:
-# This program is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License, version 3 or later.
-#
-# This program is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program. If not, see <https://www.gnu.org/licenses/>.
+# Licensed under the Apache License, Version 2.0.
+# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+# See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
 set \
     -o errexit \
