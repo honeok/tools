@@ -40,7 +40,8 @@ export DEBIAN_FRONTEND=noninteractive
 # 预定义常量
 os_info=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
 honeok_pid='/tmp/honeok.pid'
-readonly os_info honeok_pid
+UA_BROWSER="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+readonly os_info honeok_pid UA_BROWSER
 
 # 预定义变量
 github_Proxy='https://gh-proxy.com/'
@@ -102,12 +103,12 @@ pre_check() {
         _err_msg "$(_red '请使用bash运行此脚本!')" && exit 1
     fi
 
-    ipv4_address=$(curl -fskL -m 3 -4 "$cloudflare_api" | grep -i '^ip=' | cut -d'=' -f2 | xargs)
-    ipv6_address=$(curl -fskL -m 3 -6 "$cloudflare_api" | grep -i '^ip=' | cut -d'=' -f2 | xargs)
+    ipv4_address=$(curl -A "$UA_BROWSER" -fskL -m 3 -4 "$cloudflare_api" | grep -i '^ip=' | cut -d'=' -f2 | xargs)
+    ipv6_address=$(curl -A "$UA_BROWSER" -fskL -m 3 -6 "$cloudflare_api" | grep -i '^ip=' | cut -d'=' -f2 | xargs)
 
     # 获取服务器地区
-    loc=$(curl -fskL -m 3 "$cloudflare_api" | grep '^loc=' | cut -d'=' -f2 | xargs)
-    [ -z "$loc" ] && _err_msg "$(_red '无法获取位置.')"; exit 1
+    loc=$(curl -A "$UA_BROWSER" -fskL -m 3 "$cloudflare_api" | grep '^loc=' | cut -d'=' -f2 | xargs)
+    [ -z "$loc" ] && { _err_msg "$(_red '无法获取服务器位置, 请检查网络后重试!')" && exit 1; }
 
     # 境外服务器仅ipv4访问测试通过后取消github代理
     if [ -n "$ipv4_address" ] && [ "$loc" != "CN" ]; then
@@ -179,121 +180,98 @@ virt_check() {
     fi
 }
 
+to_kibyte() {
+    awk "BEGIN {printf \"%.0f\", $1 / 1024}"
+}
+
+calc_sum() {
+    local sum=0
+    for num in "$@"; do
+        sum=$(( sum + num ))
+    done
+    echo "$sum"
+}
+
+format_size() {
+    # 获取字节
+    local bytes="$1"
+    local size=0
+    local divisor=1
+    local unit="KB"
+
+    # 检查输入是否为非负整数
+    if echo "$bytes" | grep -vE '^[0-9]+$' >/dev/null 2>&1; then
+        return 1
+    fi
+    # 根据字节数大小选择单位和除数
+    if [ "$bytes" -ge 1073741824 ]; then
+        divisor=1073741824
+        unit="TB"
+    elif [ "$bytes" -ge 1048576 ]; then
+        divisor=1048576
+        unit="GB"
+    elif [ "$bytes" -ge 1024 ]; then
+        divisor=1024
+        unit="MB"
+    elif [ "$bytes" -eq 0 ]; then
+        echo "$size"
+        return 0
+    fi
+    # 计算并格式化结果保留一位小数
+    size=$(awk "BEGIN {printf \"%.1f\", $bytes / $divisor}")
+    echo "$size $unit"
+}
+
 # 系统信息
 system_info() {
     virt_check
 
-    # 获取CPU型号
-    local cpu_model
-    cpu_model=$(grep -i 'model name' /proc/cpuinfo | head -n 1 | awk -F': ' '{print $2}') 
-    cpu_model=${cpu_model:-$(lscpu | sed -n 's/^Model name:[[:space:]]*\(.*\)$/\1/p')}
+    local cpu_model cpu_cores cpu_frequency cpu_cache cpu_aes cpu_virt
+    local mem_usage swap uswap
+    local in_kernel_no_swap_total_size swap_total_size zfs_total_size disk_total_size in_kernel_no_swap_used_size swap_used_size zfs_used_size disk_used_size
+    local boot_partition uptime_str load_average cpu_usage os_release cpu_architecture sys_bits kernel_version
+    local isp_info location system_time current_time
 
-    # 获取核心数
-    local cpu_cores
+    # 获取CPU信息
+    cpu_model=$(awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
     cpu_cores=$(awk -F: '/model name/ {core++} END {print core}' /proc/cpuinfo 2>/dev/null)
-    cpu_cores=${cpu_cores:-$(grep -c '^processor' /proc/cpuinfo || nproc)}
-
-    # 获取CPU频率
-    local cpu_frequency
     cpu_frequency=$(awk -F: '/cpu MHz/ {freq=$2} END {print freq}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
-    cpu_frequency=${cpu_frequency:-$(grep -m 1 'cpu MHz' /proc/cpuinfo | awk '{print $4}')}
-    # 仍然没有获取到结果则为空
-    cpu_frequency=${cpu_frequency:-""}
-    # 如果有频率值，添加单位 "MHz"
-    if [[ -n "$cpu_frequency" ]]; then
-        cpu_frequency="${cpu_frequency} MHz"
-    fi
+    cpu_cache=$(awk -F: '/cache size/ {cache=$2} END {print cache}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
+    cpu_aes=$(grep -i 'aes' /proc/cpuinfo) # 检查AES-NI指令集支持
+    cpu_virt=$(grep -Ei 'vmx|svm' /proc/cpuinfo) # 检查VM-x/AMD-V支持
 
-    # 获取CPU缓存大小
-    local cpu_cache_info
-    cpu_cache_info=$(awk -F: '/cache size/ {cache=$2} END {print cache}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
-    cpu_cache_info=${cpu_cache_info:-$(grep "cache size" /proc/cpuinfo | uniq | awk -F: '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')}
-    # 两种方法都没有获取到赋值为空
-    cpu_cache_info=${cpu_cache_info:-""}
-
-    # 检查AES-NI指令集支持
-    local aes_ni
-    # 尝试使用lscpu检查AES-NI支持
-    if command -v lscpu >/dev/null 2>&1 && lscpu | grep -q 'aes'; then
-        aes_ni="✔ Enabled"
-    else
-        # 如果lscpu未找到，尝试使用/proc/cpuinfo
-        if grep -iq 'aes' /proc/cpuinfo; then
-            aes_ni="✔ Enabled"
-        else
-            aes_ni="❌ Disabled"
-        fi
-    fi
-
-    # 检查VM-x/AMD-V支持
-    local vm_support
-    # 尝试使用lscpu检查Intel的VM-x支持
-    if command -v lscpu >/dev/null 2>&1 && lscpu | grep -iq 'vmx'; then
-        vm_support="✔ VM-x Enabled"
-    # 检查是否支持AMD的AMD-V
-    elif command -v lscpu >/dev/null 2>&1 && lscpu | grep -iq 'svm'; then
-        vm_support="✔ AMD-V Enabled"
-    else
-        # lscpu未找到，使用/proc/cpuinfo进行检查
-        if grep -iq 'vmx' /proc/cpuinfo; then
-            vm_support="✔ VM-x Enabled"
-        elif grep -iq 'svm' /proc/cpuinfo; then
-            vm_support="✔ AMD-V Enabled"
-        else	
-            vm_support="❌ Disabled"
-        fi
-    fi
-
-    # 内存
-    local mem_usage
+    # 内存和交换空间
     mem_usage=$(free -b | awk 'NR==2{printf "%.2f/%.2f MB (%.2f%%)", $3/1024/1024, $2/1024/1024, $3*100/$2}')
-
-    # 交换分区
-    local swap_usage
-    swap_usage=$(free -m | awk 'NR==3{used=$3; total=$2; if (total == 0) {print "[ no swap partition ]"} else {percentage=used*100/total; printf "%dMB/%dMB (%d%%)", used, total, percentage}}')
+    swap=$(format_size "$(free -k | awk '/Swap/ {print $2}')")
+    swap_usage=$(format_size "$(free -k | awk '/Swap/ {print $3}')")
 
     # 获取并格式化磁盘空间使用情况
-    local disk_info disk_output
+    # 磁盘大小 (包含swap和ZFS)
+    in_kernel_no_swap_total_size=$(df -t simfs -t ext2 -t ext3 -t ext4 -t btrfs -t xfs -t vfat -t ntfs --total 2>/dev/null | awk '/total/ {print $2}')
+    swap_total_size=$(free -k | awk '/Swap/ {print $2}')
+    zfs_total_size=$(to_kibyte "$(calc_sum "$(zpool list -o size -Hp 2>/dev/null)")")
+    disk_total_size=$(format_size $((swap_total_size + in_kernel_no_swap_total_size + zfs_total_size)))
 
-    disk_info=$(df -h | grep -E "^/dev/" | grep -vE "tmpfs|devtmpfs|overlay|swap|loop")
-    disk_output=""
-
-    if [[ ${virt_type} =~ [Ll][Xx][Cc] ]]; then
-        # 在LXC环境下获取根分区的信息并显示设备名称
-        disk_output=$(df -h | awk '$NF=="/"{printf "%s %s/%s (%s)", $1, $3, $2, $5}')
-    else
-        # 处理磁盘信息
-        while read -r line; do
-            local disk size used percent
-
-            disk=$(echo "$line" | awk '{print $1}')      # 设备名称
-            size=$(echo "$line" | awk '{print $2}')      # 总大小
-            used=$(echo "$line" | awk '{print $3}')      # 已使用
-            percent=$(echo "$line" | awk '{print $5}')   # 使用百分比（需要是第五个字段）
-
-            # 拼接磁盘信息
-            disk_output+="${disk} ${used}/${size} (${percent})  "
-        done <<< "$disk_info"
-    fi
+    in_kernel_no_swap_used_size=$(df -t simfs -t ext2 -t ext3 -t ext4 -t btrfs -t xfs -t vfat -t ntfs --total 2>/dev/null | awk '/total/ {print $3}')
+    swap_used_size=$(free -k | awk '/Swap/ {print $3}')
+    zfs_used_size=$(to_kibyte "$(calc_sum "$(zpool list -o allocated -Hp 2>/dev/null)")")
+    disk_used_size=$(format_size $((swap_used_size + in_kernel_no_swap_used_size + zfs_used_size)))
 
     # 启动盘路径
-    local boot_partition
     boot_partition=$(findmnt -n -o SOURCE / 2>/dev/null || mount | grep ' / ' | awk '{print $1}')
 
     # 系统在线时间
-    local uptime_str
     uptime_str=$(awk '{a=$1/86400;b=($1%86400)/3600;c=($1%3600)/60} {printf("%d days %d hour %d min\n",a,b,c)}' /proc/uptime)
 
     # 获取负载平均值
     local load_average
-    if command -v w >/dev/null 2>&1; then
+    if _exists "w"; then
         load_average=$(w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')
-    else
+    elif _exists "uptime"; then
         load_average=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1, $2, $3}')
     fi
 
-    # 计算CPU使用率，处理可能的除零错误
-    local cpu_usage
+    # 计算CPU使用率, 处理可能的除零错
     cpu_usage=$(awk -v OFMT='%0.2f' '
         NR==1 {idle1=$5; total1=$2+$3+$4+$5+$6+$7+$8+$9}
         NR==2 {
@@ -310,8 +288,7 @@ system_info() {
         }' <(sleep 1; cat /proc/stat))
 
     # 获取操作系统版本信息
-    local os_release
-    if command -v lsb_release >/dev/null 2>&1; then
+    if _exists "lsb_release" >/dev/null 2>&1; then
         os_release=$(lsb_release -d | awk -F: '{print $2}' | xargs | sed 's/ (.*)//')
     elif [ -f /etc/redhat-release ]; then
         os_release=$(awk '{print ($1, $3~/^[0-9]/ ? $3 : $4)}' /etc/redhat-release)
@@ -324,22 +301,23 @@ system_info() {
     fi
 
     # 获取CPU架构
-    local cpu_architecture
     cpu_architecture=$(uname -m 2>/dev/null || lscpu | awk -F ': +' '/Architecture/{print $2}' || echo "Full Unknown")
-
+    if _exists "getconf"; then
+        sys_bits=$(getconf LONG_BIT)
+    else
+        echo "$cpu_architecture" | grep -q "64" && sys_bits="64" || sys_bits="32"
+    fi
     # 获取内核版本信息
-    local kernel_version
-    kernel_version=$(uname -r || (command -v hostnamectl >/dev/null 2>&1 && hostnamectl | sed -n 's/^[[:space:]]*Kernel:[[:space:]]*Linux \?\(.*\)$/\1/p'))
-
-    # 获取网络拥塞控制算法
-    local congestion_algorithm=""
-    if command -v sysctl >/dev/null 2>&1; then
-        congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)
+    if _exists "hostnamectl"; then
+        kernel_version=$(hostnamectl | sed -n 's/^.*Kernel: Linux //p')
+    else
+        kernel_version=$(uname -r)
     fi
 
+    # 获取网络拥塞控制算法
     # 获取队列算法
-    local queue_algorithm=""
-    if command -v sysctl >/dev/null 2>&1; then
+    if _exists "sysctl"; then
+        congestion_algorithm=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)
         queue_algorithm=$(sysctl -n net.core.default_qdisc 2>/dev/null)
     fi
 
@@ -380,64 +358,60 @@ system_info() {
     done < /proc/net/dev
 
     # 获取运营商信息
-    local isp_info
-    isp_info=$(curl -fsL --connect-timeout 5 https://ipinfo.io | grep '"org":' | awk -F'"' '{print $4}' | sed 's/^AS[0-9]* //' || echo "")
-    if [ -z "$isp_info" ]; then
-        isp_info=$(curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"asn_organization":\s*"\([^"]*\)".*/\1/p')
-    fi
-
-    # 获取IP地址
-    ip_address
-
+    isp_info=$(curl -A "$UA_BROWSER" -fskL -m 3 --connect-timeout 5 https://ipinfo.io/org)
     # 获取地理位置
-    local location
-    location=$(curl -fsL --connect-timeout 5 https://ipinfo.io/city || curl -fsL --connect-timeout 5 -A Mozilla https://api.ip.sb/geoip | sed -n 's/.*"city":\s*"\([^"]*\)".*/\1/p')
+    location=$(curl -A "$UA_BROWSER" -fskL --connect-timeout 5 https://ipinfo.io/city)
 
     # 获取系统时区
-    local system_time
-    if grep -q 'Alpine' /etc/issue; then
+    if grep -qi 'Alpine' /etc/issue 2>/dev/null; then
         system_time=$(date +"%Z %z")
     elif command -v timedatectl >/dev/null 2>&1; then
         system_time=$(timedatectl | awk '/Time zone/ {print $3}' | xargs)
-    elif [ -f /etc/timezone ]; then
-        system_time=$(cat /etc/timezone)
     else
         system_time=$(date +"%Z %z")
     fi
-
     # 获取系统时间
-    local current_time
     current_time=$(date +"%Y-%m-%d %H:%M:%S")
 
     echo "系统信息查询"
     short_separator
-    echo "CPU 型号          : ${cpu_model}"
-    echo "CPU 核心数        : ${cpu_cores}"
-    echo "CPU 频率          : ${cpu_frequency}"
-    echo "CPU 缓存          : ${cpu_cache_info}"
-    echo "AES-NI指令集支持  : ${aes_ni}"
-    echo "VM-x/AMD-V支持    : ${vm_support}"
-    echo "物理内存          : ${mem_usage}"
-    echo "虚拟内存          : ${swap_usage}"
-    echo "硬盘空间          : ${disk_output}"
-    echo "启动盘路径        : ${boot_partition}"
-    echo "系统在线时间      : ${uptime_str}"
-    echo "负载/CPU占用率    : ${load_average} / ${cpu_usage}"
-    echo "系统              : ${os_release} (${cpu_architecture})"
-    echo "架构              : ${cpu_architecture} ($(getconf LONG_BIT) Bit)"
-    echo "内核              : ${kernel_version}"
-    echo "网络拥塞控制算法  : ${congestion_algorithm} ${queue_algorithm}"
-    echo "网络接收数据量    : $(bytes_to_gb $total_recv_bytes)"
-    echo "网络发送数据量    : $(bytes_to_gb $total_sent_bytes)"
-    echo "虚拟化架构        : ${virt_type}"
+    echo " CPU 型号              : $cpu_model"
+    echo " CPU 核心数            : $cpu_cores"
+    echo " CPU 频率              : $cpu_frequency"
+    echo " CPU 缓存              : $cpu_cache"
+    if [ -n "$cpu_aes" ]; then
+        echo -e " AES-NI指令集支持      : \xe2\x9c\x93 Enabled"
+    else
+        echo -e " AES-NI指令集支持      : \xe2\x9c\x97 Disabled"
+    fi
+    if [ -n "$cpu_virt" ]; then
+        echo -e " VM-x/AMD-V支持        : \xe2\x9c\x93 Enabled"
+    else
+        echo -e " VM-x/AMD-V支持        : \xe2\x9c\x97 Disabled"
+    fi
+    echo " 物理内存              : $mem_usage"
+    if [ "$swap" != "0" ];then
+        echo " 虚拟内存              : $swap_usage"
+    fi
+    echo " 硬盘空间              : $disk_total_size ($disk_used_size Used)"
+    echo " 启动盘路径            : $boot_partition"
+    echo " 系统在线时间          : $uptime_str"
+    echo " 负载/CPU占用率        : $load_average / $cpu_usage"
+    echo " 系统                  : $os_release"
+    echo " 架构                  : $cpu_architecture ($sys_bits Bit)"
+    echo " 内核                  : $kernel_version"
+    echo " 网络拥塞控制算法      : $congestion_algorithm $queue_algorithm"
+    echo " 网络接收数据量        : $(bytes_to_gb $total_recv_bytes)"
+    echo " 网络发送数据量        : $(bytes_to_gb $total_sent_bytes)"
+    echo " 虚拟化架构            : $virt_type"
     short_separator
-    echo "运营商            : ${isp_info}"
-    [ -n "${ipv4_address}" ] && echo "公网IPv4地址      : ${ipv4_address}"
-    [ -n "${ipv6_address}" ] && echo "公网IPv6地址      : ${ipv6_address}"
+    echo " 运营商                : $isp_info"
+    [ -n "$ipv4_address" ] && echo " 公网IPv4地址          : $ipv4_address"
+    [ -n "$ipv6_address" ] && echo " 公网IPv6地址          : $ipv6_address"
     short_separator
-    echo "地理位置          : ${location}"
-    echo "系统时区          : ${system_time}"
-    echo "系统时间          : ${current_time}"
+    echo " 地理位置              : $location"
+    echo " 系统时区              : $system_time"
+    echo " 系统时间              : $current_time"
     short_separator
     echo ""
 }
