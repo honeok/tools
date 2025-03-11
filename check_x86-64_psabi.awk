@@ -1,6 +1,8 @@
-#!/usr/bin/awk -f
+#!/usr/bin/env bash
+#
+# https://dl.xanmod.org/check_x86-64_psabi.sh
 
-BEGIN {
+awk 'BEGIN {
     while (!/flags/) if (getline < "/proc/cpuinfo" != 1) exit 1
     if (/lm/&&/cmov/&&/cx8/&&/fpu/&&/fxsr/&&/mmx/&&/syscall/&&/sse2/) level = 1
     if (level == 1 && /cx16/&&/lahf/&&/popcnt/&&/sse4_1/&&/sse4_2/&&/ssse3/) level = 2
@@ -8,4 +10,4 @@ BEGIN {
     if (level == 3 && /avx512f/&&/avx512bw/&&/avx512cd/&&/avx512dq/&&/avx512vl/) level = 4
     if (level > 0) { print "CPU supports x86-64-v" level; exit level + 1 }
     exit 1
-}
+}'
