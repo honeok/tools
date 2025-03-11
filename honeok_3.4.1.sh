@@ -346,7 +346,7 @@ system_info() {
 
     echo "系统信息查询"
     short_line
-    echo " 主机名                : $hostname"
+    echo " 主机名                : $(< /proc/sys/kernel/hostname)"
     echo " CPU 型号              : $cpu_model"
     echo " CPU 核心数            : $cpu_cores"
     echo " CPU 频率              : $cpu_frequency"
