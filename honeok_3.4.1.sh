@@ -47,8 +47,7 @@ readonly os_info honeok_pid UA_BROWSER
 github_Proxy='https://gh-proxy.com/'
 
 if [ -f "$honeok_pid" ] && kill -0 "$(cat "$honeok_pid")" 2>/dev/null; then
-    _err_msg "$(_red '脚本已经在运行! 如误判请反馈问题至: https://github.com/honeok/Tools/issues')"
-    exit 1
+    _err_msg "$(_red '脚本已经在运行! 如误判请反馈问题至: https://github.com/honeok/Tools/issues')" && exit 1
 fi
 
 echo $$ > "$honeok_pid"
@@ -230,6 +229,8 @@ system_info() {
     local mem_usage swap uswap
     local in_kernel_no_swap_total_size swap_total_size zfs_total_size disk_total_size in_kernel_no_swap_used_size swap_used_size zfs_used_size disk_used_size
     local boot_partition uptime_str load_average cpu_usage os_release cpu_architecture sys_bits kernel_version
+    local congestion_algorithm queue_algorithm
+    local total_recv total_sent
     local isp_info location system_time current_time
 
     # 获取CPU信息
@@ -271,21 +272,14 @@ system_info() {
         load_average=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1, $2, $3}')
     fi
 
-    # 计算CPU使用率, 处理可能的除零错
-    cpu_usage=$(awk -v OFMT='%0.2f' '
+    # 计算CPU使用率
+    cpu_usage=$(awk '
         NR==1 {idle1=$5; total1=$2+$3+$4+$5+$6+$7+$8+$9}
         NR==2 {
-            idle2=$5
-            total2=$2+$3+$4+$5+$6+$7+$8+$9
-            diff_idle = idle2 - idle1
-            diff_total = total2 - total1
-            if (diff_total == 0) {
-                cpu_usage=0
-            } else {
-                cpu_usage=100*(1-(diff_idle/diff_total))
-            }
-            printf "%.2f%%\n", cpu_usage
-        }' <(sleep 1; cat /proc/stat))
+            diff=$2+$3+$4+$5+$6+$7+$8+$9 - total1
+            printf "%.2f%%\n", diff ? 100*(1-($5-idle1)/diff) : 0
+        }
+    ' <(sleep 1; cat /proc/stat))
 
     # 获取操作系统版本信息
     if _exists "lsb_release" >/dev/null 2>&1; then
@@ -321,46 +315,20 @@ system_info() {
         queue_algorithm=$(sysctl -n net.core.default_qdisc 2>/dev/null)
     fi
 
-    # 将字节数转换为GB（获取出网入网数据）
-    bytes_to_gb() {
-        local bytes=$1
-        # 使用整数除法计算 GB
-        local gb=$((bytes / 1024 / 1024 / 1024))
-        # 计算余数以获取小数部分
-        local remainder=$((bytes % (1024 * 1024 * 1024)))
-        local fraction=$((remainder * 100 / (1024 * 1024 * 1024)))
-        echo "$gb.$fraction GB"
-    }
-
-    # 初始化总接收字节数和总发送字节数
-    local total_recv_bytes=0
-    local total_sent_bytes=0
-
-    # 遍历/proc/net/dev文件中的每一行
-    while read -r line; do
-        # 提取接口名（接口名后面是冒号）
-        local interface
-        interface=$(echo "$line" | awk -F: '{print $1}' | xargs)
-
-        # 过滤掉不需要的行（只处理接口名）
-        if [ -n "$interface" ] && [ "$interface" != "Inter-| Receive | Transmit" ] && [ "$interface" != "face |bytes packets errs drop fifo frame compressed multicast|bytes packets errs drop fifo colls carrier compressed" ]; then
-            # 提取接收和发送字节数
-            local stats recv_bytes sent_bytes
-
-            stats=$(echo "$line" | awk -F: '{print $2}' | xargs)
-            recv_bytes=$(echo "$stats" | awk '{print $1}')
-            sent_bytes=$(echo "$stats" | awk '{print $9}')
-
-            # 累加接收和发送字节数
-            total_recv_bytes=$((total_recv_bytes + recv_bytes))
-            total_sent_bytes=$((total_sent_bytes + sent_bytes))
-        fi
-    done < /proc/net/dev
+    # 获取出网入网数据
+    bytes_to_gb() { echo $(( $1 / 1073741824 ))"."$(( $1 % 1073741824 * 100 / 1073741824 ))" GB"; } # 将字节数转换为GB
+    # 总接收字节数 总发送字节数 初始为0
+    total_recv=0;total_sent=0
+    while read line; do
+        set -- ${line#*:}
+        total_recv=$((total_recv + $1))
+        total_sent=$((total_sent + $9))
+    done < <(grep ":" /proc/net/dev | grep -v "Inter|\ Receive")
 
     # 获取运营商信息
     isp_info=$(curl -A "$UA_BROWSER" -fskL -m 3 --connect-timeout 5 https://ipinfo.io/org)
     # 获取地理位置
-    location=$(curl -A "$UA_BROWSER" -fskL --connect-timeout 5 https://ipinfo.io/city)
+    location=$(curl -A "$UA_BROWSER" -fskL -m 3 --connect-timeout 5 https://ipinfo.io/city)
 
     # 获取系统时区
     if grep -qi 'Alpine' /etc/issue 2>/dev/null; then
@@ -371,7 +339,7 @@ system_info() {
         system_time=$(date +"%Z %z")
     fi
     # 获取系统时间
-    current_time=$(date +"%Y-%m-%d %H:%M:%S")
+    current_time=$(date '+%Y-%m-%d %H:%M:%S %Z')
 
     echo "系统信息查询"
     short_separator
@@ -385,9 +353,9 @@ system_info() {
         echo -e " AES-NI指令集支持      : \xe2\x9c\x97 Disabled"
     fi
     if [ -n "$cpu_virt" ]; then
-        echo -e " VM-x/AMD-V支持        : \xe2\x9c\x93 Enabled"
+        echo -e " VM-x / AMD-V支持      : \xe2\x9c\x93 Enabled"
     else
-        echo -e " VM-x/AMD-V支持        : \xe2\x9c\x97 Disabled"
+        echo -e " VM-x / AMD-V支持      : \xe2\x9c\x97 Disabled"
     fi
     echo " 物理内存              : $mem_usage"
     if [ "$swap" != "0" ];then
@@ -396,13 +364,13 @@ system_info() {
     echo " 硬盘空间              : $disk_total_size ($disk_used_size Used)"
     echo " 启动盘路径            : $boot_partition"
     echo " 系统在线时间          : $uptime_str"
-    echo " 负载/CPU占用率        : $load_average / $cpu_usage"
+    echo " 负载 / CPU占用率      : $load_average / $cpu_usage"
     echo " 系统                  : $os_release"
     echo " 架构                  : $cpu_architecture ($sys_bits Bit)"
     echo " 内核                  : $kernel_version"
     echo " 网络拥塞控制算法      : $congestion_algorithm $queue_algorithm"
-    echo " 网络接收数据量        : $(bytes_to_gb $total_recv_bytes)"
-    echo " 网络发送数据量        : $(bytes_to_gb $total_sent_bytes)"
+    echo " 网络接收数据量        : $(bytes_to_gb "$total_recv")"
+    echo " 网络发送数据量        : $(bytes_to_gb "$total_sent")"
     echo " 虚拟化架构            : $virt_type"
     short_separator
     echo " 运营商                : $isp_info"
