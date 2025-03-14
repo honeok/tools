@@ -25,9 +25,9 @@ _cyan() { echo -e "${cyan}$*${white}"; }
 reading() { read -rep "$(_yellow "$1")" "$2"; }
 separator() { printf "%-20s\n" "-" | sed 's/\s/-/g'; }
 
-# 预定义常量
+# 各变量默认值
+github_Proxy='https://goppx.com/'
 os_info=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
-readonly os_info
 
 # 安全清屏
 clear_screen() {
@@ -43,7 +43,9 @@ pre_check() {
     if [ "$(ps -p $$ -o comm=)" != "bash" ] || readlink /proc/$$/exe | grep -q "dash"; then
         _err_msg "$(_red '此脚本必须使用bash运行, 而非sh!')" && exit 1
     fi
-    _loc=$(curl -fskL -m 3 'https://www.qualcomm.cn/cdn-cgi/trace' | grep -i '^loc=' | cut -d'=' -f2 | xargs)
+    if [ "$(curl -fskL -m 3 -4 'https://www.qualcomm.cn/cdn-cgi/trace' | grep -i '^loc=' | cut -d'=' -f2 | xargs)" != 'CN' ]; then
+        github_Proxy=''
+    fi
 }
 
 add_swap() {
@@ -104,21 +106,8 @@ reinstall_system() {
     current_sshport=$(grep -E '^[^#]*Port [0-9]+' /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
     [ -z "$current_sshport" ] && current_sshport=22
 
-    script_MollyLau() {
-        if [ "$_loc" = 'CN' ]; then
-            curl -fskLz -O 'https://gitee.com/mb9e8j2/Tools/raw/master/Linux_reinstall/InstallNET.sh' && chmod +x InstallNET.sh
-        else
-            curl -fskLz -O 'https://github.com/leitbogioro/Tools/raw/master/Linux_reinstall/InstallNET.sh' && chmod +x InstallNET.sh
-        fi
-    }
-
-    script_bin456789() {
-        if [ "$_loc" = 'CN' ]; then
-            curl -fskLz -O 'https://gitlab.com/bin456789/reinstall/-/raw/main/reinstall.sh' && chmod +x reinstall.sh
-        else
-            curl -fskLz -O 'https://github.com/bin456789/reinstall/raw/main/reinstall.sh' && chmod +x reinstall.sh
-        fi
-    }
+    script_MollyLau() { curl -fskL -O "${github_Proxy}https://github.com/leitbogioro/Tools/raw/master/Linux_reinstall/InstallNET.sh" && chmod +x InstallNET.sh; }
+    script_bin456789() { curl -fskL -O "${github_Proxy}https://github.com/bin456789/reinstall/raw/main/reinstall.sh" && chmod +x reinstall.sh; }
 
     reinstall_linux_MollyLau() {
         echo "重装后初始用户名: $(_yellow 'root') 初始密码: $(_yellow 'LeitboGi0ro') 初始端口: $(_yellow "$current_sshport")"
