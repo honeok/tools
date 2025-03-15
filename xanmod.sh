@@ -88,7 +88,7 @@ pre_check() {
     if [ "$os_name" != "debian" ] && [ "$os_name" != "ubuntu" ]; then
         _err_msg "$(_red '当前操作系统不受支持!')" && exit 1
     fi
-    if [ "$(curl -fskL -m 3 -4 'https://www.qualcomm.cn/cdn-cgi/trace' | grep -i '^loc=' | cut -d'=' -f2 | xargs)" = 'CN' ]; then
+    if [ "$(curl -fskL -m 3 -4 'https://www.qualcomm.cn/cdn-cgi/trace' | grep -i '^loc=' | cut -d'=' -f2 | xargs)" != 'CN' ]; then
         github_Proxy=''
     fi
 }
