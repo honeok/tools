@@ -48,15 +48,15 @@ pre_check() {
 }
 
 reinstall_system() {
-    local _down_url fixed_par choice
-    _down_url="curl -fskL -O "${GITHUB_PROXY}https://github.com/bin456789/reinstall/raw/main/reinstall.sh" && chmod +x reinstall.sh"
+    local down_url fixed_par choice
+    down_url="curl -fskL -O "${GITHUB_PROXY}https://github.com/bin456789/reinstall/raw/main/reinstall.sh" && chmod +x reinstall.sh"
     fixed_par='--password 123@@@ --ssh-port 22'
 
     reinstall_linux() {
         echo "重装后初始用户名: $(_yellow 'root') 初始密码: $(_yellow '123@@@') 初始端口: $(_yellow '22')"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
-        eval "$_down_url"
+        eval "$down_url"
     }
 
     while true; do
