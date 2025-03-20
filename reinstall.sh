@@ -59,13 +59,6 @@ reinstall_system() {
         eval "$_down_url"
     }
 
-    reinstall_win() {
-        echo "重装后初始用户名: $(_yellow 'Administrator') 初始密码: $(_yellow '123@@@') 初始端口: $(_yellow '3389')"
-        _yellow "按任意键继续"
-        read -n 1 -s -r -p ""
-        eval "$_down_url"
-    }
-
     while true; do
         clear_screen
         echo "$(_red '注意: ')重装有风险失联, 不放心者慎用重装预计花费15分钟, 请提前备份数据!"
