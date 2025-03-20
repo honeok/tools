@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 #
-# Description: Integrated system reinstallation script, based on leitbogioro and bin456789's projects.
+# Description: Integrated system reinstallation script, based on bin456789's projects.
 #
 # Copyright (C) 2025 honeok <honeok@duck.com>
 #
 # Acknowledgments:
-# https://github.com/leitbogioro
 # https://github.com/bin456789
 # 
-# Licensed under the Apache License, Version 2.0.
-# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
-# See http://www.apache.org/licenses/LICENSE-2.0 for details.
+# Licensed under the GNU General Public License, version 3 or later.
+# This program is distributed WITHOUT ANY WARRANTY.
+# See <https://www.gnu.org/licenses/gpl-3.0.html>.
 
 red='\033[91m'
 green='\033[92m'
@@ -26,8 +25,8 @@ reading() { read -rep "$(_yellow "$1")" "$2"; }
 separator() { printf "%-20s\n" "-" | sed 's/\s/-/g'; }
 
 # 各变量默认值
-github_Proxy='https://goppx.com/'
-os_info=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
+GITHUB_PROXY='https://goppx.com/'
+OS_INFO=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
 
 # 安全清屏
 clear_screen() {
@@ -44,109 +43,35 @@ pre_check() {
         _err_msg "$(_red '此脚本必须使用bash运行, 而非sh!')" && exit 1
     fi
     if [ "$(curl -fskL -m 3 -4 'https://www.qualcomm.cn/cdn-cgi/trace' | grep -i '^loc=' | cut -d'=' -f2 | xargs)" != 'CN' ]; then
-        github_Proxy=''
-    fi
-}
-
-add_swap() {
-    local new_swap="$1"
-    local swap_partitions
-    swap_partitions=$(grep '^/dev/' /proc/swaps | awk '{print $1}')
-
-    # 禁用并重置所有 swap 分区
-    for partition in $swap_partitions; do
-        swapoff "$partition" >/dev/null 2>&1
-        wipefs -a "$partition" >/dev/null 2>&1
-        mkswap -f "$partition" >/dev/null 2>&1
-    done
-
-    # 清理旧的 swapfile
-    swapoff /swapfile >/dev/null 2>&1
-    [ -f /swapfile ] && rm -f /swapfile
-
-    # 创建并启用新的swap文件
-    dd if=/dev/zero of=/swapfile bs=1M count="$new_swap" status=progress
-    chmod 600 /swapfile
-    mkswap /swapfile >/dev/null
-    swapon /swapfile
-
-    # 更新fstab (避免重复添加)
-    if ! grep '/swapfile' /etc/fstab >/dev/null; then
-        echo "/swapfile swap swap defaults 0 0" | tee -a /etc/fstab >/dev/null
-    fi
-
-    if [ -f /etc/alpine-release ]; then
-        echo "nohup swapon /swapfile" > /etc/local.d/swap.start
-        chmod +x /etc/local.d/swap.start
-        rc-update add local >/dev/null 2>&1
-    fi
-
-    _green "虚拟内存大小已调整为: $new_swap MB"
-}
-
-check_swap() {
-    local swap_total mem_total
-    read -r _ _ mem_total _ < <(grep MemTotal /proc/meminfo)
-    read -r _ _ swap_total _ < <(grep SwapTotal /proc/meminfo)
-
-    # 将KB转换为MB
-    mem_total=$((mem_total / 1024))
-    swap_total=$((swap_total / 1024))
-
-    # 如果没有交换空间且物理内存≤900MB, 则创建1024MB交换空间
-    if ((swap_total == 0 && mem_total <= 900)); then
-        add_swap 1024
+        unset GITHUB_PROXY
     fi
 }
 
 reinstall_system() {
-    local choice 
+    local _down_url fixed_par choice
+    _down_url="curl -fskL -O "${GITHUB_PROXY}https://github.com/bin456789/reinstall/raw/main/reinstall.sh" && chmod +x reinstall.sh"
+    fixed_par='--password 123@@@ --ssh-port 22'
 
-    local current_sshport
-    current_sshport=$(grep -E '^[^#]*Port [0-9]+' /etc/ssh/sshd_config | awk '{print $2}' | head -n 1)
-    [ -z "$current_sshport" ] && current_sshport=22
-
-    script_MollyLau() { curl -fskL -O "${github_Proxy}https://github.com/leitbogioro/Tools/raw/master/Linux_reinstall/InstallNET.sh" && chmod +x InstallNET.sh; }
-    script_bin456789() { curl -fskL -O "${github_Proxy}https://github.com/bin456789/reinstall/raw/main/reinstall.sh" && chmod +x reinstall.sh; }
-
-    reinstall_linux_MollyLau() {
-        echo "重装后初始用户名: $(_yellow 'root') 初始密码: $(_yellow 'LeitboGi0ro') 初始端口: $(_yellow "$current_sshport")"
-        _yellow "按任意键继续"
-        read -n 1 -s -r -p ""
-        script_MollyLau
-        check_swap
-    }
-
-    reinstall_win_MollyLau() {
-        echo "重装后初始用户名: $(_yellow 'Administrator') 初始密码: $(_yellow 'Teddysun.com') 初始端口: $(_yellow '3389')"
-        _yellow "按任意键继续"
-        read -n 1 -s -r -p ""
-        script_MollyLau
-        check_swap
-    }
-
-    reinstall_linux_bin456789() {
+    reinstall_linux() {
         echo "重装后初始用户名: $(_yellow 'root') 初始密码: $(_yellow '123@@@') 初始端口: $(_yellow '22')"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
-        script_bin456789
-        check_swap
+        eval "$_down_url"
     }
 
-    reinstall_win_bin456789() {
+    reinstall_win() {
         echo "重装后初始用户名: $(_yellow 'Administrator') 初始密码: $(_yellow '123@@@') 初始端口: $(_yellow '3389')"
         _yellow "按任意键继续"
         read -n 1 -s -r -p ""
-        script_bin456789
-        check_swap
+        eval "$_down_url"
     }
 
     while true; do
         clear_screen
         echo "$(_red '注意: ')重装有风险失联, 不放心者慎用重装预计花费15分钟, 请提前备份数据!"
-        _cyan "感谢MollyLau大佬和bin456789大佬的脚本支持!"
+        _cyan "感谢bin456789大佬的脚本支持!"
         separator
-        _yellow "当前操作系统: $os_info"
+        _yellow "当前操作系统: $OS_INFO"
         separator
         echo "1. Debian 12                  2. Debian 11"
         echo "3. Debian 10                  4. Debian 9"
@@ -158,204 +83,157 @@ reinstall_system() {
         echo "23. Alma Linux 9              24. Alma Linux 8"
         echo "25. Oracle Linux 9            26. Oracle Linux 8"
         echo "27. Fedora Linux 41           28. Fedora Linux 40"
-        echo "29. CentOS 10                 30. CentOS 7"
+        echo "29. CentOS 10                 30. CentOS 9"
         separator
         echo "31. Alpine Linux              32. Arch Linux"
         echo "33. Kali Linux                34. openEuler"
         echo "35. openSUSE Tumbleweed       36. gentoo"
-        separator
-        echo "41. Windows 11                42. Windows 10"
-        echo "43. Windows 7                 44. Windows Server 2022"
-        echo "45. Windows Server 2019       46. Windows Server 2016"
-        echo "47. Windows 11 ARM"
         separator
 
         reading '请输入选项并按回车键确认: ' choice
 
         case "$choice" in
             1)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -debian 12
+                reinstall_linux
+                bash reinstall.sh debian 12 "$fixed_par"
                 reboot
                 exit
             ;;
             2)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -debian 11
+                reinstall_linux
+                bash reinstall.sh debian 11 "$fixed_par"
                 reboot
                 exit
             ;;
             3)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -debian 10
+                reinstall_linux
+                bash reinstall.sh debian 10 "$fixed_par"
                 reboot
                 exit
             ;;
             4)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -debian 9
+                reinstall_linux
+                bash reinstall.sh debian 9 "$fixed_par"
                 reboot
                 exit
             ;;
             11)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -ubuntu 24.04
+                reinstall_linux
+                bash reinstall.sh ubuntu 24.04 "$fixed_par"
                 reboot
                 exit
             ;;
             12)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -ubuntu 22.04
+                reinstall_linux
+                bash reinstall.sh ubuntu 22.04 "$fixed_par"
                 reboot
                 exit
             ;;
             13)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -ubuntu 20.04
+                reinstall_linux
+                bash reinstall.sh ubuntu 20.04 "$fixed_par"
                 reboot
                 exit
             ;;
             14)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -ubuntu 18.04
+                reinstall_linux
+                bash reinstall.sh ubuntu 18.04 "$fixed_par"
                 reboot
                 exit
             ;;
             21)
-                reinstall_linux_bin456789
-                bash reinstall.sh rocky 9 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh rocky 9 "$fixed_par"
                 reboot
                 exit
             ;;
             22)
-                reinstall_linux_bin456789
-                bash reinstall.sh rocky 8 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh rocky 8 "$fixed_par"
                 reboot
                 exit
             ;;
             23)
-                reinstall_linux_bin456789
-                bash reinstall.sh almalinux 9 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh almalinux 9 "$fixed_par"
                 reboot
                 exit
             ;;
             24)
-                reinstall_linux_bin456789
-                bash reinstall.sh almalinux 8 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh almalinux 8 "$fixed_par"
                 reboot
                 exit
             ;;
             25)
-                reinstall_linux_bin456789
-                bash reinstall.sh oracle 9 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh oracle 9 "$fixed_par"
                 reboot
                 exit
             ;;
             26)
-                reinstall_linux_bin456789
-                bash reinstall.sh oracle 8 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh oracle 8 "$fixed_par"
                 reboot
                 exit
             ;;
             27)
-                reinstall_linux_bin456789
-                bash reinstall.sh fedora 41 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh fedora 41 "$fixed_par"
                 reboot
                 exit
             ;;
             28)
-                reinstall_linux_bin456789
-                bash reinstall.sh fedora 40 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh fedora 40 "$fixed_par"
                 reboot
                 exit
             ;;
             29)
-                reinstall_linux_bin456789
-                bash reinstall.sh centos 10 --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh centos 10 "$fixed_par"
                 reboot
                 exit
             ;;
             30)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -centos 7
+                reinstall_linux
+                bash reinstall.sh centos 9 "$fixed_par"
                 reboot
                 exit
             ;;
             31)
-                reinstall_linux_MollyLau
-                bash InstallNET.sh -alpine
+                reinstall_linux
+                bash reinstall.sh alpine "$fixed_par"
                 reboot
                 exit
             ;;
             32)
-                reinstall_linux_bin456789
-                bash reinstall.sh arch --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh arch "$fixed_par"
                 reboot
                 exit
             ;;
             33)
-                reinstall_linux_bin456789
-                bash reinstall.sh kali --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh kali "$fixed_par"
                 reboot
                 exit
             ;;
             34)
-                reinstall_linux_bin456789
-                bash reinstall.sh openeuler --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh openeuler "$fixed_par"
                 reboot
                 exit
             ;;
             35)
-                reinstall_linux_bin456789
-                bash reinstall.sh opensuse --password 123@@@ --ssh-port 22
+                reinstall_linux
+                bash reinstall.sh opensuse "$fixed_par"
                 reboot
                 exit
             ;;
             36)
-                reinstall_linux_bin456789
-                bash reinstall.sh gentoo --password 123@@@ --ssh-port 22
-                reboot
-                exit
-            ;;
-            41)
-                reinstall_win_MollyLau
-                bash InstallNET.sh -windows 11 -lang "cn"
-                reboot
-                exit
-            ;;
-            42)
-                reinstall_win_MollyLau
-                bash InstallNET.sh -windows 10 -lang "cn"
-                reboot
-                exit
-            ;;
-            43)
-                reinstall_win_bin456789
-                bash reinstall.sh windows --iso="https://drive.massgrave.dev/cn_windows_7_professional_with_sp1_x64_dvd_u_677031.iso" --image-name='Windows 7 PROFESSIONAL'
-                reboot
-                exit
-            ;;
-            44)
-                reinstall_win_MollyLau
-                bash InstallNET.sh -windows 2022 -lang "cn"
-                reboot
-                exit
-            ;;
-            45)
-                reinstall_win_MollyLau
-                bash InstallNET.sh -windows 2019 -lang "cn"
-                reboot
-                exit
-            ;;
-            46)
-                reinstall_win_MollyLau
-                bash InstallNET.sh -windows 2016 -lang "cn"
-                reboot
-                exit
-            ;;
-            47)
-                reinstall_win_bin456789
-                bash reinstall.sh dd --img https://r2.hotdog.eu.org/win11-arm-with-pagefile-15g.xz
+                reinstall_linux
+                bash reinstall.sh gentoo "$fixed_par"
                 reboot
                 exit
             ;;
