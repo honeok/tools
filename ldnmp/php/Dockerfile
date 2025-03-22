@@ -3,16 +3,9 @@
 # Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 # Copyright (C) 2024 - 2025 kejilion <lion12776@outlook.com>
 #
-# License Information:
-# This program is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License, version 3 or later.
-#
-# This program is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program. If not, see <https://www.gnu.org/licenses/>.
+# Licensed under the Apache License, Version 2.0.
+# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+# See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
 FROM php:fpm-alpine
 
@@ -29,7 +22,7 @@ RUN set -ex \
             imagemagick \
             imagemagick-dev \
             libgomp \
-        && curl -fsL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
+        && curl -fskL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
         && chmod +x /usr/local/bin/install-php-extensions \
         && /usr/local/bin/install-php-extensions \
             bcmath \
@@ -49,8 +42,8 @@ RUN set -ex \
         && echo "max_input_time=600" > /usr/local/etc/php/conf.d/max_input_time.ini \
         && echo "max_input_vars=3000" > /usr/local/etc/php/conf.d/max_input_vars.ini \
         && echo "max_input_vars=3000" > /usr/local/etc/php/conf.d/max_input_vars.ini \
-        && curl -L -o /usr/local/etc/php/conf.d/optimized_php.ini https://raw.githubusercontent.com/kejilion/sh/master/optimized_php.ini \
-        && curl -L -o /usr/local/etc/php-fpm.d/www.conf https://raw.githubusercontent.com/kejilion/sh/master/www-1.conf \
+        && curl -fskL -o /usr/local/etc/php/conf.d/optimized_php.ini https://raw.githubusercontent.com/kejilion/sh/master/optimized_php.ini \
+        && curl -fskL -o /usr/local/etc/php-fpm.d/www.conf https://raw.githubusercontent.com/kejilion/sh/master/www-1.conf \
         && apk del .build-deps \
         && rm -f /usr/local/bin/install-php-extensions \
         && rm -rf /var/cache/apk/* /tmp/*
