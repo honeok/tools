@@ -1,64 +1,20 @@
 #!/usr/bin/env bash
 #
-# Description: Automatically fetch the latest Nginx version and build the Nginx container for the LDNMP environment.
+# Description: Fetch the latest Nginx version and build its container for the LDNMP environment effortlessly.
 #
 # Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 #
-# License Information:
-# This program is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License, version 3 or later.
-#
-# This program is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program. If not, see <https://www.gnu.org/licenses/>.
+# Licensed under the Apache License, Version 2.0.
+# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+# See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
-set \
-    -o errexit \
-    -o nounset \
-    -o pipefail
+export LATEST_VERSION=""
+export ZSTD_VERSION=""
+export CORERULESET_VERSION=""
 
-LATEST_VERSION=""
-ZSTD_VERSION=""
-CORERULESET_VERSION=""
-
-install() {
-    if [ "$#" -eq 0 ]; then
-        echo "ERROR: No package parameters provided!"
-        return 1
-    fi
-
-    for package in "$@"; do
-        if ! command -v "$package" >/dev/null 2>&1; then
-            echo "INFO: Installing $package"
-            if command -v dnf >/dev/null 2>&1; then
-                dnf install -y epel-release
-                dnf install -y "$package"
-            elif command -v yum >/dev/null 2>&1; then
-                yum install -y epel-release
-                yum install -y "$package"
-            elif command -v apt >/dev/null 2>&1; then
-                apt install -y "$package"
-            elif command -v apt-get >/dev/null 2>&1; then
-                apt-get install -y "$package"
-            else
-                echo "ERROR: Unknown package manager!"
-                return 1
-            fi
-        else
-            echo "INFO: $package is already installed!"
-        fi
-    done
-    return 0
-}
-
-install jq curl
-
-LATEST_VERSION=$(curl -s https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name | sub("release-"; "")')
-ZSTD_VERSION=$(curl -s https://api.github.com/repos/facebook/zstd/releases/latest | jq -r '.tag_name | sub("^v"; "")')
-CORERULESET_VERSION=$(curl -s https://api.github.com/repos/coreruleset/coreruleset/releases/latest | jq -r '.tag_name | sub("^v"; "")')
+LATEST_VERSION=$(curl -fskL https://api.github.com/repos/nginx/nginx/releases/latest | jq -r '.tag_name | sub("release-"; "")')
+ZSTD_VERSION=$(curl -fskL https://api.github.com/repos/facebook/zstd/releases/latest | jq -r '.tag_name | sub("^v"; "")')
+CORERULESET_VERSION=$(curl -fskL https://api.github.com/repos/coreruleset/coreruleset/releases/latest | jq -r '.tag_name | sub("^v"; "")')
 
 for version in "$LATEST_VERSION" "$ZSTD_VERSION" "$CORERULESET_VERSION"; do
     if [[ ! "$version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
