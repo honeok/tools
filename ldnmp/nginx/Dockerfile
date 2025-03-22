@@ -1,18 +1,11 @@
-# Description: Install Brotli, Zstandard compression, and ModSecurity WAF for enhanced NGINX security and performance
+# Description: Install Brotli, Zstandard, and ModSecurity WAF to boost NGINX performance and security.
 #
 # Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 # Copyright (C) 2024 - 2025 kejilion <lion12776@outlook.com>
 #
-# License Information:
-# This program is free software: you can redistribute it and/or modify it under
-# the terms of the GNU General Public License, version 3 or later.
-#
-# This program is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program. If not, see <https://www.gnu.org/licenses/>.
+# Licensed under the Apache License, Version 2.0.
+# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+# See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
 ARG NGX_IMAGE_BASE="nginx"
 ARG NGX_IMAGE_TAG="alpine"
@@ -48,7 +41,7 @@ RUN set -ex \
             yajl-dev \
             zlib-dev \
         && cd /tmp \
-        && curl -L "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -o nginx-${NGINX_VERSION}.tar.gz \
+        && curl -fskL "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" -o nginx-${NGINX_VERSION}.tar.gz \
         && tar -zxf nginx-${NGINX_VERSION}.tar.gz \
         && git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli \
         && git clone --depth 1 https://github.com/owasp-modsecurity/ModSecurity \
@@ -64,7 +57,7 @@ RUN set -ex \
         && cd ModSecurity-nginx \
         && git checkout ef64996 \
         && cd /tmp \
-        && curl -L "https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz" -o zstd-${ZSTD_VERSION}.tar.gz \
+        && curl -fskL "https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz" -o zstd-${ZSTD_VERSION}.tar.gz \
         && tar -xzf zstd-${ZSTD_VERSION}.tar.gz \
         && cd zstd-${ZSTD_VERSION} \
         && make clean \
@@ -99,16 +92,16 @@ RUN set -ex \
             yajl-dev \
         && mkdir -p /etc/nginx/modsec/plugins \
         && cd /tmp \
-        && curl -L "https://github.com/coreruleset/coreruleset/archive/v${CORERULESET_VERSION}.tar.gz" -o v${CORERULESET_VERSION}.tar.gz \
+        && curl -fskL "https://github.com/coreruleset/coreruleset/archive/v${CORERULESET_VERSION}.tar.gz" -o v${CORERULESET_VERSION}.tar.gz \
         && tar -xzf v${CORERULESET_VERSION}.tar.gz --strip-components=1 -C /etc/nginx/modsec \
         && rm -f v${CORERULESET_VERSION}.tar.gz \
         && cd / \
-        && curl -L -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-before.conf https://raw.githubusercontent.com/coreruleset/wordpress-rule-exclusions-plugin/master/plugins/wordpress-rule-exclusions-before.conf \
-        && curl -L -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-config.conf https://raw.githubusercontent.com/coreruleset/wordpress-rule-exclusions-plugin/master/plugins/wordpress-rule-exclusions-config.conf \
-        && curl -L -o /etc/nginx/modsec/plugins/ldnmp-before.conf https://raw.githubusercontent.com/kejilion/nginx/master/waf/ldnmp-before.conf \
+        && curl -fskL -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-before.conf https://raw.githubusercontent.com/coreruleset/wordpress-rule-exclusions-plugin/master/plugins/wordpress-rule-exclusions-before.conf \
+        && curl -fskL -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-config.conf https://raw.githubusercontent.com/coreruleset/wordpress-rule-exclusions-plugin/master/plugins/wordpress-rule-exclusions-config.conf \
+        && curl -fskL -o /etc/nginx/modsec/plugins/ldnmp-before.conf https://raw.githubusercontent.com/kejilion/nginx/master/waf/ldnmp-before.conf \
         && cp /etc/nginx/modsec/crs-setup.conf.example /etc/nginx/modsec/crs-setup.conf \
         && echo 'SecAction "id:900110, phase:1, pass, setvar:tx.inbound_anomaly_score_threshold=30, setvar:tx.outbound_anomaly_score_threshold=16"' >> /etc/nginx/modsec/crs-setup.conf \
-        && curl -L -o /etc/nginx/modsec/modsecurity.conf https://raw.githubusercontent.com/owasp-modsecurity/ModSecurity/v3/master/modsecurity.conf-recommended \
+        && curl -fskL -o /etc/nginx/modsec/modsecurity.conf https://raw.githubusercontent.com/owasp-modsecurity/ModSecurity/v3/master/modsecurity.conf-recommended \
         && sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsec/modsecurity.conf \
         && sed -i 's/SecPcreMatchLimit [0-9]\+/SecPcreMatchLimit 20000/' /etc/nginx/modsec/modsecurity.conf \
         && sed -i 's/SecPcreMatchLimitRecursion [0-9]\+/SecPcreMatchLimitRecursion 20000/' /etc/nginx/modsec/modsecurity.conf \
@@ -120,5 +113,5 @@ RUN set -ex \
         && echo 'Include /etc/nginx/modsec/rules/*.conf' >> /etc/nginx/modsec/modsecurity.conf \
         && echo 'Include /etc/nginx/modsec/plugins/*-after.conf' >> /etc/nginx/modsec/modsecurity.conf \
         && ldconfig /usr/lib \
-        && curl -L -o /etc/nginx/modsec/unicode.mapping https://raw.githubusercontent.com/owasp-modsecurity/ModSecurity/v3/master/unicode.mapping \
+        && curl -fskL -o /etc/nginx/modsec/unicode.mapping https://raw.githubusercontent.com/owasp-modsecurity/ModSecurity/v3/master/unicode.mapping \
         && rm -rf /var/cache/apk/* /tmp/*
