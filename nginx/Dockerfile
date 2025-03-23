@@ -1,3 +1,11 @@
+# Description: Self-compiled NGINX with a customized Server header.
+#
+# Copyright (C) 2025 honeok <honeok@duck.com>
+#
+# Licensed under the Apache License, Version 2.0.
+# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+# See http://www.apache.org/licenses/LICENSE-2.0 for details.
+
 FROM alpine:latest AS builder
 
 RUN set -ex \
