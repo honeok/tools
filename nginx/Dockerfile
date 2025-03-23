@@ -77,3 +77,5 @@ RUN set -ex \
 FROM nginx:alpine
 
 COPY --from=builder /usr/sbin/nginx /usr/sbin/nginx
+
+COPY index.html /usr/share/nginx/html/index.html
