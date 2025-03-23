@@ -1,4 +1,4 @@
-# Description: Self-compiled NGINX with a customized Server header.
+# Description: self-compiled nginx with a custom server header for branding.
 #
 # Copyright (C) 2025 honeok <honeok@duck.com>
 #
