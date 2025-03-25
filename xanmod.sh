@@ -4,9 +4,6 @@
 #
 # Copyright (C) 2024 - 2025 honeok <honeok@duck.com>
 #
-# References:
-# https://xanmod.org
-#
 # Licensed under the Apache License, Version 2.0.
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
@@ -25,9 +22,7 @@ separator() { printf "%-20s\n" "-" | sed 's/\s/-/g'; }
 reading() { read -rep "$(_yellow "$1")" "$2"; }
 
 os_name=$(grep "^ID=" /etc/*-release | awk -F'=' '{print $2}' | sed 's/"//g')
-github_Proxy='https://gh-proxy.com/'
-
-export DEBIAN_FRONTEND=noninteractive
+GITHUB_PROXY='https://gh-proxy.com/'
 
 clear_screen() {
     if [ -t 1 ]; then
@@ -49,20 +44,22 @@ _exists() {
 pkg_install() {
     for package in "$@"; do
         _yellow "Installing $package"
-        if _exists apt; then
-            apt install -y -q "$package"
-        elif _exists apt-get; then
-            apt-get install -y -q "$package"
+        if _exists apt-get; then
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install -y -q "$package"
+        elif _exists apt; then
+            apt update
+            DEBIAN_FRONTEND=noninteractive apt install -y -q "$package"
         fi
     done
 }
 
 pkg_uninstall() {
     for package in "$@"; do
-        if _exists apt; then
-            apt purge -y "$package"
-        elif _exists apt-get; then
-            apt-get purge -y "$package"
+        if _exists apt-get; then
+            DEBIAN_FRONTEND=noninteractive apt-get purge -y "$package"
+        elif _exists apt; then
+            DEBIAN_FRONTEND=noninteractive apt purge -y "$package"
         fi
     done
 }
@@ -79,6 +76,8 @@ server_reboot() {
 
 # 运行预检
 pre_check() {
+    cloudflare_api='www.qualcomm.cn'
+
     if [ "$(id -ru)" -ne "0" ] || [ "$EUID" -ne "0" ]; then
         _err_msg "$(_red '此脚本必须以root用户权限运行!')" && exit 1
     fi
@@ -88,8 +87,8 @@ pre_check() {
     if [ "$os_name" != "debian" ] && [ "$os_name" != "ubuntu" ]; then
         _err_msg "$(_red '当前操作系统不受支持!')" && exit 1
     fi
-    if [ "$(curl -fskL -m 3 -4 'https://www.qualcomm.cn/cdn-cgi/trace' | grep -i '^loc=' | cut -d'=' -f2 | xargs)" != 'CN' ]; then
-        github_Proxy=''
+    if [ "$(curl -fskL -m 3 -4 "https://$cloudflare_api/cdn-cgi/trace" | grep -i '^loc=' | cut -d'=' -f2 | xargs)" != 'CN' ]; then
+        unset GITHUB_PROXY
     fi
 }
 
@@ -105,25 +104,12 @@ kernel_check() {
 # 检查系统架构
 arch_check() {
     if [ "$(dpkg --print-architecture)" != 'amd64' ]; then
-        _err_msg "$(_red '当前环境不支持, 仅支持x86_64架构')" && exit 1
+        _err_msg "$(_red '当前环境不被支持, 仅支持x86_64架构')" && exit 1
     fi
 }
 
 add_swap() {
     local new_swap="$1"
-    local swap_partitions
-    swap_partitions=$(grep '^/dev/' /proc/swaps | awk '{print $1}')
-
-    # 禁用并重置所有 swap 分区
-    for partition in $swap_partitions; do
-        swapoff "$partition" >/dev/null 2>&1
-        wipefs -a "$partition" >/dev/null 2>&1
-        mkswap -f "$partition" >/dev/null 2>&1
-    done
-
-    # 清理旧的 swapfile
-    swapoff /swapfile >/dev/null 2>&1
-    [ -f /swapfile ] && rm -f /swapfile
 
     # 创建并启用新的swap文件
     dd if=/dev/zero of=/swapfile bs=1M count="$new_swap" status=progress
@@ -132,30 +118,22 @@ add_swap() {
     swapon /swapfile
 
     # 更新fstab (避免重复添加)
-    if ! grep '/swapfile' /etc/fstab >/dev/null; then
-        echo "/swapfile swap swap defaults 0 0" | tee -a /etc/fstab >/dev/null
-    fi
+    grep -q '/swapfile' /etc/fstab || echo "/swapfile swap swap defaults 0 0" >> /etc/fstab
 
-    if [ -f /etc/alpine-release ]; then
-        echo "nohup swapon /swapfile" > /etc/local.d/swap.start
-        chmod +x /etc/local.d/swap.start
-        rc-update add local >/dev/null 2>&1
-    fi
-
-    _green "虚拟内存大小已调整为: $new_swap MB"
+    echo "虚拟内存大小已调整为: $(_green "$new_swap") MB"
 }
 
 check_swap() {
-    local swap_total mem_total
-    read -r _ _ mem_total _ < <(grep MemTotal /proc/meminfo)
-    read -r _ _ swap_total _ < <(grep SwapTotal /proc/meminfo)
+    local mem_total swap_total
+    mem_total=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
+    swap_total=$(awk '/SwapTotal/ {print $2}' /proc/meminfo)
 
     # 将KB转换为MB
     mem_total=$((mem_total / 1024))
     swap_total=$((swap_total / 1024))
 
     # 如果没有交换空间且物理内存≤900MB, 则创建1024MB交换空间
-    if ((swap_total == 0 && mem_total <= 900)); then
+    if [ "$swap_total" -eq 0 ] && [ "$mem_total" -le 900 ]; then
         add_swap 1024
     fi
 }
@@ -247,12 +225,12 @@ xanmod_manager() {
                     pkg_uninstall 'linux-*xanmod1*'
                     update-grub
                     # wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
-                    curl -fskL "${github_Proxy}https://github.com/kejilion/sh/raw/main/archive.key" | gpg --dearmor -o /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
+                    curl -fskL "${GITHUB_PROXY}https://github.com/kejilion/sh/raw/main/archive.key" | gpg --dearmor -o /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
                     # 添加存储库
                     echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
                     # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
-                    xanmod_version=$(curl -fskL -O "${github_Proxy}https://github.com/kejilion/sh/raw/main/check_x86-64_psabi.sh" && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | awk -F 'x86-64-v' '{print $2+0}')
-                    pkg_install linux-xanmod-x64v"$xanmod_version"
+                    xanmod_version=$(curl -fskL -O "${GITHUB_PROXY}https://github.com/kejilion/sh/raw/main/check_x86-64_psabi.sh" && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | awk -F 'x86-64-v' '{print $2+0}')
+                    pkg_install "linux-xanmod-x64v$xanmod_version"
                     _green 'XanMod内核已更新, 重启后生效'
                     [ -f "/etc/apt/sources.list.d/xanmod-release.list" ] && rm -f /etc/apt/sources.list.d/xanmod-release.list
                     [ -f "check_x86-64_psabi.sh" ] && rm -f "check_x86-64_psabi.sh"
@@ -286,12 +264,12 @@ xanmod_manager() {
                 check_swap
                 pkg_install gnupg
                 # wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
-                curl -fskL "${github_Proxy}https://github.com/kejilion/sh/raw/main/archive.key" | gpg --dearmor -o /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
+                curl -fskL "${GITHUB_PROXY}https://github.com/kejilion/sh/raw/main/archive.key" | gpg --dearmor -o /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
                 # 添加存储库
                 echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
                 # kernel_version=$(wget -q https://dl.xanmod.org/check_x86-64_psabi.sh && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | sed -n 's/.*x86-64-v\([0-9]\+\).*/\1/p')
-                xanmod_version=$(curl -fskL -O "${github_Proxy}https://github.com/kejilion/sh/raw/main/check_x86-64_psabi.sh" && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | awk -F 'x86-64-v' '{print $2+0}')
-                pkg_install linux-xanmod-x64v"$xanmod_version"
+                xanmod_version=$(curl -fskL -O "${GITHUB_PROXY}https://github.com/kejilion/sh/raw/main/check_x86-64_psabi.sh" && chmod +x check_x86-64_psabi.sh && ./check_x86-64_psabi.sh | awk -F 'x86-64-v' '{print $2+0}')
+                pkg_install "linux-xanmod-x64v$xanmod_version"
                 set_default_qdisc
                 bbr_on
                 _green 'XanMod内核安装并启用BBR3成功, 重启后生效!'
