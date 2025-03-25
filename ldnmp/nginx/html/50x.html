@@ -1,0 +1,80 @@
+<!--
+Description: Custom 50x error page for Honeok Server, styled to match the Honeok branding.
+
+Copyright (C) 2025 honeok <honeok@duck.com>
+
+Licensed under the Apache License, Version 2.0.
+Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+See http://www.apache.org/licenses/LICENSE-2.0 for details.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Honeok - Server Error</title>
+    <style>
+        html { 
+            color-scheme: light dark; 
+            background: linear-gradient(120deg, #4b0082, #00ff7f); 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        body {
+            width: 35em;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            color: #ffffff;
+        }
+        h1 { 
+            font-size: 2.5em; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            text-align: center; 
+            color: #ff00ff; 
+            animation: glow 3s infinite alternate; 
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); 
+            margin: 0; 
+        }
+        p { 
+            font-size: 1.2em; 
+            text-align: center; 
+            margin: 10px 0; 
+        }
+        em { 
+            font-style: italic; 
+            color: #00ff7f; 
+        }
+        @keyframes glow { 
+            0% { color: #ff00ff; text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; } 
+            10% { color: #00ff7f; text-shadow: 0 0 10px #00ff7f, 0 0 20px #00ff7f; } 
+            20% { color: #ffff00; text-shadow: 0 0 10px #ffff00, 0 0 20px #ffff00; } 
+            30% { color: #00ffff; text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff; } 
+            40% { color: #ff4500; text-shadow: 0 0 10px #ff4500, 0 0 20px #ff4500; } 
+            50% { color: #ff1493; text-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493; } 
+            60% { color: #1e90ff; text-shadow: 0 0 10px #1e90ff, 0 0 20px #1e90ff; } 
+            70% { color: #ffa500; text-shadow: 0 0 10px #ffa500, 0 0 20px #ffa500; } 
+            80% { color: #9400d3; text-shadow: 0 0 10px #9400d3, 0 0 20px #9400d3; } 
+            90% { color: #00ff00; text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00; } 
+            100% { color: #ff69b4; text-shadow: 0 0 10px #ff69b4, 0 0 20px #ff69b4; } 
+        }
+    </style>
+</head>
+<body>
+    <h1>An error occurred</h1>
+    <p>Sorry, the page you are looking for is currently unavailable.<br/>
+    Please try again later.</p>
+    <p>If you are the system administrator of this resource then you should check
+    the error log for details.</p>
+    <p><em>Faithfully yours, Honeok.</em></p>
+</body>
+</html>
