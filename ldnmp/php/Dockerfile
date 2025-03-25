@@ -22,13 +22,13 @@ RUN set -ex \
             imagemagick \
             imagemagick-dev \
             libgomp \
-        && curl -fskL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
+        && curl -fskL "https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions" -o /usr/local/bin/install-php-extensions \
         && chmod +x /usr/local/bin/install-php-extensions \
         && /usr/local/bin/install-php-extensions \
             bcmath \
             exif \
             gd \
-            Imagick/imagick@65e27f2bc0 \
+            imagick \
             intl \
             mysqli \
             opcache \
@@ -40,7 +40,6 @@ RUN set -ex \
         && echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
         && echo "max_execution_time=1200" > /usr/local/etc/php/conf.d/max_execution_time.ini \
         && echo "max_input_time=600" > /usr/local/etc/php/conf.d/max_input_time.ini \
-        && echo "max_input_vars=3000" > /usr/local/etc/php/conf.d/max_input_vars.ini \
         && echo "max_input_vars=3000" > /usr/local/etc/php/conf.d/max_input_vars.ini \
         && curl -fskL -o /usr/local/etc/php/conf.d/optimized_php.ini https://raw.githubusercontent.com/kejilion/sh/master/optimized_php.ini \
         && curl -fskL -o /usr/local/etc/php-fpm.d/www.conf https://raw.githubusercontent.com/kejilion/sh/master/www-1.conf \
