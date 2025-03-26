@@ -1,69 +1,60 @@
-name: Build and publish php
+name: 'build and publish php'
 
 on:
-  workflow_dispatch:
   schedule:
     - cron: '0 16 * * 0'
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    name: "Build php image"
+    name: 'build and publish php'
+    runs-on: ubuntu-latest
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
     steps:
-      - name: Check out repository
+      - name: 'Check out repository'
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
-      - name: Set up Docker QEMU
-        uses: docker/setup-qemu-action@v3.4.0
+      - name: 'Set up Docker QEMU'
+        uses: docker/setup-qemu-action@v3.6.0
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.8.0
+      - name: 'Set up Docker Buildx'
+        uses: docker/setup-buildx-action@v3.10.0
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3.3.0
+      - name: 'Login to DockerHub'
+        uses: docker/login-action@v3.4.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Check and get version
+      - name: 'Fetch Versions and Set build flag'
         run: |
-          LATEST_VERSION=$(docker run --rm php:fpm-alpine php --version | sed -n '1s/[^0-9]*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
-          if [[ -z $LATEST_VERSION ]]; then
-              echo "ERROR: Failed to obtain the latest PHP version!" && exit 1
+          PHP_CVER=$(curl -Lsk "https://hub.docker.com/v2/repositories/honeok/php/tags" | jq -r '.results[].name' | grep -v '^fpm-alpine$' | sort -Vr | head -n1 | cut -d'-' -f1)
+          PHP_LVER=$(curl -Lsk "https://api.github.com/repos/php/php-src/releases/latest" | jq -r '.tag_name | sub("^php-"; "")')
+          PHP_TAG=$(docker run --rm php:fpm-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')
+          if [ -z "$PHP_CVER" ] || [ -z "$PHP_LVER" ] || [ -z "$PHP_TAG" ]; then
+            echo 'Error: Required parameters cannot be empty.' && exit 1
           fi
-          echo "LATEST_VERSION=${LATEST_VERSION}" >> $GITHUB_ENV
-          CURRENT_VERSION=$(docker run --rm honeok/php:fpm-alpine php --version | sed -n '1s/[^0-9]*\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/p')
-          if [[ -z $CURRENT_VERSION ]]; then
-              echo "ERROR: Failed to retrieve the current PHP version!" && exit 1
-          fi
-          echo "CURRENT_VERSION=${CURRENT_VERSION}" >> $GITHUB_ENV
-          ALPINE_TAG=$(docker run --rm php:fpm-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')
-          if [[ -z $ALPINE_TAG ]]; then
-              echo "ERROR: Failed to obtain Alpine version number" && exit 1
-          fi
-          echo "ALPINE_TAG=${ALPINE_TAG}" >> $GITHUB_ENV
-
-      - name: Compare php version
-        run: |
-          if [[ "$(echo -e "${{ env.LATEST_VERSION }}\n${{ env.CURRENT_VERSION }}" | sort -V | head -n1)" != "${{ env.LATEST_VERSION }}" ]]; then
-              echo "BUILD_IMAGE=true" >> $GITHUB_ENV
+          echo "PHP_CVER=${PHP_CVER}" >> $GITHUB_ENV
+          echo "PHP_LVER=${PHP_LVER}" >> $GITHUB_ENV
+          echo "PHP_TAG=${PHP_TAG}" >> $GITHUB_ENV
+          if [[ "$(echo -e "${{ env.PHP_LVER }}\n${{ env.PHP_CVER }}" | sort -V | head -n1)" != "${{ env.PHP_LVER }}" ]]; then
+            echo "BUILD_IMAGE=true" >> $GITHUB_ENV
           else
-              echo "BUILD_IMAGE=false" >> $GITHUB_ENV
+            echo "BUILD_IMAGE=false" >> $GITHUB_ENV
           fi
 
-      - name: Build and push php image
+      - name: 'build and publish php'
         if: env.BUILD_IMAGE == 'true'
         uses: docker/build-push-action@v6.11.0
         with:
-          context: "{{defaultContext}}:ldnmp/php"
+          context: "{{ defaultContext }}:ldnmp/php"
           file: Dockerfile
           push: true
           tags: |
-            "${{ env.DOCKER_USERNAME }}/php:${{ env.LATEST_VERSION }}-fpm-alpine${{ env.ALPINE_TAG }}"
+            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.PHP_TAG }}"
             "${{ env.DOCKER_USERNAME }}/php:fpm-alpine"
-          platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le
+          platforms: linux/386, linux/amd64, linux/arm/v7, linux/arm64/v8, linux/ppc64le
