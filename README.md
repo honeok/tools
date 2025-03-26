@@ -1,7 +1,7 @@
 # Tools
 
 <p align="center">
-  <img src="https://github.com/honeok/Tools/actions/workflows/check.yml/badge.svg" alt="Build Status" />
+  <img src="https://github.com/honeok/Tools/actions/workflows/shellcheck.yml/badge.svg" alt="Build Status" />
   <img src="https://img.shields.io/github/license/honeok/Tools.svg?style=flat" alt="LICENSE" />
   <img src="https://img.shields.io/github/last-commit/honeok/Tools" alt="Commit" />
   <img src="https://img.shields.io/github/commit-activity/m/honeok/Tools.svg" alt="Commit Activity" />
@@ -15,14 +15,6 @@ Description: Official adaptive one click script based on the xanmod kernel.
 
 ```shell
 bash <(curl -sL https://github.com/honeok/Tools/raw/master/xanmod.sh)
-```
-
-## reinstall.sh
-
-Description: Based on leitbogioro and bin456789, this one-click system reinstallation script offers secondary encapsulation and user-friendly display.
-
-```shell
-bash <(curl -sL https://github.com/honeok/Tools/raw/master/reinstall.sh)
 ```
 
 ## weather.sh
