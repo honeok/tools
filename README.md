@@ -16,6 +16,10 @@ Description: Official adaptive one click script based on the xanmod kernel.
 ```shell
 bash <(curl -sL https://github.com/honeok/Tools/raw/master/xanmod.sh)
 ```
+or
+```shell
+ bash <(curl -sL https://gitlab.com/honeok/Tools/-/raw/master/xanmod.sh)
+```
 
 ## get-docker.sh
  
@@ -40,3 +44,7 @@ Description: A unique feature that displays the day's weather forecast to users 
 ```shell
 bash <(curl -sL https://github.com/honeok/Tools/raw/master/weather.sh)
 ```
+or
+ ```shell
+ bash <(curl -sL https://gitlab.com/honeok/Tools/-/raw/master/weather.sh)
+ ```
