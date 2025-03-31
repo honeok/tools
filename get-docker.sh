@@ -220,7 +220,7 @@ function docker_install {
         chmod a+r /etc/apt/keyrings/docker.asc
 
         # add the repository to apt sources
-        echo "deb [arch=$( dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $repo_url $version_code stable" |  tee /etc/apt/sources.list.d/docker.list >/dev/null
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $repo_url $version_code stable" |  tee /etc/apt/sources.list.d/docker.list >/dev/null
         apt-get -qq update
         apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     else
