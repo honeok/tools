@@ -4,12 +4,12 @@
 #
 # Copyright (c) 2023 - 2025 honeok <honeok@duck.com>
 #
-# Licensed under the GNU General Public License, version 2 only.
-# This program is distributed WITHOUT ANY WARRANTY.
-# See <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html>.
+# Licensed under the Apache License, Version 2.0.
+# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+# See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
 # 当前脚本版本号
-readonly VERSION='v0.1.4 (2025.03.31)'
+readonly version='v0.1.4 (2025.03.31)'
 
 red='\033[91m'
 green='\033[92m'
@@ -58,7 +58,7 @@ function show_logo {
 "
     printf "\n"
     _green " System   : $os_info"
-    echo "$(_green " Version  : $VERSION") $(_purple '\xF0\x9F\x90\xB3')"
+    echo "$(_green " Version  : $version") $(_purple '\xF0\x9F\x90\xB3')"
     echo " $(_cyan bash <(curl -sL "$script_url"))"
     printf "\n"
 }
@@ -76,7 +76,7 @@ function _exists {
 
 function runtime_count {
     local runcount
-    runcount=$(curl -fskL -m 3 --retry 1 "https://hits.611611611.xyz/get-docker?action=hit&title=hits&title_bg=%23555555&count_bg=%2342bd14&edge_flat=false")
+    runcount=$(curl -fskL -m 3 --retry 1 "https://hits.honeok.com/get-docker?action=hit")
     today=$(echo "$runcount" | grep '"daily"' | sed 's/.*"daily": *\([0-9]*\).*/\1/')
     total=$(echo "$runcount" | grep '"total"' | sed 's/.*"total": *\([0-9]*\).*/\1/')
 }
