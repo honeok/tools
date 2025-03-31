@@ -28,26 +28,26 @@ function _suc_msg { echo -e "\033[42m\033[1mSuccess${white} $*"; }
 function _info_msg { echo -e "\033[43m\033[1mTis${white} $*"; }
 
 # 各变量默认值
-GETDOCKER_PID='/tmp/getdocker.pid'
-OS_INFO=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
-OS_NAME=$(grep "^ID=" /etc/*-release | awk -F'=' '{print $2}' | sed 's/"//g')
-SCRIPT_URL='https://github.com/honeok/Tools/raw/master/get-docker.sh'
-UA_BROWSER='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+getdocker_pid='/tmp/getdocker.pid'
+os_info=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
+os_name=$(grep "^ID=" /etc/*-release | awk -F'=' '{print $2}' | sed 's/"//g')
+script_url='https://github.com/honeok/Tools/raw/master/get-docker.sh'
+ua_browser='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
-if [ -f "$GETDOCKER_PID" ] && kill -0 "$(cat "$GETDOCKER_PID")" 2>/dev/null; then
+if [ -f "$getdocker_pid" ] && kill -0 "$(cat "$getdocker_pid")" 2>/dev/null; then
     _err_msg "$(_red 'The script seems to be running, please do not run it again!')" && exit 1
 fi
 
 function _exit {
-    local RETURN_VALUE="$?"
+    local return_value="$?"
 
-    [ -f "$GETDOCKER_PID" ] && rm -f "$GETDOCKER_PID" 2>/dev/null
-    exit "$RETURN_VALUE"
+    [ -f "$getdocker_pid" ] && rm -f "$getdocker_pid" 2>/dev/null
+    exit "$return_value"
 }
 
 trap '_exit' SIGINT SIGQUIT SIGTERM EXIT
 
-echo $$ > "$GETDOCKER_PID"
+echo $$ > "$getdocker_pid"
 
 # Logo generation from: https://www.lddgo.net/string/text-to-ascii-art (Small Slant)
 function show_logo {
@@ -57,17 +57,17 @@ function show_logo {
 \___/\__/\__/\_,_/\___\__/_/\_\\__/_/
 "
     printf "\n"
-    _green " System   : $OS_INFO"
+    _green " System   : $os_info"
     echo "$(_green " Version  : $VERSION") $(_purple '\xF0\x9F\x90\xB3')"
-    echo " $(_cyan bash <(curl -sL "$SCRIPT_URL"))"
+    echo " $(_cyan bash <(curl -sL "$script_url"))"
     printf "\n"
 }
 
 function _exists {
-    local _CMD="$1"
-    if type "$_CMD" >/dev/null 2>&1; then
+    local _cmd="$1"
+    if type "$_cmd" >/dev/null 2>&1; then
         return 0
-    elif command -v "$_CMD" >/dev/null 2>&1; then
+    elif command -v "$_cmd" >/dev/null 2>&1; then
         return 0
     else
         return 1
@@ -75,27 +75,27 @@ function _exists {
 }
 
 function runtime_count {
-    local RUNCOUNT
-    RUNCOUNT=$(curl -fskL -m 3 --retry 1 "https://hits.611611611.xyz/get-docker?action=hit&title=hits&title_bg=%23555555&count_bg=%2342bd14&edge_flat=false")
-    TODAY=$(echo "$RUNCOUNT" | grep '"daily"' | sed 's/.*"daily": *\([0-9]*\).*/\1/')
-    TOTAL=$(echo "$RUNCOUNT" | grep '"total"' | sed 's/.*"total": *\([0-9]*\).*/\1/')
+    local runcount
+    runcount=$(curl -fskL -m 3 --retry 1 "https://hits.611611611.xyz/get-docker?action=hit&title=hits&title_bg=%23555555&count_bg=%2342bd14&edge_flat=false")
+    today=$(echo "$runcount" | grep '"daily"' | sed 's/.*"daily": *\([0-9]*\).*/\1/')
+    total=$(echo "$runcount" | grep '"total"' | sed 's/.*"total": *\([0-9]*\).*/\1/')
 }
 
 function end_message {
-    local CURRENT_TIME
-    CURRENT_TIME=$(date '+%Y-%m-%d %H:%M:%S %Z')
+    local current_time
+    current_time=$(date '+%Y-%m-%d %H:%M:%S %Z')
 
     runtime_count
-    _green "Current server time: $CURRENT_TIME Script execution completed."
+    _green "Current server time: $current_time Script execution completed."
     _purple 'Thank you for using this script! If you have any questions, please visit https://www.honeok.com get more information.'
-    if [ -n "$TODAY" ] && [ -n "$TOTAL" ]; then
-        _yellow "Number of script runs today: $TODAY Total number of script runs: $TOTAL"
+    if [ -n "$today" ] && [ -n "$total" ]; then
+        _yellow "Number of script runs today: $today total number of script runs: $total"
     fi
 }
 
 function pre_check {
     # 备用 www.qualcomm.cn
-    CLOUDFLARE_API='www.garmin.com.cn'
+    cloudflare_api='www.garmin.com.cn'
 
     if [ "$(id -ru)" -ne 0 ] || [ "$EUID" -ne 0 ]; then
         _err_msg "$(_red 'This script must be run as root!')" && exit 1
@@ -103,14 +103,14 @@ function pre_check {
     if [ "$(ps -p $$ -o comm=)" != "bash" ] || readlink /proc/$$/exe | grep -q "dash"; then
         _err_msg "$(_red 'This script needs to be run with bash, not sh!')" && exit 1
     fi
-    _LOC=$(curl -A "$UA_BROWSER" -fskL -m 3 "https://$CLOUDFLARE_API/cdn-cgi/trace" | grep -i '^loc=' | cut -d'=' -f2 | xargs)
+    _LOC=$(curl -A "$ua_browser" -fskL -m 3 "https://$cloudflare_api/cdn-cgi/trace" | grep -i '^loc=' | cut -d'=' -f2 | xargs)
     if [ -z "$_LOC" ]; then
         _err_msg "$(_red 'Cannot retrieve server location. Check your network and try again.')" && end_message && exit 1
     fi
 }
 
 function os_permission {
-    case "$OS_NAME" in
+    case "$os_name" in
         'debian')
             # 检查Debian版本是否小于10
             if [ "$(grep -oE '[0-9]+' /etc/debian_version | head -1)" -lt 10 ]; then
@@ -126,7 +126,7 @@ function os_permission {
         'almalinux' | 'centos' | 'rhel' | 'rocky')
             # 检查RHEL/CentOS/Rocky/AlmaLinux版本是否小于7
             if [ "$(grep -shoE '[0-9]+' /etc/redhat-release /etc/centos-release /etc/rocky-release /etc/almalinux-release | head -1)" -lt 7 ]; then
-                _err_msg "$(_red "This installer requires version $OS_NAME 7 or higher.")" && end_message && exit 1
+                _err_msg "$(_red "This installer requires version $os_name 7 or higher.")" && end_message && exit 1
             fi
         ;;
         *) _err_msg "$(_red 'The current operating system is not supported!')" && end_message && exit 1 ;;
@@ -158,31 +158,31 @@ function fix_dpkg {
 }
 
 function docker_install {
-    local VERSION_CODE REPO_URL GPGKEY_URL
+    local version_code repo_url gpgkey_url
 
     _info_msg "$(_yellow 'Installing the Docker environment!')"
-    if [ "$OS_NAME" = "almalinux" ] || [ "$OS_NAME" = "centos" ] || [ "$OS_NAME" = "rocky" ]; then
+    if [ "$os_name" = "almalinux" ] || [ "$os_name" = "centos" ] || [ "$os_name" = "rocky" ]; then
         pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine >/dev/null 2>&1
 
         if [ "$_LOC" = "CN" ]; then
-            REPO_URL="https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo"
+            repo_url="https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo"
         else
-            REPO_URL="https://download.docker.com/linux/centos/docker-ce.repo"
+            repo_url="https://download.docker.com/linux/centos/docker-ce.repo"
         fi
 
         if _exists dnf >/dev/null 2>&1; then
             dnf config-manager --help >/dev/null 2>&1 || dnf install -y dnf-plugins-core
-            dnf config-manager --add-repo "$REPO_URL" 2>/dev/null
+            dnf config-manager --add-repo "$repo_url" 2>/dev/null
             dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         elif _exists yum >/dev/null 2>&1; then
             rpm -q yum-utils >/dev/null 2>&1 || yum install -y yum-utils
-            yum-config-manager --add-repo "$REPO_URL" >/dev/null 2>&1
+            yum-config-manager --add-repo "$repo_url" >/dev/null 2>&1
             yum makecache fast
             yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         else
             _err_msg "$(_red 'Unknown package manager!')" && end_message && exit 1
         fi
-    elif [ "$OS_NAME" = "rhel" ]; then
+    elif [ "$os_name" = "rhel" ]; then
         pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc >/dev/null 2>&1
 
         dnf config-manager --help || dnf install -y dnf-plugins-core
@@ -192,27 +192,27 @@ function docker_install {
             dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
         fi
         dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-    elif [ "$OS_NAME" = "debian" ] || [ "$OS_NAME" = "ubuntu" ]; then
-        VERSION_CODE="$(grep "^VERSION_CODENAME" /etc/*-release | cut -d= -f2)"
+    elif [ "$os_name" = "debian" ] || [ "$os_name" = "ubuntu" ]; then
+        version_code="$(grep "^version_codeNAME" /etc/*-release | cut -d= -f2)"
         pkg_uninstall docker.io docker-doc docker-compose podman-docker containerd runc >/dev/null 2>&1
 
         if [ "$_LOC" = "CN" ]; then
-            REPO_URL="https://mirrors.aliyun.com/docker-ce/linux/${OS_NAME}"
-            GPGKEY_URL="https://mirrors.aliyun.com/docker-ce/linux/${OS_NAME}/gpg"
+            repo_url="https://mirrors.aliyun.com/docker-ce/linux/${os_name}"
+            gpgkey_url="https://mirrors.aliyun.com/docker-ce/linux/${os_name}/gpg"
         else
-            REPO_URL="https://download.docker.com/linux/${OS_NAME}"
-            GPGKEY_URL="https://download.docker.com/linux/${OS_NAME}/gpg"
+            repo_url="https://download.docker.com/linux/${os_name}"
+            gpgkey_url="https://download.docker.com/linux/${os_name}/gpg"
         fi
 
         fix_dpkg
         apt-get -qq update
         apt-get install -y -qq ca-certificates curl
         install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL "$GPGKEY_URL" -o /etc/apt/keyrings/docker.asc
+        curl -fsSL "$gpgkey_url" -o /etc/apt/keyrings/docker.asc
         chmod a+r /etc/apt/keyrings/docker.asc
 
         # add the repository to apt sources
-        echo "deb [arch=$( dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $REPO_URL $VERSION_CODE stable" |  tee /etc/apt/sources.list.d/docker.list >/dev/null
+        echo "deb [arch=$( dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $repo_url $version_code stable" |  tee /etc/apt/sources.list.d/docker.list >/dev/null
         apt-get -qq update
         apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     else
@@ -236,26 +236,26 @@ function check_status {
 }
 
 function docker_version {
-    local DOCKER_V=""
-    local DOCKER_COMPOSE_V=""
+    local docker_v=""
+    local docker_compose_v=""
 
     # 获取Docker版本
     if _exists docker >/dev/null 2>&1; then
-        DOCKER_V=$(docker --version | awk -F '[ ,]' '{print $3}')
+        docker_v=$(docker --version | awk -F '[ ,]' '{print $3}')
     elif _exists docker.io >/dev/null 2>&1; then
-        DOCKER_V=$(docker.io --version | awk -F '[ ,]' '{print $3}')
+        docker_v=$(docker.io --version | awk -F '[ ,]' '{print $3}')
     fi
 
     # 获取Docker Compose版本
     if docker compose version >/dev/null 2>&1; then
-        DOCKER_COMPOSE_V=$(docker compose version --short)
+        docker_compose_v=$(docker compose version --short)
     elif _exists docker-compose >/dev/null 2>&1; then
-        DOCKER_COMPOSE_V=$(docker-compose version --short)
+        docker_compose_v=$(docker-compose version --short)
     fi
 
     echo
-    echo "Docker Version: v$DOCKER_V"
-    echo "Docker Compose Version: v$DOCKER_COMPOSE_V"
+    echo "Docker Version: v$docker_v"
+    echo "Docker Compose Version: v$docker_compose_v"
     echo
     _yellow "Get Docker information"
     sleep 2
