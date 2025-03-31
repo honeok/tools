@@ -9,7 +9,7 @@
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
 # 当前脚本版本号
-readonly version='v0.1.4 (2025.03.31)'
+readonly version='v0.1.4 (2025.04.01)'
 
 red='\033[91m'
 green='\033[92m'
@@ -27,11 +27,13 @@ function _err_msg { echo -e "\033[41m\033[1mError${white} $*"; }
 function _suc_msg { echo -e "\033[42m\033[1mSuccess${white} $*"; }
 function _info_msg { echo -e "\033[43m\033[1mTis${white} $*"; }
 
+# 环境变量用于在debian或ubuntu操作系统中设置非交互式(noninteractive)安装模式
+export DEBIAN_FRONTEND=noninteractive
+
 # 各变量默认值
 getdocker_pid='/tmp/getdocker.pid'
 os_info=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
 os_name=$(grep "^ID=" /etc/*-release | awk -F'=' '{print $2}' | sed 's/"//g')
-script_url='https://github.com/honeok/Tools/raw/master/get-docker.sh'
 ua_browser='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
 if [ -f "$getdocker_pid" ] && kill -0 "$(cat "$getdocker_pid")" 2>/dev/null; then
@@ -56,11 +58,17 @@ function show_logo {
 / (_ / -_/ __/ _  / _ / __/  '_/ -_/ __/
 \___/\__/\__/\_,_/\___\__/_/\_\\__/_/
 "
+    _green "System   : $os_info"
+    echo "$(_yellow "Version  : $version") $(_purple '\xF0\x9F\x90\xB3')"
+    _cyan 'bash <(curl -sL https://github.com/honeok/Tools/raw/master/get-docker.sh)'
     printf "\n"
-    _green " System   : $os_info"
-    echo "$(_green " Version  : $version") $(_purple '\xF0\x9F\x90\xB3')"
-    echo " $(_cyan bash <(curl -sL "$script_url"))"
-    printf "\n"
+}
+
+# 清屏函数
+function clear_screen {
+    if [ -t 1 ]; then
+        tput clear 2>/dev/null || echo -e "\033[2J\033[H" || clear
+    fi
 }
 
 function _exists {
@@ -76,7 +84,7 @@ function _exists {
 
 function runtime_count {
     local runcount
-    runcount=$(curl -fskL -m 3 --retry 1 "https://hits.honeok.com/get-docker?action=hit")
+    runcount=$(curl -fskL -m 5 --retry 1 "https://hits.honeok.com/get-docker?action=hit")
     today=$(echo "$runcount" | grep '"daily"' | sed 's/.*"daily": *\([0-9]*\).*/\1/')
     total=$(echo "$runcount" | grep '"total"' | sed 's/.*"total": *\([0-9]*\).*/\1/')
 }
@@ -86,16 +94,18 @@ function end_message {
     current_time=$(date '+%Y-%m-%d %H:%M:%S %Z')
 
     runtime_count
-    _green "Current server time: $current_time Script execution completed."
-    _purple 'Thank you for using this script! If you have any questions, please visit https://www.honeok.com get more information.'
+    _green "Current server time: $current_time Script completed."
+    _purple "Thanks for using! More info: https://www.honeok.com"
     if [ -n "$today" ] && [ -n "$total" ]; then
-        _yellow "Number of script runs today: $today total number of script runs: $total"
+        echo "$(_yellow 'Number of script runs today:') $(_cyan "$today") $(_yellow 'total number of script runs:') $(_cyan "$total")"
     fi
 }
 
 function pre_check {
-    # 备用 www.qualcomm.cn
-    cloudflare_api='www.garmin.com.cn'
+    # 备用 www.prologis.cn
+    # 备用 www.autodesk.com.cn
+    # 备用 www.keysight.com.cn
+    cloudflare_api='www.qualcomm.cn'
 
     if [ "$(id -ru)" -ne 0 ] || [ "$EUID" -ne 0 ]; then
         _err_msg "$(_red 'This script must be run as root!')" && exit 1
@@ -103,8 +113,8 @@ function pre_check {
     if [ "$(ps -p $$ -o comm=)" != "bash" ] || readlink /proc/$$/exe | grep -q "dash"; then
         _err_msg "$(_red 'This script needs to be run with bash, not sh!')" && exit 1
     fi
-    _LOC=$(curl -A "$ua_browser" -fskL -m 3 "https://$cloudflare_api/cdn-cgi/trace" | grep -i '^loc=' | cut -d'=' -f2 | xargs)
-    if [ -z "$_LOC" ]; then
+    _loc=$(curl -A "$ua_browser" -fskL -m 3 "https://$cloudflare_api/cdn-cgi/trace" | grep -i '^loc=' | cut -d'=' -f2 | xargs)
+    if [ -z "$_loc" ]; then
         _err_msg "$(_red 'Cannot retrieve server location. Check your network and try again.')" && end_message && exit 1
     fi
 }
@@ -112,24 +122,26 @@ function pre_check {
 function os_permission {
     case "$os_name" in
         'debian')
-            # 检查Debian版本是否小于10
+            # 检查debian版本是否小于10
             if [ "$(grep -oE '[0-9]+' /etc/debian_version | head -1)" -lt 10 ]; then
                 _err_msg "$(_red 'This version of Debian is no longer supported!')" && end_message && exit 1
             fi
         ;;
         'ubuntu')
-            # 检查Ubuntu版本是否小于20.04
+            # 检查ubuntu版本是否小于20.04
             if [ "$(grep "^VERSION_ID" /etc/*-release | cut -d '"' -f 2 | tr -d '.')" -lt '2004' ]; then
                 _err_msg "$(_red 'This version of Ubuntu is no longer supported!')" && end_message && exit 1
             fi
         ;;
         'almalinux' | 'centos' | 'rhel' | 'rocky')
-            # 检查RHEL/CentOS/Rocky/AlmaLinux版本是否小于7
+            # 检查almaLinux/centos/rhel/rocky版本是否小于7
             if [ "$(grep -shoE '[0-9]+' /etc/redhat-release /etc/centos-release /etc/rocky-release /etc/almalinux-release | head -1)" -lt 7 ]; then
                 _err_msg "$(_red "This installer requires version $os_name 7 or higher.")" && end_message && exit 1
             fi
         ;;
-        *) _err_msg "$(_red 'The current operating system is not supported!')" && end_message && exit 1 ;;
+        *)
+            _err_msg "$(_red 'The current operating system is not supported!')" && end_message && exit 1
+        ;;
     esac
 }
 
@@ -138,7 +150,7 @@ function check_install {
         docker --version >/dev/null 2>&1 || \
         docker compose version >/dev/null 2>&1 || \
         _exists docker-compose >/dev/null 2>&1; then
-            _err_msg "$(_red 'Docker is already installed. Exiting the installer.')" && end_message && exit 1
+        _err_msg "$(_red 'Docker is already installed. Exiting the installer.')" && end_message && exit 1
     fi
 }
 
@@ -150,10 +162,8 @@ function clear_repos {
 }
 
 function fix_dpkg {
-    pkill -f -15 'apt|dpkg' || pkill -f -9 'apt|dpkg'
-    for lockfile in "/var/lib/dpkg/lock" "/var/lib/dpkg/lock-frontend"; do
-        [ -f "$lockfile" ] &&  rm -f "$lockfile" >/dev/null 2>&1
-    done
+    pkill -9 -f 'apt|dpkg' 2>/dev/null
+    rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock 2>/dev/null
     dpkg --configure -a
 }
 
@@ -164,7 +174,7 @@ function docker_install {
     if [ "$os_name" = "almalinux" ] || [ "$os_name" = "centos" ] || [ "$os_name" = "rocky" ]; then
         pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine >/dev/null 2>&1
 
-        if [ "$_LOC" = "CN" ]; then
+        if [ "$_loc" = "CN" ]; then
             repo_url="https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo"
         else
             repo_url="https://download.docker.com/linux/centos/docker-ce.repo"
@@ -179,24 +189,22 @@ function docker_install {
             yum-config-manager --add-repo "$repo_url" >/dev/null 2>&1
             yum makecache fast
             yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        else
-            _err_msg "$(_red 'Unknown package manager!')" && end_message && exit 1
         fi
     elif [ "$os_name" = "rhel" ]; then
         pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc >/dev/null 2>&1
 
         dnf config-manager --help || dnf install -y dnf-plugins-core
-        if [ "$_LOC" = "CN" ]; then
+        if [ "$_loc" = "CN" ]; then
             dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/rhel/docker-ce.repo
         else
             dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
         fi
         dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     elif [ "$os_name" = "debian" ] || [ "$os_name" = "ubuntu" ]; then
-        version_code="$(grep "^version_codeNAME" /etc/*-release | cut -d= -f2)"
+        version_code="$(grep "^VERSION_CODENAME" /etc/*-release | cut -d= -f2)"
         pkg_uninstall docker.io docker-doc docker-compose podman-docker containerd runc >/dev/null 2>&1
 
-        if [ "$_LOC" = "CN" ]; then
+        if [ "$_loc" = "CN" ]; then
             repo_url="https://mirrors.aliyun.com/docker-ce/linux/${os_name}"
             gpgkey_url="https://mirrors.aliyun.com/docker-ce/linux/${os_name}/gpg"
         else
@@ -261,7 +269,6 @@ function docker_version {
     sleep 2
     docker version 2>/dev/null
 
-    # intentionally mixed spaces and tabs here -- tabs are stripped by "<<-EOF", spaces are kept in the output
     echo
     echo "================================================================================"
     echo
@@ -277,7 +284,7 @@ function docker_version {
 }
 
 function get_docker {
-    clear
+    clear_screen
     show_logo
     pre_check
     os_permission
