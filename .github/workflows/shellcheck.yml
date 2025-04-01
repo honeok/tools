@@ -6,6 +6,11 @@ on:
       - master
       - release
       - dev
+    paths:
+        - '**/*.sh'
+  pull_request:
+    paths:
+      - '**/*.sh'
   workflow_dispatch:
 
 jobs:
