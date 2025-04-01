@@ -232,12 +232,12 @@ function docker_install {
 }
 
 function check_status {
-    if systemctl is-active --quiet docker || \
-        docker info >/dev/null 2>&1 || \
-        /etc/init.d/docker status | grep -q 'started' || \
-        service docker status >/dev/null 2>&1 || \
-        curl -s --unix-socket /var/run/docker.sock http://localhost/version >/dev/null 2>&1; then
-            _suc_msg "$(_green 'Docker has completed self-check, started, and set to start on boot!')"
+    if systemctl is-active --quiet docker \
+        || docker info >/dev/null 2>&1 \
+        || /etc/init.d/docker status | grep -q 'started' \
+        || service docker status >/dev/null 2>&1 \
+        || curl -s --unix-socket /var/run/docker.sock http://localhost/version >/dev/null 2>&1; then
+        _suc_msg "$(_green 'Docker has completed self-check, started, and set to start on boot!')"
     else
         _err_msg "$(_red 'Docker status check failed or service not starting. Check logs or start Docker manually.')" && end_message && exit 1
     fi
@@ -268,7 +268,6 @@ function docker_version {
     _yellow "Get Docker information"
     sleep 2
     docker version 2>/dev/null
-
     echo
     echo "================================================================================"
     echo
