@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
+# vim:sw=4:ts=4:et
 #
-# Description: Installs the latest Docker CE on supported Linux distributions.
+# Description: This script installs the latest version of Docker Community Edition (CE) on supported Linux distributions.
 #
 # Copyright (c) 2023 - 2025 honeok <honeok@duck.com>
+#
+# References:
+# https://docs.docker.com/engine/install
 #
 # Licensed under the Apache License, Version 2.0.
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
@@ -27,7 +31,7 @@ function _err_msg { echo -e "\033[41m\033[1mError${white} $*"; }
 function _suc_msg { echo -e "\033[42m\033[1mSuccess${white} $*"; }
 function _info_msg { echo -e "\033[43m\033[1mTis${white} $*"; }
 
-# 环境变量用于在debian或ubuntu操作系统中设置非交互式(noninteractive)安装模式
+# 环境变量用于在debian或ubuntu操作系统中设置非交互式 (noninteractive) 安装模式
 export DEBIAN_FRONTEND=noninteractive
 
 # 各变量默认值
@@ -84,7 +88,7 @@ function _exists {
 
 function runtime_count {
     local runcount
-    runcount=$(curl -fskL -m 5 --retry 1 "https://hits.honeok.com/get-docker?action=hit")
+    runcount=$(curl -fskL -m 10 --retry 1 "https://hits.honeok.com/get-docker?action=hit")
     today=$(echo "$runcount" | grep '"daily"' | sed 's/.*"daily": *\([0-9]*\).*/\1/')
     total=$(echo "$runcount" | grep '"total"' | sed 's/.*"total": *\([0-9]*\).*/\1/')
 }
@@ -133,10 +137,15 @@ function os_permission {
                 _err_msg "$(_red 'This version of Ubuntu is no longer supported!')" && end_message && exit 1
             fi
         ;;
-        'almalinux' | 'centos' | 'rhel' | 'rocky')
-            # 检查almaLinux/centos/rhel/rocky版本是否小于7
-            if [ "$(grep -shoE '[0-9]+' /etc/redhat-release /etc/centos-release /etc/rocky-release /etc/almalinux-release | head -1)" -lt 7 ]; then
+        'centos')
+            if [ "$(grep -shoE '[0-9]+' /etc/centos-release /etc/redhat-release | head -1)" -lt 7 ]; then
                 _err_msg "$(_red "This installer requires version $os_name 7 or higher.")" && end_message && exit 1
+            fi
+        ;;
+        'almalinux' | 'rhel' | 'rocky')
+            # 检查almaLinux/rhel/rocky版本是否小于8
+            if [ "$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/redhat-release /etc/rocky-release | head -1)" -lt 8 ]; then
+                _err_msg "$(_red "This installer requires version $os_name 8 or higher.")" && end_message && exit 1
             fi
         ;;
         *)
