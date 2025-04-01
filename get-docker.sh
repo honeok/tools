@@ -146,10 +146,10 @@ function os_permission {
 }
 
 function check_install {
-    if _exists docker >/dev/null 2>&1 || \
-        docker --version >/dev/null 2>&1 || \
-        docker compose version >/dev/null 2>&1 || \
-        _exists docker-compose >/dev/null 2>&1; then
+    if _exists docker >/dev/null 2>&1 \
+        || docker --version >/dev/null 2>&1 \
+        || docker compose version >/dev/null 2>&1 \
+        || _exists docker-compose >/dev/null 2>&1; then
         _err_msg "$(_red 'Docker is already installed. Exiting the installer.')" && end_message && exit 1
     fi
 }
@@ -193,7 +193,7 @@ function docker_install {
     elif [ "$os_name" = "rhel" ]; then
         pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc >/dev/null 2>&1
 
-        dnf config-manager --help || dnf install -y dnf-plugins-core
+        dnf config-manager --help >/dev/null 2>&1 || dnf install -y dnf-plugins-core
         if [ "$_loc" = "CN" ]; then
             dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/rhel/docker-ce.repo
         else
