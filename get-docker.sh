@@ -3,7 +3,7 @@
 #
 # Description: This script installs the latest version of Docker Community Edition (CE) on supported Linux distributions.
 #
-# Copyright (c) 2023 - 2025 honeok <honeok@duck.com>
+# Copyright (c) 2023-2025 honeok <honeok@duck.com>
 #
 # References:
 # https://docs.docker.com/engine/install
@@ -13,7 +13,7 @@
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
 # 当前脚本版本号
-readonly version='v0.1.4 (2025.04.01)'
+readonly version='v0.1.5 (2025.04.03)'
 
 red='\033[91m'
 green='\033[92m'
@@ -36,8 +36,8 @@ export DEBIAN_FRONTEND=noninteractive
 
 # 各变量默认值
 getdocker_pid='/tmp/getdocker.pid'
-os_info=$(grep "^PRETTY_NAME=" /etc/*-release | cut -d '"' -f 2 | sed 's/ (.*)//')
-os_name=$(grep "^ID=" /etc/*-release | awk -F'=' '{print $2}' | sed 's/"//g')
+os_info=$(grep "^PRETTY_NAME=" /etc/os-release | cut -d '"' -f 2 | sed 's/ (.*)//')
+os_name=$(grep "^ID=" /etc/os-release | awk -F'=' '{print $2}' | sed 's/"//g')
 ua_browser='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 
 if [ -f "$getdocker_pid" ] && kill -0 "$(cat "$getdocker_pid")" 2>/dev/null; then
