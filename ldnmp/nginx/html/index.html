@@ -1,7 +1,7 @@
 <!--
-Description: The default HTML page for Honeok Server, featuring a custom-branded nginx experience.
+Description: The default HTML page for Honeok Server, featuring a custom-branded nginx experience with Vue.js and IP-based weather info via ipbase.com.
 
-Copyright (C) 2025 honeok <honeok@duck.com>
+Copyright (c) 2025 honeok <honeok@duck.com>
 
 Licensed under the Apache License, Version 2.0.
 Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
@@ -12,7 +12,10 @@ See http://www.apache.org/licenses/LICENSE-2.0 for details.
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to Honeok</title>
+    <!-- 引入vue.global.js -->
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
     <style>
         html { 
             color-scheme: light dark; 
@@ -43,6 +46,7 @@ See http://www.apache.org/licenses/LICENSE-2.0 for details.
             animation: glow 3s infinite alternate; 
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); 
             margin: 0; 
+            cursor: pointer; 
         }
         .main-text { 
             font-family: 'Courier New', monospace; 
@@ -50,6 +54,13 @@ See http://www.apache.org/licenses/LICENSE-2.0 for details.
             color: #ffffff; 
             text-align: center; 
             margin-top: 20px;
+        }
+        .weather-info {
+            font-family: 'Courier New', monospace; 
+            font-size: 1em; 
+            color: #00ff7f; 
+            text-align: center; 
+            margin-top: 10px;
         }
         .footer { 
             font-family: 'Courier New', monospace; 
@@ -84,13 +95,91 @@ See http://www.apache.org/licenses/LICENSE-2.0 for details.
     </style>
 </head>
 <body>
-    <h1>Welcome to Honeok</h1>
-    <div class="main-text">
-        <p>Thank you for choosing Honeok</p>
-        <p><em>Thanks for joining Honeok—let’s create something epic!</em></p>
+    <!-- Vue 接管的区域 -->
+    <div id="app">
+        <h1 @click="changeGreeting">{{ greeting }}</h1>
+        <div class="main-text">
+            <p>Thank you for choosing Honeok</p>
+            <p><em>{{ subText }}</em></p>
+        </div>
+        <div class="weather-info">
+            <p>{{ weatherText }}</p>
+        </div>
     </div>
     <div class="footer">
         <p>Powered by <a href="https://nginx.org" target="_blank">nginx</a>, Modified by Honeok</p>
     </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                const hour = new Date().getHours();
+                return {
+                    greeting: hour < 12 ? 'Good Morning, Hacker!' : hour < 18 ? 'Hello, Coder!' : 'Night Coder, Welcome!',
+                    subText: 'Thanks for joining Honeok—let’s create something epic!',
+                    clickCount: 0,
+                    weatherText: 'Fetching your weather...'
+                };
+            },
+            methods: {
+                changeGreeting() {
+                    this.clickCount++;
+                    if (this.clickCount % 2 === 0) {
+                        this.greeting = 'You Found Me!';
+                        this.subText = 'Click again to reset—let’s keep the vibe going!';
+                    } else {
+                        const hour = new Date().getHours();
+                        this.greeting = hour < 12 ? 'Good Morning, Hacker!' : hour < 18 ? 'Hello, Coder!' : 'Night Coder, Welcome!';
+                        this.subText = 'Thanks for joining Honeok—let’s create something epic!';
+                    }
+                },
+                async fetchWeather() {
+                    try {
+                        // 使用ipbase.com获取IP和位置信息
+                        const ipResponse = await fetch('https://api.ipbase.com/v2/info');
+                        const ipData = await ipResponse.json();
+                        const city = ipData.data.location.city.name || 'Unknown Location';
+                        const lat = ipData.data.location.latitude;
+                        const lon = ipData.data.location.longitude;
+
+                        // 获取天气
+                        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode`;
+                        const weatherResponse = await fetch(weatherUrl);
+                        const weatherData = await weatherResponse.json();
+                        const temp = weatherData.current.temperature_2m;
+                        const weatherCode = weatherData.current.weathercode;
+                        const weatherDesc = this.getWeatherDescription(weatherCode);
+
+                        this.weatherText = `Location: ${city}, Weather: ${temp}°C, ${weatherDesc}`;
+                    } catch (error) {
+                        this.weatherText = 'Failed to fetch weather data.';
+                        console.error('Error:', error);
+                    }
+                },
+                getWeatherDescription(code) {
+                    const weatherCodes = {
+                        0: 'Clear sky',
+                        1: 'Mainly clear',
+                        2: 'Partly cloudy',
+                        3: 'Overcast',
+                        51: 'Light drizzle',
+                        61: 'Light rain',
+                        63: 'Moderate rain',
+                        65: 'Heavy rain',
+                        71: 'Light snow',
+                        73: 'Moderate snow',
+                        75: 'Heavy snow',
+                        95: 'Thunderstorm'
+                    };
+                    return weatherCodes[code] || 'Unknown weather';
+                }
+            },
+            mounted() {
+                this.fetchWeather(); // 页面加载时获取天气
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
