@@ -1,23 +1,26 @@
-name: Sync docker install script
+name: 'Sync docker install script'
 
 on:
   schedule:
     - cron: '0 16 * * *'
   workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+permissions:
+  contents: write
 
+jobs:
+  sync:
+    name: 'Sync docker install script'
+    runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: 'Checkout repository'
         uses: actions/checkout@v4.2.2
         with:
+          ref: release
           fetch-depth: 0
-
-      - name: Download and compare get-docker.sh
+      - name: 'Download and compare get-docker.sh'
         run: |
-          curl -fsL -o "get-docker.sh" https://get.docker.com
+          curl -fsSL -o "get-docker.sh" https://get.docker.com
           if ! cmp -s docker/install.sh get-docker.sh; then
             mv -f get-docker.sh docker/install.sh
             echo "changed=true" >> $GITHUB_ENV
@@ -25,9 +28,9 @@ jobs:
             rm -f get-docker.sh
             echo "changed=false" >> $GITHUB_ENV
           fi
-
-      - name: Upload to repository
+      - name: 'Upload commit to repository'
         uses: stefanzweifel/git-auto-commit-action@v5.1.0
-        if: ${{ env.changed == 'true' }}
+        if: ${{ env.changed == 'true' || github.event_name == 'workflow_dispatch' }}
         with:
           commit_message: "chore: Sync docker install script by Github Actions"
+          branch: release
