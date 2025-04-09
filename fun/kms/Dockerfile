@@ -12,9 +12,9 @@
 # https://wind4.github.io/vlmcsd
 # https://learn.microsoft.com/zh-cn/windows-server/get-started/kms-client-activation-keys
 #
-# Licensed under the GNU General Public License, version 2 only.
-# This program is distributed WITHOUT ANY WARRANTY.
-# See <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html>.
+# Licensed under the Apache License, Version 2.0.
+# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
+# See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
 FROM alpine:latest AS builder
 
