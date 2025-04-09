@@ -16,7 +16,7 @@ If Docker is not yet installed, follow the [official installation guide][3] to s
 
 This image was created to address specific requirements and explore creative enhancements.
 
-<img src="https://github.com/user-attachments/assets/7118b993-b78e-440e-a718-d8c38c78fd20" alt="Nginx" width="80%">
+<img src="https://cdn.skyimg.de/up/2025/4/8/zsca53.webp" alt="Nginx" width="80%">
 
 ## Pull the image
 

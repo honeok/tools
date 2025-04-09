@@ -18,7 +18,7 @@ bash <(curl -sL https://github.com/honeok/Tools/raw/master/xanmod.sh)
 ```
 or
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/Tools/-/raw/master/xanmod.sh)
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/xanmod.sh)
 ```
 
 ## get-docker.sh
@@ -34,7 +34,7 @@ bash <(curl -sL https://github.com/honeok/Tools/raw/master/get-docker.sh)
 ```
 or
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/Tools/-/raw/master/get-docker.sh)
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/get-docker.sh)
 ```
 
 ## weather.sh
@@ -46,5 +46,5 @@ bash <(curl -sL https://github.com/honeok/Tools/raw/master/weather.sh)
 ```
 or
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/Tools/-/raw/master/weather.sh)
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/weather.sh)
 ```
