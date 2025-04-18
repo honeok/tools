@@ -1,4 +1,4 @@
-name: 'Build and publish nginx'
+name: 'Build and Publish Nginx'
 
 on:
   schedule:
@@ -7,10 +7,11 @@ on:
 
 jobs:
   build:
-    name: 'Build and publish nginx'
+    name: 'Build and Publish Nginx'
     runs-on: ubuntu-latest
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
     steps:
       - name: 'Check out repository'
@@ -20,49 +21,65 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          NGX_CVER=$(curl -Lsk "https://hub.docker.com/v2/repositories/honeok/nginx/tags" | jq -r '.results // [] | .[].name' 2>/dev/null | grep -v '^alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "")
-          NGX_LVER=$(curl -Lsk "https://api.github.com/repos/nginx/nginx/releases/latest" | jq -r '.tag_name | sub("release-"; "")')
-          ZSTD_LVER=$(curl -Lsk "https://api.github.com/repos/facebook/zstd/releases/latest" | jq -r '.tag_name | sub("^v"; "")')
-          NGX_TAG=$(docker run --rm nginx:alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')
-          if [ -z "$NGX_LVER" ] || [ -z "$ZSTD_LVER" ] || [ -z "$NGX_TAG" ]; then
-            echo 'Error: Required parameters cannot be empty.' && exit 1
-          fi
-          echo "NGX_CVER=${NGX_CVER}" >> $GITHUB_ENV
-          echo "NGX_LVER=${NGX_LVER}" >> $GITHUB_ENV
-          echo "ZSTD_LVER=${ZSTD_LVER}" >> $GITHUB_ENV
-          echo "NGX_TAG=${NGX_TAG}" >> $GITHUB_ENV
-          if [[ "$(echo -e "${{ env.NGX_LVER }}\n${{ env.NGX_CVER }}" | sort -V | head -n1)" != "${{ env.NGX_LVER }}" ]] || [[ -z "$NGX_CVER" ]]; then
-            echo "BUILD_IMAGE=true" >> $GITHUB_ENV
-          else
-            echo "BUILD_IMAGE=false" >> $GITHUB_ENV
+          NGX_CVER=$(curl -fsSL "https://hub.docker.com/v2/repositories/${{ env.DOCKER_USERNAME }}/nginx/tags" 2>/dev/null | \
+            jq -r ".results // [] | .[].name" | grep -v '^alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "") && \
+          NGX_LVER=$(curl -fsSL "https://api.github.com/repos/nginx/nginx/releases/latest" | \
+            grep -oP '"tag_name": "\K[^"]+' | sed 's/release-//') && \
+          ZSTD_LVER=$(curl -fsSL "https://api.github.com/repos/facebook/zstd/releases/latest" | \
+            grep -oP '"tag_name": "\K[^"]+' | sed 's/v//') && \
+          CORERULESET_LVER=$(curl -fsSL "https://api.github.com/repos/coreruleset/coreruleset/releases/latest" | \
+            grep -oP '"tag_name": "\K[^"]+' | sed 's/v//') && \
+          ALPINE_TAG=$(docker run --rm nginx:alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2') && \
+          if [ -z "$NGX_LVER" ] || [ -z "$ZSTD_LVER" ] || [ -z "$CORERULESET_LVER" ] || [ -z "$ALPINE_TAG" ]; then \
+            echo 'Error: Required parameters cannot be empty.' && exit 1; \
+          fi && \
+          echo "NGX_CVER=${NGX_CVER}" >> $GITHUB_ENV && \
+          echo "NGX_LVER=${NGX_LVER}" >> $GITHUB_ENV && \
+          echo "ZSTD_LVER=${ZSTD_LVER}" >> $GITHUB_ENV && \
+          echo "CORERULESET_LVER=${CORERULESET_LVER}" >> $GITHUB_ENV && \
+          echo "ALPINE_TAG=${ALPINE_TAG}" >> $GITHUB_ENV && \
+          if [[ "$(echo -e "${{ env.NGX_LVER }}\n${{ env.NGX_CVER }}" | sort -V | head -n1)" != "${{ env.NGX_LVER }}" ]] || \
+            [[ -z "$NGX_CVER" ]]; then \
+            echo "IS_RENEW=1" >> $GITHUB_ENV; \
           fi
 
       - name: 'Set up Docker QEMU'
-        if: ${{ env.BUILD_IMAGE == true || github.event_name == 'workflow_dispatch' }}
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/setup-qemu-action@v3.6.0
 
       - name: 'Set up Docker Buildx'
-        if: ${{ env.BUILD_IMAGE == true || github.event_name == 'workflow_dispatch' }}
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3.10.0
 
       - name: 'Login to DockerHub'
-        if: ${{ env.BUILD_IMAGE == true || github.event_name == 'workflow_dispatch' }}
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3.4.0
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
 
-      - name: 'Build and push Nginx image'
-        if: ${{ env.BUILD_IMAGE == true || github.event_name == 'workflow_dispatch' }}
+      - name: 'Build and Push Nginx image'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6.11.0
         with:
           context: "{{ defaultContext }}:ldnmp/nginx"
           file: Dockerfile
           push: true
           tags: |
-            "${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine${{ env.NGX_TAG }}"
+            "${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine${{ env.ALPINE_TAG }}"
+            "${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine
             "${{ env.DOCKER_USERNAME }}/nginx:alpine"
           platforms: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
           build-args: |
             NGX_LVER=${{ env.NGX_LVER }}
             ZSTD_LVER=${{ env.ZSTD_LVER }}
+            CORERULESET_LVER=${{ env.CORERULESET_LVER }}
+
+      - name: 'Sync README.md to Dockerhub'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: ms-jpq/sync-dockerhub-readme@v1
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKER_USERNAME }}/nginx
+          readme: "./ldnmp/nginx/README.md"
