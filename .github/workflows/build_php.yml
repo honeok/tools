@@ -33,7 +33,7 @@ jobs:
           echo "PHP_LVER=${PHP_LVER}" >> $GITHUB_ENV && \
           echo "ALPINE_TAG=${ALPINE_TAG}" >> $GITHUB_ENV && \
           if [[ "$(echo -e "${{ env.PHP_LVER }}\n${{ env.PHP_CVER }}" | sort -V | head -n1)" != "${{ env.PHP_LVER }}" ]] || \
-            [[ -z "$PHP_CVER" ]]; then \
+            [[ -z "${{ env.PHP_CVER }}" ]]; then \
             echo "IS_RENEW=1" >> $GITHUB_ENV; \
           fi
 
