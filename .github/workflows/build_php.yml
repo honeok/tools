@@ -54,7 +54,7 @@ jobs:
 
       - name: 'Build and Push PHP image'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
-        uses: docker/build-push-action@v6.11.0
+        uses: docker/build-push-action@v6.15.0
         with:
           context: "{{ defaultContext }}:ldnmp/php"
           file: Dockerfile
