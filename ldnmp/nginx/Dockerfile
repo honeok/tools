@@ -8,10 +8,8 @@
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
-# Docker Build Arguments
-ARG NGX_LVER
-
 FROM alpine:latest AS builder
+ARG NGX_LVER
 ARG ZSTD_LVER
 
 RUN set -ex \
@@ -66,7 +64,8 @@ RUN set -ex \
         && apk del .build-deps \
         && rm -rf /var/cache/apk/*
 
-FROM nginx:${NGX_LVER}-alpine
+FROM nginx:stable-alpine
+ARG NGX_LVER
 ARG CORERULESET_LVER
 
 COPY --from=builder /tmp/nginx-${NGX_LVER}/objs/*.so /etc/nginx/modules/
