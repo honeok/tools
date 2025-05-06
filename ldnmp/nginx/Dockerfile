@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2025 honeok <honeok@duck.com>
 #
-# Thanks: kejilion <Lion12776@outlook.com>
+# Thanks: kejilion <lion12776@outlook.com>
 #
 # Licensed under the Apache License, Version 2.0.
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
@@ -64,7 +64,7 @@ RUN set -ex \
         && apk del .build-deps \
         && rm -rf /var/cache/apk/*
 
-FROM nginx:stable-alpine
+FROM nginx:alpine
 ARG NGX_LVER
 ARG CORERULESET_LVER
 
