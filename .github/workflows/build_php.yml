@@ -21,20 +21,20 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          PHP_CVER=$(curl -fsSL "https://hub.docker.com/v2/repositories/${{ env.DOCKER_USERNAME }}/php/tags" 2>/dev/null | \
-            jq -r ".results // [] | .[].name" | grep -v '^fpm-alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "") && \
-          PHP_LVER=$(curl -fsSL "https://api.github.com/repos/php/php-src/releases/latest" | \
-            jq -r '.tag_name | sub("^php-"; "")') && \
-          ALPINE_TAG=$(docker run --rm php:fpm-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2') && \
-          if [ -z "$PHP_LVER" ] || [ -z "$ALPINE_TAG" ]; then \
-            echo 'Error: Required parameters cannot be empty.' && exit 1; \
-          fi && \
-          echo "PHP_CVER=${PHP_CVER}" >> $GITHUB_ENV && \
-          echo "PHP_LVER=${PHP_LVER}" >> $GITHUB_ENV && \
-          echo "ALPINE_TAG=${ALPINE_TAG}" >> $GITHUB_ENV && \
-          if [[ "$(echo -e "${{ env.PHP_LVER }}\n${{ env.PHP_CVER }}" | sort -V | head -n1)" != "${{ env.PHP_LVER }}" ]] || \
-            [[ -z "${{ env.PHP_CVER }}" ]]; then \
-            echo "IS_RENEW=1" >> $GITHUB_ENV; \
+          PHP_CVER=$(curl -fsSL "https://hub.docker.com/v2/repositories/honeok/php/tags" 2>/dev/null | \
+            jq -r ".results // [] | .[].name" | grep -v '^fpm-alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "")
+          PHP_LVER=$(curl -fsSL "https://api.github.com/repos/php/php-src/releases/latest" | jq -r '.tag_name | sub("^php-"; "")')
+          PHP_ALPINE_LVER=$(docker run --rm php:fpm-alpine sh -c 'php -v 2>&1' | awk '/^PHP/ {print $2; exit}')
+          PHP_ALPINE_TAG=$(docker run --rm php:fpm-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')
+          if [[ -z "$PHP_LVER" || -z "$PHP_ALPINE_LVER" || -z "$PHP_ALPINE_TAG" ]]; then
+            echo 'Error: Required parameters cannot be empty.' && exit 1
+          fi
+          echo "PHP_CVER=${PHP_CVER}" >> $GITHUB_ENV
+          echo "PHP_LVER=${PHP_LVER}" >> $GITHUB_ENV
+          echo "PHP_ALPINE_LVER=${PHP_ALPINE_LVER}" >> $GITHUB_ENV
+          echo "PHP_ALPINE_TAG=${PHP_ALPINE_TAG}" >> $GITHUB_ENV
+          if [[ ( "$(echo -e "$PHP_LVER\n$PHP_CVER" | sort -V | head -n1)" != "$PHP_LVER" && "$PHP_ALPINE_LVER" == "$PHP_LVER" ) || -z "$PHP_CVER" ]]; then
+            echo "IS_RENEW=1" >> $GITHUB_ENV
           fi
 
       - name: 'Set up Docker QEMU'
@@ -60,7 +60,7 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.ALPINE_TAG }}"
+            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.PHP_ALPINE_TAG }}"
             "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine"
             "${{ env.DOCKER_USERNAME }}/php:fpm-alpine"
           platforms: linux/386, linux/amd64, linux/arm/v7, linux/arm64/v8, linux/ppc64le
