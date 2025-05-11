@@ -2,7 +2,7 @@
 #
 # Description: Filters oom/kill from dmesg, computes absolute time, formats output.
 #
-# Copyright (C) 2025 honeok <honeok@duck.com>
+# Copyright (c) 2025 honeok <honeok@duck.com>
 #
 # Licensed under the Apache License, Version 2.0.
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
@@ -10,17 +10,18 @@
 
 _yellow() { printf "\033[93m%s\033[0m" "$*"; }
 
-bootTime=$(date -d "$(uptime -s)" +%s)
+# 获取系统启动时间
+BOOTTIME=$(date -d "$(uptime -s)" +%s 2>/dev/null || awk '/btime/ {print $2}' /proc/stat)
 
-dmesg | grep -i "oom\|kill" | while read -r entry; do
+dmesg | grep -i "oom\|kill" | while read -r ENTRY; do
     # 提取时间戳
-    timeStamp=$(echo "$entry" | awk -F'[][]' '{print $2}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    TIMESTAMP=$(echo "$ENTRY" | awk -F'[][]' '{print $2}' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     # 时间戳为空跳过
-    [ -z "$timeStamp" ] && continue
+    [ -z "$TIMESTAMP" ] && continue
 
     # 计算事件绝对时间并格式化
-    eventTimeSec=$((bootTime + $(echo "$timeStamp" | awk '{print int($1)}')))
-    eventTime=$(date -d "@$eventTimeSec" "+%Y-%m-%d %H:%M:%S")
+    EVENTTIMESEC=$((BOOTTIME + $(echo "$TIMESTAMP" | awk '{print int($1)}')))
+    EVENTTIME=$(date -d "@$EVENTTIMESEC" "+%Y-%m-%d %H:%M:%S")
 
-    echo "$(_yellow "Event Time: $eventTime") $entry"
+    echo "$(_yellow "Event Time: $EVENTTIME") $ENTRY"
 done
