@@ -1,11 +1,11 @@
-name: 'Build and publish myip'
+name: 'Build and Publish myip'
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: 'Build and publish myip'
+    name: 'Build and Publish myip'
     runs-on: ubuntu-latest
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
