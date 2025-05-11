@@ -15,8 +15,8 @@ set \
 
 command -v curl >/dev/null 2>&1 || apt-get install -y curl
 
-DANMAKU_TGA=$(curl -fsL https://api.github.com/repos/SmallPeaches/DanmakuRender/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-if ! git clone --branch "$DANMAKU_TGA" https://github.com/SmallPeaches/DanmakuRender.git; then
+DANMAKU_TAG=$(curl -fsL "https://api.github.com/repos/SmallPeaches/DanmakuRender/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+if ! git clone --branch "$DANMAKU_TAG" https://github.com/SmallPeaches/DanmakuRender.git; then
     printf 'Error: Unable to obtain DanmakuRender source code!\n' >&2; exit 1
 fi
 
