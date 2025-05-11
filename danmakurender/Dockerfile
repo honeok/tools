@@ -9,7 +9,7 @@
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
-FROM python:3.9.22-slim-bookworm
+FROM python:3.9-slim-bookworm
 
 WORKDIR /DanmakuRender
 
@@ -23,6 +23,7 @@ RUN set -ex \
             git \
             nodejs \
             npm \
+            tzdata \
         && chmod +x /docker-entrypoint.sh build.sh \
         && ./build.sh && rm -f build.sh \
         && python3 -m pip install --no-cache-dir -r requirements.txt \
@@ -31,5 +32,7 @@ RUN set -ex \
             git \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/* /var/log/* /tmp/*
+
+ENV TZ=Asia/Shanghai
 
 ENTRYPOINT [ "/docker-entrypoint.sh" ]

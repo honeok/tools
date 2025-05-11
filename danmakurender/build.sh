@@ -8,12 +8,25 @@
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
-set \
-    -o errexit \
-    -o nounset \
-    -o xtrace
+set -eux
 
-command -v curl >/dev/null 2>&1 || apt-get install -y curl
+pkg_install() {
+    for pkg in "$@"; do
+        if command -v dnf >/dev/null 2>&1; then
+            dnf install -y "$pkg"
+        elif command -v yum >/dev/null 2>&1; then
+            yum install -y "$pkg"
+        elif command -v apt-get >/dev/null 2>&1; then
+            apt-get install -y -q "$pkg"
+        elif command -v apk >/dev/null 2>&1; then
+            apk add --no-cache "$pkg"
+        else
+            printf 'The package manager is not supported.\n'; exit 1
+        fi
+    done
+}
+
+command -v curl >/dev/null 2>&1 || pkg_install curl
 
 DANMAKU_TAG=$(curl -fsL "https://api.github.com/repos/SmallPeaches/DanmakuRender/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 if ! git clone --branch "$DANMAKU_TAG" https://github.com/SmallPeaches/DanmakuRender.git; then
@@ -40,10 +53,15 @@ if ! curl -fsL -O "https://github.com/biliup/biliup-rs/releases/download/v$BILIU
     printf 'Error: Failed to download biliupR, please check the network!\n' >&2; exit 1
 fi
 
+# prepare running environment.
 mv -f DanmakuRender/* .
 rm -rf DanmakuRender
-tar xf "biliupR-v$BILIUPR_VERSION-$BILIUPR_FRAMEWORK-linux.tar.xz" --strip-components=1
+tar xf --strip-components=1 "biliupR-v$BILIUPR_VERSION-$BILIUPR_FRAMEWORK-linux.tar.xz"
 rm -f "biliupR-v$BILIUPR_VERSION-$BILIUPR_FRAMEWORK-linux.tar.xz"
 mv -f biliup tools/
 
-command cp -rf configs /opt/configs
+# clean up the extra docs files in danmakurender repository.
+rm -f Dockerfile -- *.md
+rm -rf docs
+
+\cp -rf configs /opt/configs
