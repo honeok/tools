@@ -56,7 +56,7 @@ fi
 # prepare running environment.
 mv -f DanmakuRender/* .
 rm -rf DanmakuRender
-tar xf --strip-components=1 "biliupR-v$BILIUPR_VERSION-$BILIUPR_FRAMEWORK-linux.tar.xz"
+tar xf "biliupR-v$BILIUPR_VERSION-$BILIUPR_FRAMEWORK-linux.tar.xz" --strip-components=1 
 rm -f "biliupR-v$BILIUPR_VERSION-$BILIUPR_FRAMEWORK-linux.tar.xz"
 mv -f biliup tools/
 
