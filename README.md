@@ -14,11 +14,11 @@ When your work and your interests align, you should learn to be grateful.
 Description: Official adaptive one click script based on the xanmod kernel.
 
 ```shell
-bash <(curl -sL https://github.com/honeok/Tools/raw/master/xanmod.sh)
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/xanmod.sh)
 ```
 or
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/xanmod.sh)
+bash <(curl -sL https://github.com/honeok/Tools/raw/master/xanmod.sh)
 ```
 
 ## get-docker.sh
@@ -28,13 +28,25 @@ bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/xanmod.sh)
 </p>
 
 Description: This script allows you to install the latest version of Docker on your server with a single command.
- 
+
 ```shell
-bash <(curl -sL https://github.com/honeok/Tools/raw/master/get-docker.sh)
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/get-docker.sh)
 ```
 or
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/get-docker.sh)
+bash <(curl -sL https://github.com/honeok/Tools/raw/master/get-docker.sh)
+```
+
+## dmesg.sh
+
+Description: A simple script to view and analyze `dmesg` logs, quickly pinpointing system errors.
+
+```shell
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/dmesg.sh)
+```
+or
+```shell
+bash <(curl -sL https://github.com/honeok/Tools/raw/master/dmesg.sh)
 ```
 
 ## weather.sh
@@ -42,9 +54,9 @@ bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/get-docker.sh)
 Description: A unique feature that displays the day's weather forecast to users based on their login IP address.
 
 ```shell
-bash <(curl -sL https://github.com/honeok/Tools/raw/master/weather.sh)
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/weather.sh)
 ```
 or
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/weather.sh)
+bash <(curl -sL https://github.com/honeok/Tools/raw/master/weather.sh)
 ```
