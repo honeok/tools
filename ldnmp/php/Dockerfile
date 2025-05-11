@@ -1,7 +1,8 @@
 # Description: build a lightweight php-fpm environment with essential extensions.
 #
-# Copyright (C) 2024-2025 honeok <honeok@duck.com>
-# Copyright (C) 2024-2025 kejilion <lion12776@outlook.com>
+# Copyright (c) 2024-2025 honeok <honeok@duck.com>
+#
+# Thanks: kejilion <lion12776@outlook.com>
 #
 # Licensed under the Apache License, Version 2.0.
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
