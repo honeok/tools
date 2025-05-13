@@ -10,7 +10,7 @@
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
-FROM rust:alpine as builder
+FROM rust:alpine AS builder
 
 WORKDIR /biliup-rs
 
