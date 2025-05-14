@@ -64,7 +64,7 @@ RUN set -ex \
         && apk del .build-deps \
         && rm -rf /var/cache/apk/*
 
-FROM nginx:alpine
+FROM nginx:stable-alpine
 ARG NGX_LVER
 ARG CORERULESET_LVER
 
