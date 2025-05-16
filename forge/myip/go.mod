@@ -1,4 +1,4 @@
-module github.com/honeok/Tools/myip
+module github.com/honeok/Tools/forge/myip
 
 go 1.23.4
 
