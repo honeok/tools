@@ -32,7 +32,7 @@ jobs:
       - name: 'Build and push myip image'
         uses: docker/build-push-action@v6.16.0
         with:
-          context: "{{ defaultContext }}:myip"
+          context: "{{ defaultContext }}:forge/myip"
           file: Dockerfile
           push: true
           tags: |
