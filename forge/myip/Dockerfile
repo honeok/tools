@@ -6,7 +6,7 @@
 # Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
 # See http://www.apache.org/licenses/LICENSE-2.0 for details.
 
-FROM golang:1.23-alpine AS builder
+FROM golang:1-alpine AS builder
 WORKDIR /go/src
 COPY . .
 RUN set -ex \
