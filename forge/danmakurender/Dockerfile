@@ -21,7 +21,7 @@ RUN set -ex \
             git \
             musl-dev \
             python3 \
-        && TAG=$(curl -fsL "https://api.github.com/repos/biliup/biliup-rs/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | grep -v '^py') \
+        && TAG=$(curl -fsL --retry 5 "https://api.github.com/repos/biliup/biliup-rs/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | grep -v '^py') \
         && git clone --depth=1 --branch "$TAG" "https://github.com/biliup/biliup-rs.git" \
         && cd biliup-rs \
         && cargo build --release \
