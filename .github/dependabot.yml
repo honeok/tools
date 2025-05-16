@@ -5,10 +5,18 @@
 
 version: 2
 updates:
-  - package-ecosystem: "github-actions"
+  - package-ecosystem: "github-actions" # GitHub Actions
     commit-message:
       prefix: "chore"
     directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "release"
+
+  - package-ecosystem: "gomod"
+    commit-message:
+      prefix: "chore"
+    directory: "forge/myip"
     schedule:
       interval: "weekly"
     target-branch: "release"
