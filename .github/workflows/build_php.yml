@@ -21,9 +21,9 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          PHP_CVER=$(curl -fsSL "https://hub.docker.com/v2/repositories/honeok/php/tags" 2>/dev/null | \
+          PHP_CVER=$(curl -fsL --retry 5 "https://hub.docker.com/v2/repositories/honeok/php/tags" 2>/dev/null | \
             jq -r ".results // [] | .[].name" | grep -v '^fpm-alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "")
-          PHP_LVER=$(curl -fsSL "https://api.github.com/repos/php/php-src/releases/latest" | jq -r '.tag_name | sub("^php-"; "")')
+          PHP_LVER=$(curl -fsL --retry 5 "https://api.github.com/repos/php/php-src/releases/latest" | jq -r '.tag_name | sub("^php-"; "")')
           PHP_ALPINE_LVER=$(docker run --rm php:fpm-alpine sh -c 'php -v 2>&1' | awk '/^PHP/ {print $2; exit}')
           PHP_ALPINE_TAG=$(docker run --rm php:fpm-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')
           if [[ -z "$PHP_LVER" || -z "$PHP_ALPINE_LVER" || -z "$PHP_ALPINE_TAG" ]]; then
@@ -60,7 +60,7 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.PHP_ALPINE_TAG }}"
-            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine"
             "${{ env.DOCKER_USERNAME }}/php:fpm-alpine"
+            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine"
+            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.PHP_ALPINE_TAG }}"
           platforms: linux/386, linux/amd64, linux/arm/v7, linux/arm64/v8, linux/ppc64le
