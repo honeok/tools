@@ -1,0 +1,63 @@
+---
+name: 'Build and Publish flappybird'
+
+on:
+  schedule:
+    - cron: '0 16 * * 0'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: 'Build and Publish flappybird'
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+    steps:
+      - name: 'Check out repository'
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: 'Fetch Versions and Determine Build'
+        run: |
+          NGX_CVER=$(docker run --rm honeok/flappybird sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'" 2>/dev/null || echo "")
+          NGX_LVER=$(curl -fsL --retry 5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/release-//')
+          NGX_ALPINE_LVER=$(docker run --rm nginx:stable-alpine sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")
+          NGX_ALPINE_TAG=$(docker run --rm nginx:stable-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')
+          if [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$NGX_ALPINE_TAG" ]]; then
+            echo 'Error: Required parameters cannot be empty.'; exit 1
+          fi
+          echo "NGX_CVER=${NGX_CVER}" >> $GITHUB_ENV
+          echo "NGX_LVER=${NGX_LVER}" >> $GITHUB_ENV
+          echo "NGX_ALPINE_LVER=${NGX_ALPINE_LVER}" >> $GITHUB_ENV
+          echo "NGX_ALPINE_TAG=${NGX_ALPINE_TAG}" >> $GITHUB_ENV
+          if [[ ( "$(echo -e "$NGX_LVER\n$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER" ) || -z "$NGX_CVER" ]]; then
+            echo "IS_RENEW=1" >> $GITHUB_ENV
+          fi
+
+      - name: 'Set up Docker QEMU'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-qemu-action@v3.6.0
+
+      - name: 'Set up Docker Buildx'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3.10.0
+
+      - name: 'Login to DockerHub'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3.4.0
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: 'Build and Push flappybird image'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v6.17.0
+        with:
+          context: "{{ defaultContext }}:game/flappybird"
+          file: Dockerfile
+          push: true
+          tags: "${{ env.DOCKER_USERNAME }}/flappybird:latest"
+          platforms: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
