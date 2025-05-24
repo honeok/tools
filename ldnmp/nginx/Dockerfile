@@ -4,9 +4,17 @@
 #
 # Thanks: kejilion <lion12776@outlook.com>
 #
-# Licensed under the Apache License, Version 2.0.
-# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
-# See http://www.apache.org/licenses/LICENSE-2.0 for details.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 FROM alpine:latest AS builder
 ARG NGX_LVER
@@ -36,7 +44,7 @@ RUN set -ex \
             yajl-dev \
             zlib-dev \
         && cd /tmp \
-        && curl -fsSL "https://nginx.org/download/nginx-${NGX_LVER}.tar.gz" -o nginx-${NGX_LVER}.tar.gz \
+        && curl -fsL "https://nginx.org/download/nginx-${NGX_LVER}.tar.gz" -o nginx-${NGX_LVER}.tar.gz \
         && tar -zxf nginx-${NGX_LVER}.tar.gz \
         && git clone --recurse-submodules -j8 "https://github.com/google/ngx_brotli" \
         && git clone --depth 1 "https://github.com/owasp-modsecurity/ModSecurity" \
@@ -48,7 +56,7 @@ RUN set -ex \
         && make && make install \
         && cd /tmp \
         && git clone "https://github.com/owasp-modsecurity/ModSecurity-nginx" \
-        && curl -fsSL "https://github.com/facebook/zstd/releases/download/v${ZSTD_LVER}/zstd-${ZSTD_LVER}.tar.gz" -o zstd-${ZSTD_LVER}.tar.gz \
+        && curl -fsL "https://github.com/facebook/zstd/releases/download/v${ZSTD_LVER}/zstd-${ZSTD_LVER}.tar.gz" -o zstd-${ZSTD_LVER}.tar.gz \
         && tar -xzf zstd-${ZSTD_LVER}.tar.gz \
         && cd zstd-${ZSTD_LVER} \
         && make clean \
@@ -82,15 +90,15 @@ RUN set -ex \
             yajl \
             yajl-dev \
         && mkdir -p /etc/nginx/modsec/plugins \
-        && curl -fsSL -O "https://github.com/coreruleset/coreruleset/archive/v${CORERULESET_LVER}.tar.gz" \
+        && curl -fsL -O "https://github.com/coreruleset/coreruleset/archive/v${CORERULESET_LVER}.tar.gz" \
         && tar -xzf v${CORERULESET_LVER}.tar.gz --strip-components=1 -C /etc/nginx/modsec \
         && rm -f v${CORERULESET_LVER}.tar.gz \
-        && curl -fsSL "https://github.com/coreruleset/wordpress-rule-exclusions-plugin/raw/master/plugins/wordpress-rule-exclusions-before.conf" -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-before.conf \
-        && curl -fsSL "https://github.com/coreruleset/wordpress-rule-exclusions-plugin/raw/master/plugins/wordpress-rule-exclusions-config.conf" -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-config.conf \
-        && curl -fsSL "https://github.com/kejilion/nginx/raw/main/waf/ldnmp-before.conf" -o /etc/nginx/modsec/plugins/ldnmp-before.conf \
+        && curl -fsL "https://github.com/coreruleset/wordpress-rule-exclusions-plugin/raw/master/plugins/wordpress-rule-exclusions-before.conf" -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-before.conf \
+        && curl -fsL "https://github.com/coreruleset/wordpress-rule-exclusions-plugin/raw/master/plugins/wordpress-rule-exclusions-config.conf" -o /etc/nginx/modsec/plugins/wordpress-rule-exclusions-config.conf \
+        && curl -fsL "https://github.com/kejilion/nginx/raw/main/waf/ldnmp-before.conf" -o /etc/nginx/modsec/plugins/ldnmp-before.conf \
         && cp -f /etc/nginx/modsec/crs-setup.conf.example /etc/nginx/modsec/crs-setup.conf \
         && echo 'SecAction "id:900110, phase:1, pass, setvar:tx.inbound_anomaly_score_threshold=30, setvar:tx.outbound_anomaly_score_threshold=16"' >> /etc/nginx/modsec/crs-setup.conf \
-        && curl -fsSL "https://github.com/owasp-modsecurity/ModSecurity/raw/v3/master/modsecurity.conf-recommended" -o /etc/nginx/modsec/modsecurity.conf \
+        && curl -fsL "https://github.com/owasp-modsecurity/ModSecurity/raw/v3/master/modsecurity.conf-recommended" -o /etc/nginx/modsec/modsecurity.conf \
         && sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsec/modsecurity.conf \
         && sed -i 's/SecPcreMatchLimit [0-9]\+/SecPcreMatchLimit 20000/' /etc/nginx/modsec/modsecurity.conf \
         && sed -i 's/SecPcreMatchLimitRecursion [0-9]\+/SecPcreMatchLimitRecursion 20000/' /etc/nginx/modsec/modsecurity.conf \
@@ -102,5 +110,6 @@ RUN set -ex \
         && echo 'Include /etc/nginx/modsec/rules/*.conf' >> /etc/nginx/modsec/modsecurity.conf \
         && echo 'Include /etc/nginx/modsec/plugins/*-after.conf' >> /etc/nginx/modsec/modsecurity.conf \
         && ldconfig /usr/lib \
-        && curl -fsSL "https://github.com/owasp-modsecurity/ModSecurity/raw/v3/master/unicode.mapping" -o /etc/nginx/modsec/unicode.mapping \
+        && curl -fsL "https://github.com/owasp-modsecurity/ModSecurity/raw/v3/master/unicode.mapping" -o /etc/nginx/modsec/unicode.mapping \
+        && curl -fsL "https://nginx.org/favicon.ico" -o /usr/share/nginx/html/favicon.ico \
         && rm -rf /var/cache/apk/* /tmp/*
