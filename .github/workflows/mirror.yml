@@ -1,4 +1,5 @@
-name: 'github actions mirror'
+---
+name: 'GitHub Actions Mirror'
 
 on:
   push:
@@ -8,33 +9,33 @@ on:
 
 jobs:
   mirror_to_gitlab:
-    name: 'mirror to gitlab'
+    name: 'Mirror to gitlab'
     runs-on: ubuntu-latest
     steps:
-      - name: 'checkout repository'
+      - name: 'Checkout repository'
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-      - name: 'mirror to gitlab'
-        uses: fscarmen/repository-mirroring-action@v1.0.0
+      - name: 'Mirror to gitlab'
+        uses: yesolutions/mirror-action@v0.7.0
         with:
-          target_repo_url:
-            git@gitlab.com:${{ github.repository }}.git
-          ssh_private_key:
-            ${{ secrets.SYNC_PRIVATE_KEY }}
+          REMOTE: git@gitlab.com:${{ github.repository }}.git
+          GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
+          PUSH_ALL_REFS: false
+          GIT_SSH_NO_VERIFY_HOST: true
 
   mirror_to_framagit:
-    name: 'mirror to framagit'
+    name: 'Mirror to framagit'
     runs-on: ubuntu-latest
     steps:
-      - name: 'checkout repository'
+      - name: 'Checkout repository'
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
-      - name: 'mirror to framagit'
-        uses: fscarmen/repository-mirroring-action@v1.0.0
+      - name: 'Mirror to framagit'
+        uses: yesolutions/mirror-action@v0.7.0
         with:
-          target_repo_url:
-            git@framagit.org:${{ github.repository }}.git
-          ssh_private_key:
-            ${{ secrets.SYNC_PRIVATE_KEY }}
+          REMOTE: git@framagit.org:${{ github.repository }}.git
+          GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
+          PUSH_ALL_REFS: false
+          GIT_SSH_NO_VERIFY_HOST: true
