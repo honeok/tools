@@ -38,6 +38,20 @@ jobs:
           echo $IPINFO_CVER $IPINFO_LVER $NGX_LVER $GEOIP2_TAG
           [[ ( "$(echo -e "$IPINFO_LVER\n$IPINFO_CVER" | sort -V | head -n1)" != "$IPINFO_LVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER" ) || -z "$IPINFO_CVER" ]] && echo "IS_RENEW=1" >> $GITHUB_ENV
 
+      - name: 'Download GeoLite2 mmdb file'
+        run: |
+          cd ${{ github.workspace }}/forge/ipinfo
+          wget --tries=5 -qO GeoLite2-ASN.tar.gz "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-ASN&suffix=tar.gz"
+          wget --tries=5 -qO GeoLite2-ASN.tar.gz.sha256 "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-ASN&suffix=tar.gz.sha256"
+          sed -i 's/GeoLite2-ASN_[0-9]*.tar.gz/GeoLite2-ASN.tar.gz/g' GeoLite2-ASN.tar.gz.sha256
+          sha256sum -c GeoLite2-ASN.tar.gz.sha256
+          tar -zxf GeoLite2-ASN.tar.gz --strip 1
+          wget --tries=5 -qO GeoLite2-Country.tar.gz "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-Country&suffix=tar.gz"
+          wget --tries=5 -qO GeoLite2-Country.tar.gz.sha256 "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-Country&suffix=tar.gz.sha256"
+          sed -i 's/GeoLite2-Country_[0-9]*.tar.gz/GeoLite2-Country.tar.gz/g' GeoLite2-Country.tar.gz.sha256
+          sha256sum -c GeoLite2-Country.tar.gz.sha256
+          tar -zxf GeoLite2-Country.tar.gz --strip 1
+
       - name: 'Set up Docker QEMU'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/setup-qemu-action@v3.6.0
@@ -57,11 +71,10 @@ jobs:
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6.17.0
         with:
-          context: "{{ defaultContext }}:forge/ipinfo"
-          file: Dockerfile
-          platforms: linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8
+          context: ${{ github.workspace }}/forge/ipinfo
+          file: ${{ github.workspace }}/forge/ipinfo/Dockerfile
+          platforms: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
           build-args: |
-            MAXMIND_KEY=${{ secrets.MAXMIND_KEY }}
             NGX_LVER=${{ env.NGX_LVER }}
             GEOIP2_TAG=${{ env.GEOIP2_TAG }}
           tags: |

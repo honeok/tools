@@ -16,22 +16,11 @@
 
 FROM alpine:latest AS builder
 LABEL maintainer="honeok <honeok@duck.com>"
-ARG MAXMIND_KEY
 ARG NGX_LVER
 ARG GEOIP2_TAG
-WORKDIR /GeoLite2
+COPY ./*.mmdb /GeoLite2/
 RUN set -ex \
     && apk add --no-cache --virtual .build-deps build-base git libmaxminddb-dev pcre-dev zlib-dev \
-    && wget --tries=5 -qO GeoLite2-ASN.tar.gz "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-ASN&suffix=tar.gz" \
-    && wget --tries=5 -qO GeoLite2-ASN.tar.gz.sha256 "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-ASN&suffix=tar.gz.sha256" \
-    && sed -i 's/GeoLite2-ASN_[0-9]*.tar.gz/GeoLite2-ASN.tar.gz/g' GeoLite2-ASN.tar.gz.sha256 \
-    && sha256sum -c GeoLite2-ASN.tar.gz.sha256 \
-    && tar -zxf GeoLite2-ASN.tar.gz --strip 1 \
-    && wget --tries=5 -qO GeoLite2-Country.tar.gz "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-Country&suffix=tar.gz" \
-    && wget --tries=5 -qO GeoLite2-Country.tar.gz.sha256 "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-Country&suffix=tar.gz.sha256" \
-    && sed -i 's/GeoLite2-Country_[0-9]*.tar.gz/GeoLite2-Country.tar.gz/g' GeoLite2-Country.tar.gz.sha256 \
-    && sha256sum -c GeoLite2-Country.tar.gz.sha256 \
-    && tar -zxf GeoLite2-Country.tar.gz --strip 1 \
     && cd /tmp \
     && wget --tries=5 -qO nginx-${NGX_LVER}.tar.gz "https://nginx.org/download/nginx-${NGX_LVER}.tar.gz" \
     && tar -zxf nginx-${NGX_LVER}.tar.gz \
