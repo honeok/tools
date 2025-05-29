@@ -54,6 +54,6 @@ RUN set -ex \
     && apk upgrade \
     && apk add --no-cache libmaxminddb \
     && rm -f /etc/nginx/conf.d/default.conf \
-    && wget -qO /usr/share/nginx/html/favicon.ico "https://ipinfo.tw/favicon.ico" \
+    && wget --no-check-certificate -qO /usr/share/nginx/html/favicon.ico "https://cdn.skyimg.net/up/2025/5/29/e8c32aa5.webp" \
     && rm -rf /var/cache/apk/*
 HEALTHCHECK --timeout=10s --start-period=5s CMD curl -fs http://127.0.0.1:80/health || exit 1
