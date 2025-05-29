@@ -39,6 +39,7 @@ jobs:
           [[ ( "$(echo -e "$IPINFO_LVER\n$IPINFO_CVER" | sort -V | head -n1)" != "$IPINFO_LVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER" ) || -z "$IPINFO_CVER" ]] && echo "IS_RENEW=1" >> $GITHUB_ENV
 
       - name: 'Download GeoLite2 mmdb file'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         run: |
           cd ${{ github.workspace }}/forge/ipinfo
           wget --tries=5 -qO GeoLite2-ASN.tar.gz "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-ASN&suffix=tar.gz"
