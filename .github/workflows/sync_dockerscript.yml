@@ -31,5 +31,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5.2.0
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         with:
-          commit_message: "chore: Sync docker install script by Github Actions"
+          commit_message: "chore: bump script version by github actions"
           branch: release
