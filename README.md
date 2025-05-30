@@ -1,11 +1,11 @@
 # Tools
 
-<div align="center">
+<p align="center">
 <img src="https://github.com/honeok/Tools/actions/workflows/shellcheck.yml/badge.svg" alt="ShellCheck Status" />
 <img src="https://img.shields.io/github/license/honeok/Tools.svg?style=flat" alt="License" />
 <img src="https://img.shields.io/github/last-commit/honeok/Tools?style=flat" alt="Last Commit" />
 <img src="https://img.shields.io/github/commit-activity/m/honeok/Tools.svg?style=flat" alt="Commit Activity" />
-</div>
+</p>
 
 Code never lies, But comments sometimes do.
 
@@ -23,9 +23,9 @@ bash <(curl -sL https://github.com/honeok/Tools/raw/master/xanmod.sh)
 
 ## get-docker.sh
 
-<div align="center">
+<p align="center">
 <img src="https://hits.honeok.com/get-docker.svg?action=view&count_bg=%2379C83D&title_bg=%23555555&title=Hits&edge_flat=flase" alt="Total Runs"/>
-</div>
+</p>
 
 Description: This script allows you to install the latest version of Docker on your server with a single command.
 
