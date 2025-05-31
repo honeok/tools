@@ -1,4 +1,4 @@
-# Ipinfo Docker Image by honeok
+# ipinfo Docker Image by honeok
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/honeok/ipinfo.svg?style=flat-square)](https://hub.docker.com/r/honeok/ipinfo)
 [![Docker Image Size](https://img.shields.io/docker/image-size/honeok/ipinfo.svg?style=flat-square)](https://hub.docker.com/r/honeok/ipinfo)
