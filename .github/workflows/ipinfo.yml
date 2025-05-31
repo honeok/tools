@@ -24,18 +24,14 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          IPINFO_CVER="$(wget -qO- --tries=5 "https://hub.docker.com/v2/repositories/honeok/ipinfo/tags" | grep -o '"name":"[^"]*"' | sed 's/"name":"//;s/"//' | grep -v '^latest$' | sort -Vr | head -n1 || echo "")"
-          IPINFO_LVER="$(wget -qO- --tries=5 "https://download.maxmind.com/app/geoip_download?license_key=$MAXMIND_KEY&edition_id=GeoLite2-ASN&suffix=tar.gz.sha256" | awk '{print $2}' | sed -E 's/.*_([0-9]{8})\.tar\.gz/\1/')"
           NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/release-//')"
           NGX_ALPINE_LVER="$(docker run --rm nginx:stable-alpine sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
           GEOIP2_TAG="$(wget -qO- --tries 5 "https://api.github.com/repos/leev/ngx_http_geoip2_module/releases/latest" | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"v\?\([^"]*\)".*/\1/')"
-          [[ -z "$IPINFO_LVER" || -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$GEOIP2_TAG" ]] && echo 'Error: Required parameters cannot be empty.' && exit 1
-          echo "IPINFO_CVER=$IPINFO_CVER" >> $GITHUB_ENV
-          echo "IPINFO_LVER=$IPINFO_LVER" >> $GITHUB_ENV
+          [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$GEOIP2_TAG" ]] && echo 'Error: Required parameters cannot be empty.' && exit 1
           echo "NGX_LVER=$NGX_LVER" >> $GITHUB_ENV
           echo "NGX_ALPINE_LVER=$NGX_ALPINE_LVER" >> $GITHUB_ENV
           echo "GEOIP2_TAG=$GEOIP2_TAG" >> $GITHUB_ENV
-          [[ ( "$(echo -e "$IPINFO_LVER\n$IPINFO_CVER" | sort -V | head -n1)" != "$IPINFO_LVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER" ) || ( -z "$IPINFO_CVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER" ) ]] && echo "IS_RENEW=1" >> $GITHUB_ENV
+          [[ "$NGX_LVER" == "$NGX_ALPINE_LVER" ]] && echo "IS_RENEW=1" >> $GITHUB_ENV
 
       - name: 'Download GeoLite2 mmdb file'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
@@ -77,7 +73,5 @@ jobs:
           build-args: |
             NGX_LVER=${{ env.NGX_LVER }}
             GEOIP2_TAG=${{ env.GEOIP2_TAG }}
-          tags: |
-            "${{ env.DOCKER_USERNAME }}/ipinfo:${{ env.IPINFO_LVER }}"
-            "${{ env.DOCKER_USERNAME }}/ipinfo:latest"
+          tags: "${{ env.DOCKER_USERNAME }}/ipinfo:latest"
           push: true
