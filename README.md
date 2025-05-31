@@ -9,16 +9,16 @@
 
 Code never lies, But comments sometimes do.
 
-## xanmod.sh
+## kernel.sh
 
-Description: Official adaptive one click script based on the xanmod kernel.
+Description: Based on xanmod and elrepo official source adaptation kernel upgrade one click script.
 
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/xanmod.sh)
+bash <(curl -sL https://gitlab.com/honeok/Tools/raw/master/kernel.sh)
 ```
 or
 ```shell
-bash <(curl -sL https://github.com/honeok/Tools/raw/master/xanmod.sh)
+bash <(curl -sL https://github.com/honeok/Tools/raw/master/kernel.sh)
 ```
 
 ## get-docker.sh
