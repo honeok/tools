@@ -18,7 +18,6 @@ FROM alpine:latest AS builder
 LABEL maintainer="honeok <honeok@duck.com>"
 ARG NGX_LVER
 ARG GEOIP2_TAG
-COPY ./*.mmdb /GeoLite2/
 RUN set -ex \
     && apk add --no-cache --virtual .build-deps build-base git libmaxminddb-dev pcre-dev zlib-dev \
     && cd /tmp \
@@ -36,7 +35,7 @@ FROM nginx:stable-alpine AS dist
 LABEL maintainer="honeok <honeok@duck.com>"
 ARG NGX_LVER
 COPY --from=builder /tmp/nginx-${NGX_LVER}/objs/*.so /usr/lib/nginx/modules/
-COPY --from=builder /GeoLite2/*.mmdb /usr/share/GeoIP/
+COPY *.mmdb /usr/share/GeoIP/
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/conf.d/* /etc/nginx/conf.d/
 RUN set -ex \
