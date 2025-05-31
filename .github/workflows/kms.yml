@@ -33,7 +33,7 @@ jobs:
           password: ${{ env.DOCKER_PASSWORD }}
 
       - name: 'Build and push kms image'
-        uses: docker/build-push-action@v6.17.0
+        uses: docker/build-push-action@v6.18.0
         with:
           context: "{{ defaultContext }}:forge/kms"
           file: Dockerfile
