@@ -14,6 +14,7 @@ Runs on any POSIX-compatible OS with minimal graphics or web support. It can be 
 ## Prepare the host
 
 Docker images are built for quick deployment in various computing cloud providers.
+
 For more information on docker and containerization technologies, refer to [official document][2].
 
 If you need to install docker by yourself, follow the [official installation guide][3].
@@ -24,7 +25,8 @@ If you need to install docker by yourself, follow the [official installation gui
 docker pull honeok/flappybird
 ```
 
-This pulls the latest release of KMS Server.
+This image pulls the latest release of Flappybird.
+
 It can be found at [Docker Hub][4].
 
 ## Start a container
