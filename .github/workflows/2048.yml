@@ -25,7 +25,9 @@ jobs:
           NGX_CVER="$(docker run --rm honeok/2048 sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'" 2>/dev/null || echo "")"
           NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/release-//')"
           NGX_ALPINE_LVER="$(docker run --rm nginx:stable-alpine sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
-          [ -z "$NGX_LVER" ] && { echo 'Error: Required parameters cannot be empty.'; exit 1; }
+          if [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" ]]; then
+            echo 'Error: Required parameters cannot be empty.'; exit 1
+          fi
           echo "NGX_CVER=$NGX_CVER" >> $GITHUB_ENV
           echo "NGX_LVER=$NGX_LVER" >> $GITHUB_ENV
           echo "NGX_ALPINE_LVER=$NGX_ALPINE_LVER" >> $GITHUB_ENV
