@@ -15,14 +15,3 @@ updates:
       time: "16:00"
     target-branch: "release"
     open-pull-requests-limit: 10
-
-  - package-ecosystem: "gomod"
-    commit-message:
-      prefix: "chore"
-    directory: "forge/myip"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "16:00"
-    target-branch: "release"
-    open-pull-requests-limit: 10
