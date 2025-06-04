@@ -15,6 +15,7 @@ The Docker image will be built with the latest stable version of Nginx, aiming t
 ## Prepare the host
 
 Docker images are built for quick deployment in various computing cloud providers.
+
 For more information on docker and containerization technologies, refer to [official document][2].
 
 If you need to install docker by yourself, follow the [official installation guide][3].
