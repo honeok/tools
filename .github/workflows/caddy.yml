@@ -120,7 +120,13 @@ jobs:
       - build_stable
       - build_beta
     if: success()
+
     steps:
+      - name: 'Check out repository'
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
       - name: 'Sync Caddy README.md'
         uses: ms-jpq/sync-dockerhub-readme@v1
         with:
