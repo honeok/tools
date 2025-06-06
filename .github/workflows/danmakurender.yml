@@ -21,16 +21,16 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          DANMAKU_CVER=$(curl -fsL --retry 5 "https://hub.docker.com/v2/repositories/honeok/danmakurender/tags" 2>/dev/null | \
-            jq -r ".results // [] | .[].name" | grep -v '^latest$' | sort -Vr | head -n1 | awk -F'-' '{print $2}' || echo "")
-          DANMAKU_LVER=$(curl -fsL --retry 5 "https://api.github.com/repos/SmallPeaches/DanmakuRender/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-          DANMAKU_BRANCH=$(curl -fsL --retry 5 "https://api.github.com/repos/SmallPeaches/DanmakuRender" | jq -r '.default_branch')
+          DANMAKU_CVER="$(wget -qO- --tries=5 "https://hub.docker.com/v2/repositories/honeok/danmakurender/tags" 2>/dev/null | \
+            jq -r ".results // [] | .[].name" | grep -v '^latest$' | sort -Vr | head -n1 | awk -F'-' '{print $2}' || echo "")"
+          DANMAKU_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/SmallPeaches/DanmakuRender/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')"
+          DANMAKU_BRANCH="$(wget -qO- --tries=5 "https://api.github.com/repos/SmallPeaches/DanmakuRender" | jq -r '.default_branch')"
           if [[ -z "$DANMAKU_LVER" || -z "$DANMAKU_BRANCH" ]]; then
             echo 'Error: Required parameters cannot be empty.' && exit 1
           fi
-          echo "DANMAKU_CVER=${DANMAKU_CVER}" >> $GITHUB_ENV
-          echo "DANMAKU_LVER=${DANMAKU_LVER}" >> $GITHUB_ENV
-          echo "DANMAKU_BRANCH=${DANMAKU_BRANCH}" >> $GITHUB_ENV
+          echo "DANMAKU_CVER=$DANMAKU_CVER" >> $GITHUB_ENV
+          echo "DANMAKU_LVER=$DANMAKU_LVER" >> $GITHUB_ENV
+          echo "DANMAKU_BRANCH=$DANMAKU_BRANCH" >> $GITHUB_ENV
           if [[ "$(echo -e "$DANMAKU_LVER\n$DANMAKU_CVER" | sort -V | head -n1)" != "$DANMAKU_LVER" || -z "$DANMAKU_CVER" ]]; then
             echo "IS_RENEW=1" >> $GITHUB_ENV
           fi
@@ -54,10 +54,10 @@ jobs:
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6.18.0
         with:
-          context: "{{ defaultContext }}:forge/danmakurender"
-          file: Dockerfile
-          push: true
+          context: ${{ github.workspace }}/forge/danmakurender
+          file: ${{ github.workspace }}/forge/danmakurender/Dockerfile
+          platforms: linux/amd64, linux/arm64/v8
           tags: |
             "${{ env.DOCKER_USERNAME }}/danmakurender:${{ env.DANMAKU_BRANCH }}-${{ env.DANMAKU_LVER }}"
             "${{ env.DOCKER_USERNAME }}/danmakurender:latest"
-          platforms: linux/amd64, linux/arm64/v8
+          push: true

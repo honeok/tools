@@ -35,8 +35,8 @@ jobs:
       - name: 'Build and push kms image'
         uses: docker/build-push-action@v6.18.0
         with:
-          context: "{{ defaultContext }}:forge/kms"
-          file: Dockerfile
-          push: true
-          tags: "${{ env.DOCKER_USERNAME }}/kms:latest"
+          context: ${{ github.workspace }}/forge/kms
+          file: ${{ github.workspace }}/forge/kms/Dockerfile
           platforms: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
+          tags: "${{ env.DOCKER_USERNAME }}/kms:latest"
+          push: true
