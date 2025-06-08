@@ -1,14 +1,15 @@
 ---
-name: 'Build and Publish flappybird'
+name: 'Build and Publish Flappybird'
 
 on:
   schedule:
-    - cron: '0 16 * * 0'
+    - cron: '0 16 * * 3'
+    - cron: '0 16 * * 6'
   workflow_dispatch:
 
 jobs:
   build:
-    name: 'Build and Publish flappybird'
+    name: 'Build and Publish Flappybird'
     runs-on: ubuntu-latest
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -59,5 +60,5 @@ jobs:
           context: ${{ github.workspace }}/game/flappybird
           file: ${{ github.workspace }}/game/flappybird/Dockerfile
           platforms: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
-          tags: "${{ env.DOCKER_USERNAME }}/flappybird:latest"
+          tags: ${{ env.DOCKER_USERNAME }}/flappybird:latest
           push: true

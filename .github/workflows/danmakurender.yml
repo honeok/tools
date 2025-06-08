@@ -2,7 +2,8 @@ name: 'Build and Publish DanmakuRender'
 
 on:
   schedule:
-    - cron: '0 16 * * 0'
+    - cron: '0 16 * * 3'
+    - cron: '0 16 * * 6'
   workflow_dispatch:
 
 jobs:
@@ -58,6 +59,6 @@ jobs:
           file: ${{ github.workspace }}/forge/danmakurender/Dockerfile
           platforms: linux/amd64, linux/arm64/v8
           tags: |
-            "${{ env.DOCKER_USERNAME }}/danmakurender:${{ env.DANMAKU_BRANCH }}-${{ env.DANMAKU_LVER }}"
-            "${{ env.DOCKER_USERNAME }}/danmakurender:latest"
+            ${{ env.DOCKER_USERNAME }}/danmakurender:${{ env.DANMAKU_BRANCH }}-${{ env.DANMAKU_LVER }}
+            ${{ env.DOCKER_USERNAME }}/danmakurender:latest
           push: true

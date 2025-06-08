@@ -1,13 +1,15 @@
-name: 'Build and Publish php'
+---
+name: 'Build and Publish PHP'
 
 on:
   schedule:
-    - cron: '0 16 * * 0'
+    - cron: '0 16 * * 3'
+    - cron: '0 16 * * 6'
   workflow_dispatch:
 
 jobs:
   build:
-    name: 'Build and Publish php'
+    name: 'Build and Publish PHP'
     runs-on: ubuntu-latest
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -60,7 +62,7 @@ jobs:
           file: ${{ github.workspace }}/ldnmp/php/Dockerfile
           platforms: linux/386, linux/amd64, linux/arm/v7, linux/arm64/v8, linux/ppc64le
           tags: |
-            "${{ env.DOCKER_USERNAME }}/php:fpm-alpine"
-            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine"
-            "${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.PHP_ALPINE_TAG }}"
+            ${{ env.DOCKER_USERNAME }}/php:fpm-alpine
+            ${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine
+            ${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.PHP_ALPINE_TAG }}
           push: true
