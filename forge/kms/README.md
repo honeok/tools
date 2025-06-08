@@ -12,6 +12,7 @@ vlmcsd is designed to run on POSIX compatible operating systens. It only require
 ## Prepare the host
 
 Docker images are built for quick deployment in various computing cloud providers.
+
 For more information on docker and containerization technologies, refer to [official document][1].
 
 If you need to install docker by yourself, follow the [official installation guide][2].
@@ -23,6 +24,7 @@ docker pull honeok/kms
 ```
 
 This pulls the latest release of KMS Server.
+
 It can be found at [Docker Hub][3].
 
 ## Start a container
