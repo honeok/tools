@@ -3,7 +3,8 @@ name: 'Build and Publish 2048'
 
 on:
   schedule:
-    - cron: '0 16 * * 0'
+    - cron: '0 16 * * 3'
+    - cron: '0 16 * * 6'
   workflow_dispatch:
 
 jobs:
@@ -57,5 +58,5 @@ jobs:
           context: ${{ github.workspace }}/game/2048
           file: ${{ github.workspace }}/game/2048/Dockerfile
           platforms: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
-          tags: "${{ env.DOCKER_USERNAME }}/2048:latest"
+          tags: ${{ env.DOCKER_USERNAME }}/2048:latest
           push: true

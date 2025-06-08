@@ -2,7 +2,8 @@ name: 'Build and Publish Nginx'
 
 on:
   schedule:
-    - cron: '0 16 * * 0'
+    - cron: '0 16 * * 3'
+    - cron: '0 16 * * 6'
   workflow_dispatch:
 
 jobs:
@@ -68,7 +69,7 @@ jobs:
             ZSTD_LVER=${{ env.ZSTD_LVER }}
             CORERULESET_LVER=${{ env.CORERULESET_LVER }}
           tags: |
-            "${{ env.DOCKER_USERNAME }}/nginx:alpine"
-            "${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine"
-            "${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine${{ env.NGX_ALPINE_TAG }}"
+            ${{ env.DOCKER_USERNAME }}/nginx:alpine
+            ${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine
+            ${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine${{ env.NGX_ALPINE_TAG }}
           push: true

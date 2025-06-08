@@ -1,5 +1,5 @@
 ---
-name: 'Build and Publish ipinfo'
+name: 'Build and Publish Ipinfo'
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: 'Build and Publish ipinfo'
+    name: 'Build and Publish Ipinfo'
     runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
@@ -73,5 +73,5 @@ jobs:
           build-args: |
             NGX_LVER=${{ env.NGX_LVER }}
             GEOIP2_TAG=${{ env.GEOIP2_TAG }}
-          tags: "${{ env.DOCKER_USERNAME }}/ipinfo:latest"
+          tags: ${{ env.DOCKER_USERNAME }}/ipinfo:latest
           push: true
