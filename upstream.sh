@@ -25,23 +25,22 @@ while true; do
     separator
     read -rep "Please enter user: " USER
     case "$USER" in
-        1)
+        1 )
             git config user.name honeok
             [ "$WORK_PLATFORM" = "github" ] && git config user.email "100125733+honeok@users.noreply.github.com"
-            git remote set-url origin "git@${WORK_PLATFORM}-${USER}:${USER}/${REPOSITORY}.git"
+            git remote set-url origin "git@${WORK_PLATFORM}-honeok:honeok/${REPOSITORY}.git"
             break
         ;;
-        2)
+        2 )
             git config user.name havario
             [ "$WORK_PLATFORM" = "github" ] && git config user.email "157877551+havario@users.noreply.github.com"
-            git remote set-url origin "git@${WORK_PLATFORM}-${USER}:${USER}/${REPOSITORY}.git"
+            git remote set-url origin "git@${WORK_PLATFORM}-havario:havario/${REPOSITORY}.git"
             break
         ;;
-        *)
+        * )
             echo "Error: Unknown User"
         ;;
     esac
-
-    git config --get user.name
-    git config --get user.email
 done
+git config --get user.name
+git config --get user.email
