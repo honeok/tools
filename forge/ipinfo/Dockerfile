@@ -1,21 +1,13 @@
 # Description: This dockerfile is used to build the ipinfo container image.
 #
-# Copyright (c) 2025 honeok <honeok@duck.com>
+# Copyright (c) 2025 honeok <honeok@disroot.org>
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Thanks: https://github.com/xjasonlyu/maxmind-geoip
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 FROM alpine:latest AS builder
-LABEL maintainer="honeok <honeok@duck.com>"
+LABEL maintainer="honeok <honeok@disroot.org>"
 ARG NGX_LVER
 ARG GEOIP2_TAG
 RUN set -ex \
@@ -32,7 +24,7 @@ RUN set -ex \
     && rm -rf /var/cache/apk/*
 
 FROM nginx:stable-alpine AS dist
-LABEL maintainer="honeok <honeok@duck.com>"
+LABEL maintainer="honeok <honeok@disroot.org>"
 ARG NGX_LVER
 COPY --from=builder /tmp/nginx-${NGX_LVER}/objs/*.so /usr/lib/nginx/modules/
 COPY *.mmdb /usr/share/GeoIP/
