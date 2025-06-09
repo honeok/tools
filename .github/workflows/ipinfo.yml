@@ -3,7 +3,7 @@ name: 'Build and Publish Ipinfo'
 
 on:
   schedule:
-    - cron: '0 16 * * 3'
+    - cron: '0 5 * * *'
   workflow_dispatch:
 
 jobs:
@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
-      MAXMIND_KEY: ${{ secrets.MAXMIND_KEY }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -27,9 +26,8 @@ jobs:
           NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/release-//')"
           NGX_ALPINE_LVER="$(docker run --rm nginx:stable-alpine sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
           GEOIP2_TAG="$(wget -qO- --tries 5 "https://api.github.com/repos/leev/ngx_http_geoip2_module/releases/latest" | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"v\?\([^"]*\)".*/\1/')"
-          [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$GEOIP2_TAG" ]] && echo 'Error: Required parameters cannot be empty.' && exit 1
+          [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$GEOIP2_TAG" ]] && { echo 'Error: Required parameters cannot be empty.'; exit 1; }
           echo "NGX_LVER=$NGX_LVER" >> $GITHUB_ENV
-          echo "NGX_ALPINE_LVER=$NGX_ALPINE_LVER" >> $GITHUB_ENV
           echo "GEOIP2_TAG=$GEOIP2_TAG" >> $GITHUB_ENV
           [[ "$NGX_LVER" == "$NGX_ALPINE_LVER" ]] && echo "IS_RENEW=1" >> $GITHUB_ENV
 
@@ -37,16 +35,14 @@ jobs:
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         run: |
           cd ${{ github.workspace }}/forge/ipinfo
-          wget --tries=5 -qO GeoLite2-ASN.tar.gz "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-ASN&suffix=tar.gz"
-          wget --tries=5 -qO GeoLite2-ASN.tar.gz.sha256 "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-ASN&suffix=tar.gz.sha256"
-          sed -i 's/GeoLite2-ASN_[0-9]*.tar.gz/GeoLite2-ASN.tar.gz/g' GeoLite2-ASN.tar.gz.sha256
-          sha256sum -c GeoLite2-ASN.tar.gz.sha256
-          tar -zxf GeoLite2-ASN.tar.gz --strip 1
-          wget --tries=5 -qO GeoLite2-Country.tar.gz "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-Country&suffix=tar.gz"
-          wget --tries=5 -qO GeoLite2-Country.tar.gz.sha256 "https://download.maxmind.com/app/geoip_download?license_key=${MAXMIND_KEY}&edition_id=GeoLite2-Country&suffix=tar.gz.sha256"
-          sed -i 's/GeoLite2-Country_[0-9]*.tar.gz/GeoLite2-Country.tar.gz/g' GeoLite2-Country.tar.gz.sha256
-          sha256sum -c GeoLite2-Country.tar.gz.sha256
-          tar -zxf GeoLite2-Country.tar.gz --strip 1
+          wget --tries=5 -qO GeoLite2-ASN.mmdb "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb"
+          wget --tries=5 -qO GeoLite2-ASN.mmdb.sha256 "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb.sha256"
+          sed -i 's/ASN.mmdb/GeoLite2-ASN.mmdb/g' GeoLite2-ASN.mmdb.sha256
+          sha256sum -c GeoLite2-ASN.mmdb.sha256
+          wget --tries=5 -qO GeoLite2-Country.mmdb "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb"
+          wget --tries=5 -qO GeoLite2-Country.mmdb.sha256 "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb.sha256"
+          sed -i 's/Country.mmdb/GeoLite2-Country.mmdb/g' GeoLite2-Country.mmdb.sha256
+          sha256sum -c GeoLite2-Country.mmdb.sha256
 
       - name: 'Set up Docker QEMU'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
