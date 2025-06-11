@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # 当前脚本版本号
-readonly VERSION='v1.1.2 (2025.06.11)'
+readonly VERSION='v1.1.3 (2025.06.11)'
 
 # https://www.graalvm.org/latest/reference-manual/ruby/UTF8Locale
 if locale -a 2>/dev/null | grep -qiE -m 1 "UTF-8|utf8"; then
@@ -43,7 +43,7 @@ before_run() {
     if [ "$EUID" -ne 0 ] || [ "$(id -ru)" -ne 0 ]; then
         die "This script must be run as root!"
     fi
-    if [ -z "$BASH_VERSION" ] || [ "$(basename "$0")" = "sh" ]; then
+    if [ -z "$BASH_VERSION" ]; then
         die "This script needs to be run with bash, not sh!"
     fi
     if [ -z "$SSH_CONNECTION" ] || [ -z "$(awk '{print $1}' <<< "$SSH_CONNECTION")" ]; then
@@ -58,11 +58,10 @@ ip_info() {
     IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ipbase.com/v1/json/$USER_IP")" || \
         IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ip2location.io?ip=$USER_IP&format=json")" || \
         IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ip.sb/geoip/$USER_IP")" || \
-        IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ipapi.is/?ip=$USER_IP")" || \
-        IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fs "http://ip-api.com/json/$USER_IP")" || \
+        IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://freeipapi.com/api/json/$USER_IP")" || \
     die "unable to obtain valid ip info, please check the network."
-    USER_REGION="$(sed -En 's/.*"(region_name|regionName|region|state)":[ ]*"([^"]+)".*/\2/p' <<< "$IP_API")"
-    USER_CITY="$(sed -En 's/.*"(city_name|city)":[ ]*"([^"]+)".*/\2/p' <<< "$IP_API")"
+    USER_REGION="$(sed -En 's/.*"(region_name|regionName|region)":[ ]*"([^"]+)".*/\2/p' <<< "$IP_API")"
+    USER_CITY="$(sed -En 's/.*"(city_name|cityName|city)":[ ]*"([^"]+)".*/\2/p' <<< "$IP_API")"
     echo "$USER_REGION" "$USER_CITY"
 }
 
