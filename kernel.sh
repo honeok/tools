@@ -2,27 +2,17 @@
 #
 # Description: This script is used to automatically install the latest Linux kernel version.
 #
-# Copyright (c) 2025 honeok <honeok@duck.com>
+# Copyright (c) 2025 honeok <honeok@disroot.org>
 #
 # References:
 # https://github.com/teddysun/across
 # https://gitlab.com/fscarmen/warp
 # https://github.com/kejilion/sh
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 # 当前脚本版本号
-readonly VERSION='v0.0.3 (2025.05.31)'
+readonly VERSION='v1.0.4 (2025.06.11)'
 
 # https://www.graalvm.org/latest/reference-manual/ruby/UTF8Locale
 if locale -a 2>/dev/null | grep -qiE -m 1 "UTF-8|utf8"; then
@@ -76,7 +66,8 @@ clrscr() {
     ( [ -t 1 ] && tput clear 2>/dev/null ) || echo -e "\033[2J\033[H" || clear
 }
 
-error_and_exit() {
+# 打印错误信息并退出
+die() {
     _err_msg "$(_red "$@")" >&2; exit 1
 }
 
@@ -101,7 +92,7 @@ pkg_install() {
             apt-get update
             apt-get install -y -q "$pkg"
         else
-            error_and_exit "The package manager is not supported."
+            die "The package manager is not supported."
         fi
     done
 }
@@ -111,23 +102,23 @@ pkg_uninstall() {
         if _exists apt-get; then
             apt-get purge -y "$pkg"
         else
-            error_and_exit "The package manager is not supported."
+            die "The package manager is not supported."
         fi
     done
 }
 
 pre_check() {
     if [ "$EUID" -ne 0 ] || [ "$(id -ru)" -ne 0 ]; then
-        error_and_exit "This script must be run as root!"
+        die "This script must be run as root!"
     fi
-    if [ -z "$BASH_VERSION" ] || [ "$(basename "$0")" = "sh" ]; then
-        error_and_exit "This script needs to be run with bash, not sh!"
+    if [ -z "$BASH_VERSION" ]; then
+        die "This script needs to be run with bash, not sh!"
     fi
     if [ "$(cd -P -- "$(dirname -- "$0")" && pwd -P)" != "$TEMP_DIR" ]; then
-        cd "$TEMP_DIR" 2>/dev/null || error_and_exit "Can't access temporary working directory. Check permissions and try again."
+        cd "$TEMP_DIR" 2>/dev/null || die "Can't access temporary working directory. Check permissions and try again."
     fi
     if ! _is_64bit; then
-        error_and_exit "Not a 64-bit system, not supported."
+        die "Not a 64-bit system, not supported."
     fi
 }
 
@@ -176,7 +167,7 @@ os_full() {
     for release in "${!RELEASE_REGEX[@]}"; do
         [[ "${OS_INFO,,}" =~ ${RELEASE_REGEX[release]} ]] && OS_NAME="${RELEASE_DISTROS[release]}" && break
     done
-    [ -z "$OS_NAME" ] && error_and_exit "This Linux distribution is not supported."
+    [ -z "$OS_NAME" ] && die "This Linux distribution is not supported."
 }
 
 os_version() {
@@ -201,7 +192,7 @@ show_logo() {
 kernel_version() {
     if _exists uname; then KERNEL_VERSION="$(uname -r)"
     elif _exists hostnamectl; then KERNEL_VERSION="$(hostnamectl | sed -n 's/^.*Kernel: Linux //p')"
-    else error_and_exit "Command not found."
+    else die "Command not found."
     fi
 }
 
@@ -211,21 +202,21 @@ os_check() {
     if _exists virt-what; then VIRT="$(virt-what 2>/dev/null)"
     elif _exists systemd-detect-virt; then VIRT="$(systemd-detect-virt 2>/dev/null)"
     elif _exists hostnamectl; then VIRT="$(hostnamectl | awk '/Virtualization:/{print $NF}')"
-    else error_and_exit "No virtualization detection tool found."
+    else die "No virtualization detection tool found."
     fi
     for type in "${UNSUPPORTED[@]}"; do
         if [[ "${VIRT,,}" =~ $type ]] || [[ -d "/proc/vz" ]]; then
-            error_and_exit "Virtualization method is $type which is not supported."
+            die "Virtualization method is $type which is not supported."
         fi
     done
     case "$OS_NAME" in
         almalinux | centos | fedora | rhel | rocky ) MIN_VER=7 ;;
         debian ) MIN_VER=8 ;;
         ubuntu ) MIN_VER=16 ;;
-        *) error_and_exit "Not supported OS." ;;
+        *) die "Not supported OS." ;;
     esac
     if [[ -n "$MAJOR_VER" && "$MAJOR_VER" -lt "$MIN_VER" ]]; then
-        error_and_exit "Unsupported $OS_NAME version: $MAJOR_VER. Please upgrade to $OS_NAME $MIN_VER or newer."
+        die "Unsupported $OS_NAME version: $MAJOR_VER. Please upgrade to $OS_NAME $MIN_VER or newer."
     fi
 }
 
@@ -236,7 +227,7 @@ add_swap() {
 
     if _exists fallocate && [ "$FSTYPE" != "btrfs" ]; then fallocate -l "${NEW_SWAP}M" /swapfile
     elif _exists dd; then dd if=/dev/zero of=/swapfile bs=1M count="$NEW_SWAP" status=none
-    else error_and_exit "No fallocate or dd Command"
+    else die "No fallocate or dd Command"
     fi
     chmod 600 /swapfile
     mkswap /swapfile >/dev/null
@@ -295,7 +286,7 @@ rhel_install() {
 
     case "$MAJOR_VER" in
         7 )
-            [[ ! "$(uname -m 2>/dev/null)" =~ ^(x86_64|amd64)$ ]] && error_and_exit "Current architecture: $(uname -m) is not supported."
+            [[ ! "$(uname -m 2>/dev/null)" =~ ^(x86_64|amd64)$ ]] && die "Current architecture: $(uname -m) is not supported."
             ELREPO_URL="http://mirrors.coreix.net/elrepo-archive-archive/kernel/el7/x86_64/RPMS"
             LATEST_VERSION="$(curl -fskL --retry 2 "$ELREPO_URL" | grep -oP 'kernel-ml(-devel)?-\K[0-9][^"]+(?=\.el7\.elrepo\.x86_64\.rpm)' | sort -V | uniq -d | tail -n1)"
             for suffix in "" "-devel"; do
@@ -309,20 +300,20 @@ rhel_install() {
             rm -f kernel-ml*
         ;;
         8 | 9 )
-            BEST_MIRROR="$(rhel_mirror)"
             dnf -y install epel-release
             rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org # 导入ELRepo GPG公钥
             ( rpm -q elrepo-release >/dev/null 2>&1 && [ ! -f /etc/yum.repos.d/elrepo.repo ] \
                 && dnf -y reinstall "https://www.elrepo.org/elrepo-release-$MAJOR_VER.el$MAJOR_VER.elrepo.noarch.rpm" ) \
                 || dnf -y install "https://www.elrepo.org/elrepo-release-$MAJOR_VER.el$MAJOR_VER.elrepo.noarch.rpm"
             if [[ "$COUNTRY" = "CN" && -f /etc/yum.repos.d/elrepo.repo ]]; then
+                BEST_MIRROR="$(rhel_mirror)"
                 sed -i 's/mirrorlist=/#mirrorlist=/g' /etc/yum.repos.d/elrepo.repo
                 sed -i "s#elrepo.org/linux#$BEST_MIRROR/elrepo#g" /etc/yum.repos.d/elrepo.repo
             fi
             dnf -y install --nogpgcheck --enablerepo=elrepo-kernel kernel-ml kernel-ml-devel
         ;;
         * )
-            error_and_exit "Unsupported system version."
+            die "Unsupported system version."
         ;;
     esac
     on_bbr
@@ -347,7 +338,7 @@ rhel_menu() {
             1 ) ( [ -n "$KERNELS" ] && rpm -ev --nodeps "$KERNELS" ); rhel_install ;;
             2 ) ( [ -n "$KERNELS" ] && rpm -ev --nodeps "$KERNELS" )
                 _suc_msg "$(_green "ELRepo kernel uninstalled. Takes effect after reboot.")"; os_reboot ;;
-            * ) error_and_exit "Invalid selection." ;;
+            * ) die "Invalid selection." ;;
         esac
     else
         separator
@@ -358,7 +349,7 @@ rhel_menu() {
         case "$CHOICE" in
             [Yy] | "" ) rhel_install ;;
             [Nn] ) _yellow "Cancelled by user."; exit 0 ;;
-            * ) error_and_exit "Invalid selection" ;;
+            * ) die "Invalid selection" ;;
         esac
     fi
 }
@@ -390,7 +381,7 @@ debian_xanmod_menu() {
         case "$CHOICE" in
             1 | "" ) pkg_uninstall 'linux-*xanmod1*'; update-grub; debian_xanmod_install ;;
             2 ) pkg_uninstall 'linux-*xanmod1*'; update-grub; os_reboot ;;
-            * ) error_and_exit "Invalid selection" ;;
+            * ) die "Invalid selection" ;;
         esac
     else
         _red "Please back up your data. XanMod BBR3 kernel will be upgraded."
@@ -400,7 +391,7 @@ debian_xanmod_menu() {
         case "$CHOICE" in
             [Yy] | "" ) debian_xanmod_install ;;
             [Nn] ) _yellow "Cancelled by user."; exit 0 ;;
-            * ) error_and_exit "Invalid selection" ;;
+            * ) die "Invalid selection" ;;
         esac
     fi
 }
