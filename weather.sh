@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # 当前脚本版本号
-readonly VERSION='v1.1.1 (2025.06.11)'
+readonly VERSION='v1.1.2 (2025.06.11)'
 
 # https://www.graalvm.org/latest/reference-manual/ruby/UTF8Locale
 if locale -a 2>/dev/null | grep -qiE -m 1 "UTF-8|utf8"; then
@@ -24,7 +24,7 @@ _err_msg() { printf "\033[41m\033[1mError\033[0m %b\n" "$*"; }
 UA_BROWSER='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
 
 # curl默认参数
-declare -a CURL_OPTS=(--max-time 10 --retry 5 --retry-max-time 20)
+declare -a CURL_OPTS=(--max-time 5 --retry 2 --retry-max-time 20)
 
 # 清屏函数
 clrscr() {
@@ -54,19 +54,22 @@ before_run() {
 ip_info() {
     local USER_IP IP_API USER_REGION USER_CITY
 
-    USER_IP="$(printf "%s" "$SSH_CONNECTION" | awk -F' ' '{print $1}')"
+    USER_IP="$(awk '{print $1}' <<< "$SSH_CONNECTION")"
     IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ipbase.com/v1/json/$USER_IP")" || \
-    IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ip.sb/geoip/$USER_IP")" || \
+        IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ip2location.io?ip=$USER_IP&format=json")" || \
+        IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ip.sb/geoip/$USER_IP")" || \
+        IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fsL "https://api.ipapi.is/?ip=$USER_IP")" || \
+        IP_API="$(curl --user-agent "$UA_BROWSER" "${CURL_OPTS[@]}" -fs "http://ip-api.com/json/$USER_IP")" || \
     die "unable to obtain valid ip info, please check the network."
-    USER_REGION="$(sed -En 's/.*"(region_name|region)":[ ]*"([^"]+)".*/\2/p' <<< "$IP_API")"
-    USER_CITY="$(sed -En 's/.*"city"\s*:\s*"([^"]+)".*/\1/p' <<< "$IP_API")"
+    USER_REGION="$(sed -En 's/.*"(region_name|regionName|region|state)":[ ]*"([^"]+)".*/\2/p' <<< "$IP_API")"
+    USER_CITY="$(sed -En 's/.*"(city_name|city)":[ ]*"([^"]+)".*/\2/p' <<< "$IP_API")"
     echo "$USER_REGION" "$USER_CITY"
 }
 
 weather_run() {
     local USER_REGION USER_CITY
-    read -r USER_REGION USER_CITY <<< "$(ip_info)"
 
+    read -r USER_REGION USER_CITY <<< "$(ip_info)"
     echo "$(_yellow "Script Version : $VERSION") $(_cyan "\xf0\x9f\x8c\xa1\xef\xb8\x8f")"
     echo
     echo "$(_yellow "Welcome! Users from") $(_cyan "${USER_REGION:-Unknown Region}")!"
