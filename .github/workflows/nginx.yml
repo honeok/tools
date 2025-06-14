@@ -1,9 +1,9 @@
+---
 name: 'Build and Publish Nginx'
 
 on:
   schedule:
-    - cron: '0 16 * * 3'
-    - cron: '0 16 * * 6'
+    - cron: '0 16 * * 3,6'
   workflow_dispatch:
 
 jobs:
