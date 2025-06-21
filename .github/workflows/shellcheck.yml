@@ -6,7 +6,6 @@ on:
     branches:
       - master
       - release
-      - dev
     paths:
         - '**/*.sh'
   pull_request:
@@ -26,5 +25,4 @@ jobs:
       - name: 'Run ShellCheck'
         uses: ludeeus/action-shellcheck@2.0.0
         with:
-          ignore_paths: >-
-            ./docker/install-docker.sh
+          ignore_names: install-docker.sh
