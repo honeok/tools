@@ -67,7 +67,7 @@ function show_logo {
 "
     _green "System   : $OS_INFO"
     echo "$(_yellow "Version  : $VERSION") $(printf '\033[95m\xF0\x9F\x90\xB3\033[0m\n')"
-    _cyan 'bash <(curl -sL https://github.com/honeok/Tools/raw/master/get-docker.sh)'
+    _cyan 'bash <(curl -sL https://github.com/honeok/tools/raw/master/script/get-docker.sh)'
     printf '\n'
 }
 

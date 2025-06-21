@@ -207,7 +207,7 @@ show_logo() {
                                   "
     _green "System version  : $OS_INFO"
     echo "$(_yellow "Script version  : $VERSION") $(_cyan "\xE2\x9B\xB1\xEF\xB8\x8F")"
-    echo "$(_blue "Usage: ")" 'bash <(curl -sL https://github.com/honeok/Tools/raw/master/kernel.sh)'
+    echo "$(_blue "Usage: ")" 'bash <(curl -sL https://github.com/honeok/tools/raw/master/script/kernel.sh)'
     echo
 }
 
