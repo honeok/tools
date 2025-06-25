@@ -20,7 +20,7 @@ If Docker is not yet installed, follow the [official installation guide][3] to s
 
 This image was created to address specific requirements and explore creative enhancements.
 
-<img src="https://img.honeok.com/file/1742913885322_5aca195c-6adf-4e4f-b84d-5455c5082f5b.png" alt="Nginx" width="80%">
+<img src="https://cdn.skyimg.net/up/2025/6/25/0fee8357.webp">
 
 ## Pull the image
 

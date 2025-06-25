@@ -22,23 +22,19 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          NGX_CVER="$(wget -qO- --tries=5 "https://hub.docker.com/v2/repositories/honeok/nginx/tags" 2>/dev/null | \
-            jq -r ".results // [] | .[].name" | grep -v '^alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "")"
-          NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/release-//')"
-          ZSTD_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/facebook/zstd/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/v//')"
-          CORERULESET_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/coreruleset/coreruleset/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/v//')"
-          NGX_ALPINE_LVER="$(docker run --rm nginx:stable-alpine sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
-          NGX_ALPINE_TAG="$(docker run --rm nginx:stable-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')"
-          if [[ -z "$NGX_LVER" || -z "$ZSTD_LVER" || -z "$CORERULESET_LVER" || -z "$NGX_ALPINE_LVER" || -z "$NGX_ALPINE_TAG" ]]; then
-            echo 'Error: Required parameters cannot be empty.' && exit 1
-          fi
+          NGX_CVER="$(wget -qO- --tries=5 "https://hub.docker.com/v2/repositories/honeok/nginx/tags" 2>/dev/null | jq -r ".results // [] | .[].name" | grep -v '^alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "")"
+          NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/release-//')"
+          ZSTD_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/facebook/zstd/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//')"
+          CORERULESET_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/coreruleset/coreruleset/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//')"
+          NGX_ALPINE_LVER="$(docker run --rm nginx:"${NGX_LVER}-alpine" sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
+          NGX_ALPINE_TAG="$(docker run --rm nginx:"${NGX_LVER}-alpine" sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2')"
           echo "NGX_CVER=$NGX_CVER" >> $GITHUB_ENV
           echo "NGX_LVER=$NGX_LVER" >> $GITHUB_ENV
           echo "ZSTD_LVER=$ZSTD_LVER" >> $GITHUB_ENV
           echo "CORERULESET_LVER=$CORERULESET_LVER" >> $GITHUB_ENV
           echo "NGX_ALPINE_LVER=$NGX_ALPINE_LVER" >> $GITHUB_ENV
           echo "NGX_ALPINE_TAG=$NGX_ALPINE_TAG" >> $GITHUB_ENV
-          if [[ ( "$(echo -e "$NGX_LVER\n$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER" ) || -z "$NGX_CVER" ]]; then
+          if [[ ("$(echo -e "$NGX_LVER\n$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER") || (-z "$NGX_CVER" && -n "$NGX_ALPINE_LVER" && -n "$NGX_ALPINE_TAG") ]]; then
             echo "IS_RENEW=1" >> $GITHUB_ENV
           fi
 
