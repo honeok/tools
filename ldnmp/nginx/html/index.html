@@ -1,19 +1,7 @@
 <!--
-    Description: The default HTML page for Honeok Server, featuring a custom-branded nginx experience with Vue.js and IP-based weather info via ipbase.com.
-
-    Copyright (c) 2025 honeok <honeok@duck.com>
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+    Description: This is a custom honeok server welcome page built with Vue.js, showing interactive content and local weather via ip-based data.
+    Copyright (c) 2025 honeok <honeok@disroot.org>
+    SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE html>
@@ -22,10 +10,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to honeok</title>
-    <!-- 引入vue.global.js -->
     <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
     <style>
-        html { 
+        html {
             color-scheme: light dark; 
             background: linear-gradient(120deg, #4b0082, #00ff7f); 
             height: 100%; 
@@ -103,7 +90,6 @@
     </style>
 </head>
 <body>
-    <!-- Vue 接管的区域 -->
     <div id="app">
         <h1 @click="changeGreeting">{{ greeting }}</h1>
         <div class="main-text">
@@ -115,7 +101,7 @@
         </div>
     </div>
     <div class="footer">
-        <p>Powered by <a href="https://nginx.org" target="_blank">nginx</a>, Modified by Honeok</p>
+        <p>Powered by <a href="https://nginx.org" target="_blank">nginx</a>, Modified by Honeok. Weather data by <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> and location by <a href="https://ip-api.com" target="_blank">IP-API</a>.</p>
     </div>
 
     <script>
@@ -145,14 +131,15 @@
                 },
                 async fetchWeather() {
                     try {
-                        // 使用ipbase.com获取IP和位置信息
-                        const ipResponse = await fetch('https://api.ipbase.com/v2/info');
+                        const ipResponse = await fetch('http://ip-api.com/json/?fields=status,city,lat,lon');
                         const ipData = await ipResponse.json();
-                        const city = ipData.data.location.city.name || 'Unknown Location';
-                        const lat = ipData.data.location.latitude;
-                        const lon = ipData.data.location.longitude;
+                        if (ipData.status !== 'success') {
+                            throw new Error('Failed to fetch location');
+                        }
+                        const city = ipData.city || 'Unknown Location';
+                        const lat = ipData.lat;
+                        const lon = ipData.lon;
 
-                        // 获取天气
                         const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode`;
                         const weatherResponse = await fetch(weatherUrl);
                         const weatherData = await weatherResponse.json();
@@ -162,7 +149,7 @@
 
                         this.weatherText = `Location: ${city}, Weather: ${temp}°C, ${weatherDesc}`;
                     } catch (error) {
-                        this.weatherText = 'Failed to fetch weather data.';
+                        this.weatherText = 'Unable to fetch weather data. Please try again later.';
                         console.error('Error:', error);
                     }
                 },
@@ -185,7 +172,7 @@
                 }
             },
             mounted() {
-                this.fetchWeather(); // 页面加载时获取天气
+                this.fetchWeather();
             }
         }).mount('#app');
     </script>
