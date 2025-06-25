@@ -1,25 +1,14 @@
 <!--
-    Description: Custom 50x error page for Honeok Server, styled to match the Honeok branding.
-
-    Copyright (c) 2025 honeok <honeok@duck.com>
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+    Description: This 50x.html is a custom error page for honeok server, styled with neon glow effects to match the honeok branding.
+    Copyright (c) 2025 honeok <honeok@disroot.org>
+    SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>honeok - Server Error</title>
     <style>
         html { 
@@ -33,13 +22,13 @@
             align-items: center; 
         }
         body {
-            width: 35em;
-            margin: 0 auto;
             height: 100%;
+            margin: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            position: relative;
             font-family: 'Courier New', monospace;
             color: #ffffff;
         }
@@ -53,7 +42,7 @@
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); 
             margin: 0; 
         }
-        p { 
+        .main-text { 
             font-size: 1.2em; 
             text-align: center; 
             margin: 10px 0; 
@@ -61,6 +50,22 @@
         em { 
             font-style: italic; 
             color: #00ff7f; 
+        }
+        .footer { 
+            font-size: 0.9em; 
+            color: #ffffff; 
+            text-align: center; 
+            position: absolute; 
+            bottom: 10px;
+            width: 100%; 
+        }
+        .footer a { 
+            color: #00ff7f; 
+            text-decoration: none; 
+        }
+        .footer a:hover { 
+            color: #ffff00; 
+            text-decoration: underline; 
         }
         @keyframes glow { 
             0% { color: #ff00ff; text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; } 
@@ -78,11 +83,14 @@
     </style>
 </head>
 <body>
-    <h1>An error occurred</h1>
-    <p>Sorry, the page you are looking for is currently unavailable.<br/>
-    Please try again later.</p>
-    <p>If you are the system administrator of this resource then you should check
-    the error log for details.</p>
-    <p><em>Faithfully yours, Honeok.</em></p>
+    <h1>Oops! Server Error</h1>
+    <div class="main-text">
+        <p>The requested page is temporarily unavailable. Please try again later.</p>
+        <p>System administrators: Check the server error logs for more details.</p>
+        <p><em>Faithfully yours, Honeok.</em></p>
+    </div>
+    <div class="footer">
+        <p>Powered by <a href="https://nginx.org" target="_blank">nginx</a>, Modified by Honeok.</p>
+    </div>
 </body>
 </html>
