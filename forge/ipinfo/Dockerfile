@@ -6,6 +6,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+# Second stage image name
+ARG NGX_LVER
+
 FROM alpine:latest AS builder
 LABEL maintainer="honeok <honeok@disroot.org>"
 ARG NGX_LVER
@@ -23,7 +26,7 @@ RUN set -ex \
     && apk del .build-deps \
     && rm -rf /var/cache/apk/*
 
-FROM nginx:stable-alpine AS dist
+FROM nginx:${NGX_LVER}-alpine AS dist
 LABEL maintainer="honeok <honeok@disroot.org>"
 ARG NGX_LVER
 COPY --from=builder /tmp/nginx-${NGX_LVER}/objs/*.so /usr/lib/nginx/modules/

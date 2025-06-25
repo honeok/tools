@@ -23,13 +23,18 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep -oP '"tag_name": "\K[^"]+' | sed 's/release-//')"
-          NGX_ALPINE_LVER="$(docker run --rm nginx:stable-alpine sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
+          NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/release-//')"
+          NGX_ALPINE_LVER="$(docker run --rm nginx:"${NGX_LVER}-alpine" sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
           GEOIP2_TAG="$(wget -qO- --tries 5 "https://api.github.com/repos/leev/ngx_http_geoip2_module/releases/latest" | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"v\?\([^"]*\)".*/\1/')"
-          [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$GEOIP2_TAG" ]] && { echo 'Error: Required parameters cannot be empty.'; exit 1; }
+          if [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$GEOIP2_TAG" ]]; then
+            echo >&2 "Error: Required parameters cannot be empty."; exit 1
+          fi
           echo "NGX_LVER=$NGX_LVER" >> $GITHUB_ENV
+          echo "NGX_ALPINE_LVER=$NGX_ALPINE_LVER" >> $GITHUB_ENV
           echo "GEOIP2_TAG=$GEOIP2_TAG" >> $GITHUB_ENV
-          [[ "$NGX_LVER" == "$NGX_ALPINE_LVER" ]] && echo "IS_RENEW=1" >> $GITHUB_ENV
+          if [[ "$NGX_LVER" == "$NGX_ALPINE_LVER" ]]; then
+            echo "IS_RENEW=1" >> $GITHUB_ENV
+          fi
 
       - name: 'Download GeoLite2 mmdb file'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'

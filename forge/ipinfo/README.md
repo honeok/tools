@@ -57,6 +57,6 @@ You can also specify the following URI to retrieve certain info:
 
 **Warning**: The port number must be same as configuration and opened in firewall.
 
-[1]: https://github.com/honeok/Tools/tree/master/forge/ipinfo
+[1]: https://github.com/honeok/tools/blob/master/forge/ipinfo/README.md
 [2]: https://docs.docker.com/install
 [3]: https://hub.docker.com/r/honeok/ipinfo
