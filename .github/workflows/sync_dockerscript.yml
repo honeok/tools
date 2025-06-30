@@ -24,8 +24,8 @@ jobs:
       - name: 'Download and compare install-docker.sh'
         run: |
           curl -fsSL https://get.docker.com -o install-docker.sh
-          if ! cmp -s script/docker/install-docker.sh install-docker.sh; then
-            mv -f install-docker.sh script/docker/install-docker.sh
+          if ! cmp -s docker/install-docker.sh install-docker.sh; then
+            mv -f install-docker.sh docker/install-docker.sh
             echo "IS_RENEW=1" >> $GITHUB_ENV
           else
             rm -f install-docker.sh
@@ -33,7 +33,7 @@ jobs:
 
       - name: 'Upload commit to repository'
         uses: stefanzweifel/git-auto-commit-action@v6.0.1
-        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        if: env.IS_RENEW == 1
         with:
           commit_message: "chore: bump script version by github actions"
           branch: release
