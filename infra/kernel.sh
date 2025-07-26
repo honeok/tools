@@ -2,7 +2,7 @@
 #
 # Description: This script is used to automatically install the latest linux kernel version.
 #
-# Copyright (c) 2025 honeok <honeok@disroot.org>
+# Copyright (c) 2025 honeok <i@honeok.com>
 #
 # References:
 # https://github.com/teddysun/across
@@ -13,9 +13,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # 当前脚本版本号
-readonly VERSION='v1.1.2 (2025.06.14)'
+readonly VERSION='v1.1.3 (2025.07.26)'
 # shellcheck disable=SC2034
-readonly SCRIPT_ID='6f50d37d-8fb5-4ec9-9ebd-a7e17048e6aa'
+readonly SCRIPT_ID='4e8db5a3-647d-4bcc-b5c4-cd5e3258f3fd'
 
 # 环境变量用于在debian或ubuntu操作系统中设置非交互式 (noninteractive) 安装模式
 export DEBIAN_FRONTEND=noninteractive
@@ -36,6 +36,7 @@ _info_msg() { printf "\033[43m\033[1mInfo\033[0m %b\n" "$*"; }
 RANDOM_CHAR="$(head /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 5)"
 TEMP_DIR="/tmp/kernel_$RANDOM_CHAR"
 UA_BROWSER='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
+GITHUB_PROXY='https://ghproxy.badking.pp.ua/'
 
 # curl默认参数
 declare -a CURL_OPTS=(--max-time 5 --retry 2 --retry-max-time 10)
@@ -138,18 +139,36 @@ pre_check() {
 }
 
 # 设置github代理, 海外服务器仅ipv4通过将代理设置为空
-# COUNTRY 和 GITHUB_PROXY 变量设置全局生效
+# COUNTRY 变量设置全局生效
 cdn_check() {
+    local IPV4_ADDRESS IPV6_ADDRESS
+
+    # https://danwin1210.de/github-ipv6-proxy.php
+    ipv6_proxy() {
+        local -a HOST_ENTRIES
+        command cp -f /etc/hosts{,.bak}
+        HOST_ENTRIES=(
+            "2a01:4f8:c010:d56::2 github.com"
+            "2a01:4f8:c010:d56::3 api.github.com"
+            "2a01:4f8:c010:d56::4 codeload.github.com"
+            "2a01:4f8:c010:d56::6 ghcr.io"
+            "2a01:4f8:c010:d56::7 pkg.github.com npm.pkg.github.com maven.pkg.github.com nuget.pkg.github.com rubygems.pkg.github.com"
+            "2a01:4f8:c010:d56::8 uploads.github.com"
+            "2606:50c0:8000::133 objects.githubusercontent.com www.objects.githubusercontent.com release-assets.githubusercontent.com gist.githubusercontent.com repository-images.githubusercontent.com camo.githubusercontent.com private-user-images.githubusercontent.com avatars0.githubusercontent.com avatars1.githubusercontent.com avatars2.githubusercontent.com avatars3.githubusercontent.com cloud.githubusercontent.com desktop.githubusercontent.com support.github.com"
+            "2606:50c0:8000::154 support-assets.githubassets.com github.githubassets.com opengraph.githubassets.com github-registry-files.githubusercontent.com github-cloud.githubusercontent.com"
+        )
+        for ENTRY in "${HOST_ENTRIES[@]}"; do
+            echo "$ENTRY" >> /etc/hosts
+        done
+    }
     # 备用 www.prologis.cn www.autodesk.com.cn www.keysight.com.cn
-    COUNTRY="$(curl --user-agent "$UA_BROWSER" -sL -4 "${CURL_OPTS[@]}" "http://www.qualcomm.cn/cdn-cgi/trace" | grep -i '^loc=' | cut -d'=' -f2 | grep .)"
-    if [ "$COUNTRY" != "CN" ]; then
-        GITHUB_PROXY=""
-    elif [ "$COUNTRY" = "CN" ]; then
-        (curl "${CURL_OPTS[@]}" --connect-timeout 5 -sL -w "%{http_code}" "https://files.m.daocloud.io/github.com/honeok/honeok/raw/master/README.md" -o /dev/null 2>/dev/null | grep -q "^200$" \
-        && GITHUB_PROXY='https://files.m.daocloud.io/') \
-        || GITHUB_PROXY='https://gh-proxy.com/'
-    else
-        GITHUB_PROXY='https://gh-proxy.com/'
+    COUNTRY="$(curl --user-agent "$UA_BROWSER" -Ls -4 "${CURL_OPTS[@]}" http://www.qualcomm.cn/cdn-cgi/trace | grep -i '^loc=' | cut -d'=' -f2 | grep .)"
+    IPV4_ADDRESS="$(curl --max-time 5 -Ls -4 https://www.qualcomm.cn/cdn-cgi/trace | grep -i '^ip=' | cut -d'=' -f2 | grep .)"
+    IPV6_ADDRESS="$(curl --max-time 5 -Ls -6 https://www.qualcomm.cn/cdn-cgi/trace | grep -i '^ip=' | cut -d'=' -f2 | grep .)"
+    if [ "$COUNTRY" != "CN" ] && [ -n "$IPV4_ADDRESS" ]; then
+        unset GITHUB_PROXY
+    elif [ "$COUNTRY" != "CN" ] && [ -z "$IPV4_ADDRESS" ] && [ -n "$IPV6_ADDRESS" ]; then
+        ipv6_proxy
     fi
 }
 
@@ -440,14 +459,11 @@ debian_xanmod_install() {
     local XANMOD_VERSION
 
     pkg_install gnupg
-    curl --retry 2 -sL https://dl.xanmod.org/archive.key | gpg --dearmor -vo /usr/share/keyrings/xanmod-archive-keyring.gpg --yes || \
-    curl --retry 2 -sL "${GITHUB_PROXY}github.com/yumaoss/My_tools/raw/main/archive.key" | gpg --dearmor -vo /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
+    curl --retry 2 -Ls https://dl.xanmod.org/archive.key | gpg --dearmor -vo /usr/share/keyrings/xanmod-archive-keyring.gpg --yes || \
+    curl --retry 2 -Ls "${GITHUB_PROXY}https://github.com/yumaoss/My_tools/raw/main/archive.key" | gpg --dearmor -vo /usr/share/keyrings/xanmod-archive-keyring.gpg --yes
     # 添加xanmod存储库
     echo 'deb [signed-by=/usr/share/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
-    # 切换到官方脚本判断架构, 国内也许拉不下来增加重试
-    # 如果官方check_x86-64_psabi.sh脚本无法拉取, 回退到yumaoss的备份仓库
-    XANMOD_VERSION="$(curl --retry 2 -sL "https://dl.xanmod.org/check_x86-64_psabi.sh" | awk -f - 2>/dev/null | awk -F 'x86-64-v' '{print $2+0}')" || \
-    XANMOD_VERSION="$(curl --retry 2 -sL "${GITHUB_PROXY}github.com/yumaoss/My_tools/raw/main/check_x86-64_psabi.sh" | awk -f - 2>/dev/null | awk -F 'x86-64-v' '{print $2+0}')"
+    XANMOD_VERSION="$(curl --retry 2 -Ls "${GITHUB_PROXY}https://github.com/kejilion/sh/raw/main/check_x86-64_psabi.sh" | awk -f - 2>/dev/null | awk -F 'x86-64-v' '{print $2+0}')"
     ([[ -n "$XANMOD_VERSION" && "$XANMOD_VERSION" =~ ^[0-9]$ ]] && pkg_install "linux-xanmod-x64v$XANMOD_VERSION") || die "failed to obtain xanmod version."
     bbr_menu
     os_reboot

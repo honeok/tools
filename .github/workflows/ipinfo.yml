@@ -2,8 +2,8 @@
 name: 'Build and Publish Ipinfo'
 
 on:
-  # schedule:
-  #   - cron: '0 4 * * *'
+  schedule:
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 jobs:
@@ -23,12 +23,9 @@ jobs:
 
       - name: 'Fetch Versions and Determine Build'
         run: |
-          NGX_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/nginx/nginx/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/release-//')"
+          NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/release-//')"
           NGX_ALPINE_LVER="$(docker run --rm nginx:"${NGX_LVER}-alpine" sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'")"
-          GEOIP2_TAG="$(wget -qO- --tries 5 "https://api.github.com/repos/leev/ngx_http_geoip2_module/releases/latest" | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"v\?\([^"]*\)".*/\1/')"
-          if [[ -z "$NGX_LVER" || -z "$NGX_ALPINE_LVER" || -z "$GEOIP2_TAG" ]]; then
-            echo >&2 "Error: Required parameters cannot be empty."; exit 1
-          fi
+          GEOIP2_TAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/leev/ngx_http_geoip2_module/releases/latest | grep -o '"tag_name": *"[^"]*"' | sed 's/.*"v\?\([^"]*\)".*/\1/')"
           echo "NGX_LVER=$NGX_LVER" >> $GITHUB_ENV
           echo "NGX_ALPINE_LVER=$NGX_ALPINE_LVER" >> $GITHUB_ENV
           echo "GEOIP2_TAG=$GEOIP2_TAG" >> $GITHUB_ENV
@@ -40,12 +37,12 @@ jobs:
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         run: |
           cd ${{ github.workspace }}/forge/ipinfo
-          wget --tries=5 -qO GeoLite2-ASN.mmdb "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb"
-          wget --tries=5 -qO GeoLite2-ASN.mmdb.sha256 "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb.sha256"
+          wget --tries=50 -qO GeoLite2-ASN.mmdb https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb
+          wget --tries=50 -qO GeoLite2-ASN.mmdb.sha256 https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb.sha256
           sed -i 's/ASN.mmdb/GeoLite2-ASN.mmdb/g' GeoLite2-ASN.mmdb.sha256
           sha256sum -c GeoLite2-ASN.mmdb.sha256
-          wget --tries=5 -qO GeoLite2-Country.mmdb "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb"
-          wget --tries=5 -qO GeoLite2-Country.mmdb.sha256 "https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb.sha256"
+          wget --tries=50 -qO GeoLite2-Country.mmdb https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb
+          wget --tries=50 -qO GeoLite2-Country.mmdb.sha256 https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb.sha256
           sed -i 's/Country.mmdb/GeoLite2-Country.mmdb/g' GeoLite2-Country.mmdb.sha256
           sha256sum -c GeoLite2-Country.mmdb.sha256
 
@@ -72,7 +69,7 @@ jobs:
           file: ${{ github.workspace }}/forge/ipinfo/Dockerfile
           platforms: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
           build-args: |
-            NGX_LVER=${{ env.NGX_LVER }}
+            NGX_VERSION=${{ env.NGX_LVER }}
             GEOIP2_TAG=${{ env.GEOIP2_TAG }}
           tags: ${{ env.DOCKER_USERNAME }}/ipinfo:latest
           push: true
