@@ -2,7 +2,7 @@
 #
 # Description: This script is used to install or update to the latest go version.
 #
-# Copyright (c) 2025 honeok <honeok@disroot.org>
+# Copyright (c) 2025 honeok <i@honeok.com>
 #
 # SPDX-License-Identifier: MIT
 
@@ -62,6 +62,8 @@ check_root() {
 }
 
 check_cdn() {
+    local IPV4_ADDRESS IPV6_ADDRESS
+
     # https://danwin1210.de/github-ipv6-proxy.php
     ipv6_proxy() {
         local -a HOST_ENTRIES
@@ -70,15 +72,17 @@ check_cdn() {
             "2a01:4f8:c010:d56::2 github.com"
             "2a01:4f8:c010:d56::3 api.github.com"
             "2a01:4f8:c010:d56::4 codeload.github.com"
-            "2a01:4f8:c010:d56::5 objects.githubusercontent.com"
             "2a01:4f8:c010:d56::6 ghcr.io"
             "2a01:4f8:c010:d56::7 pkg.github.com npm.pkg.github.com maven.pkg.github.com nuget.pkg.github.com rubygems.pkg.github.com"
             "2a01:4f8:c010:d56::8 uploads.github.com"
+            "2606:50c0:8000::133 objects.githubusercontent.com www.objects.githubusercontent.com release-assets.githubusercontent.com gist.githubusercontent.com repository-images.githubusercontent.com camo.githubusercontent.com private-user-images.githubusercontent.com avatars0.githubusercontent.com avatars1.githubusercontent.com avatars2.githubusercontent.com avatars3.githubusercontent.com cloud.githubusercontent.com desktop.githubusercontent.com support.github.com"
+            "2606:50c0:8000::154 support-assets.githubassets.com github.githubassets.com opengraph.githubassets.com github-registry-files.githubusercontent.com github-cloud.githubusercontent.com"
         )
         for ENTRY in "${HOST_ENTRIES[@]}"; do
             echo "$ENTRY" >> /etc/hosts
         done
     }
+    # 备用 www.prologis.cn www.autodesk.com.cn www.keysight.com.cn
     COUNTRY="$(curl --max-time 5 --insecure --location --silent "https://www.qualcomm.cn/cdn-cgi/trace" | grep -i '^loc=' | cut -d'=' -f2 | grep .)"
     IPV4_ADDRESS="$(curl --max-time 5 --insecure --location --silent --ipv4 "https://www.qualcomm.cn/cdn-cgi/trace" | grep -i '^ip=' | cut -d'=' -f2 | grep .)"
     IPV6_ADDRESS="$(curl --max-time 5 --insecure --location --silent --ipv6 "https://www.qualcomm.cn/cdn-cgi/trace" | grep -i '^ip=' | cut -d'=' -f2 | grep .)"
