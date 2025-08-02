@@ -13,9 +13,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # 当前脚本版本号
-readonly VERSION='v1.1.3 (2025.07.26)'
+readonly VERSION='v1.1.3 (2025.08.01)'
 # shellcheck disable=SC2034
-readonly SCRIPT_ID='4e8db5a3-647d-4bcc-b5c4-cd5e3258f3fd'
+readonly SCRIPT_ID='d51bd0e7-c1d1-4b30-91c2-bfac1f05e111'
 
 # 环境变量用于在debian或ubuntu操作系统中设置非交互式 (noninteractive) 安装模式
 export DEBIAN_FRONTEND=noninteractive
@@ -35,11 +35,7 @@ _info_msg() { printf "\033[43m\033[1mInfo\033[0m %b\n" "$*"; }
 # 各变量默认值
 RANDOM_CHAR="$(head /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 5)"
 TEMP_DIR="/tmp/kernel_$RANDOM_CHAR"
-UA_BROWSER='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
 GITHUB_PROXY='https://ghproxy.badking.pp.ua/'
-
-# curl默认参数
-declare -a CURL_OPTS=(--max-time 5 --retry 2 --retry-max-time 10)
 
 # 分割符
 separator() { printf "%-25s\n" "-" | sed 's/\s/-/g'; }
@@ -162,7 +158,7 @@ cdn_check() {
         done
     }
     # 备用 www.prologis.cn www.autodesk.com.cn www.keysight.com.cn
-    COUNTRY="$(curl --user-agent "$UA_BROWSER" -Ls -4 "${CURL_OPTS[@]}" http://www.qualcomm.cn/cdn-cgi/trace | grep -i '^loc=' | cut -d'=' -f2 | grep .)"
+    COUNTRY="$(curl --max-time 5 -Ls https://www.qualcomm.cn/cdn-cgi/trace | grep -i '^loc=' | cut -d'=' -f2 | grep .)"
     IPV4_ADDRESS="$(curl --max-time 5 -Ls -4 https://www.qualcomm.cn/cdn-cgi/trace | grep -i '^ip=' | cut -d'=' -f2 | grep .)"
     IPV6_ADDRESS="$(curl --max-time 5 -Ls -6 https://www.qualcomm.cn/cdn-cgi/trace | grep -i '^ip=' | cut -d'=' -f2 | grep .)"
     if [ "$COUNTRY" != "CN" ] && [ -n "$IPV4_ADDRESS" ]; then
@@ -226,7 +222,7 @@ show_logo() {
                                   "
     _green "System version  : $OS_INFO"
     echo "$(_yellow "Script version  : $VERSION") $(_cyan "\xE2\x9B\xB1\xEF\xB8\x8F")"
-    echo "$(_blue "Usage: ")" 'bash <(curl -sL https://github.com/honeok/tools/raw/master/script/kernel.sh)'
+    echo "$(_blue "Usage: ")" 'bash <(curl -Ls https://github.com/honeok/tools/raw/master/infra/kernel.sh)'
     echo
 }
 
