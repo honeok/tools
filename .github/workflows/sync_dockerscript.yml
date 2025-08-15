@@ -6,6 +6,10 @@ on:
     - cron: '0 16 * * *'
   workflow_dispatch:
 
+defaults:
+  run:
+    shell: bash
+
 permissions:
   contents: write
 
@@ -23,12 +27,10 @@ jobs:
 
       - name: 'Download and compare install-docker.sh'
         run: |
-          curl -fsSL https://get.docker.com -o install-docker.sh
+          curl -Ls https://get.docker.com -o install-docker.sh
           if ! cmp -s docker/install-docker.sh install-docker.sh; then
             mv -f install-docker.sh docker/install-docker.sh
             echo "IS_RENEW=1" >> $GITHUB_ENV
-          else
-            rm -f install-docker.sh
           fi
 
       - name: 'Upload commit to repository'
