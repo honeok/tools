@@ -2,7 +2,7 @@
 #
 # Description: This script runs before the commit message editor opens to prepare or modify the commit message file.
 #
-# Copyright (c) 2025 honeok <honeok@disroot.org>
+# Copyright (c) 2025 honeok <i@honeok.com>
 #
 # SPDX-License-Identifier: GPL-2.0-only
 

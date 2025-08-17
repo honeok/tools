@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# Description: This script runs during 'git commit' to validate the commit message and exit non-zero to block the commit if invalid.
+# Description: This script runs during git commit to validate the commit message and exit non-zero to block the commit if invalid.
 #
-# Copyright (c) 2025 honeok <honeok@disroot.org>
+# Copyright (c) 2025 honeok <i@honeok.com>
 #
 # SPDX-License-Identifier: GPL-2.0-only
 
