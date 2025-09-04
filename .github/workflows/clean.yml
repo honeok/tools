@@ -1,0 +1,26 @@
+---
+name: 'Cleaning up old workflows'
+
+on:
+  schedule:
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  clean:
+    name: 'Cleaning up old workflows'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Cleaning up old workflows'
+        uses: Mattraks/delete-workflow-runs@v2.0.6
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 7
+          keep_minimum_runs: 0
+          delete_run_by_conclusion_pattern: "cancelled, skipped, success"
