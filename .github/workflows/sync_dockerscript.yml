@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: 'Checkout repository'
-        uses: actions/checkout@v5.0.0
+        uses: actions/checkout@v5
         with:
           ref: release
           fetch-depth: 0
@@ -34,7 +34,7 @@ jobs:
           fi
 
       - name: 'Upload commit to repository'
-        uses: stefanzweifel/git-auto-commit-action@v6.0.1
+        uses: stefanzweifel/git-auto-commit-action@v6
         if: env.IS_RENEW == 1
         with:
           commit_message: "chore: bump script version by github actions"
