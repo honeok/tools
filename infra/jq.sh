@@ -94,7 +94,7 @@ checkJq() {
 
 installJq() {
     local JQ_VER OS_NAME OS_ARCH
-    OS_NAME="$(uname -s | sed 's/.*/\L&/' 2>/dev/null)"
+    OS_NAME="$(uname -s 2>/dev/null | sed 's/.*/\L&/')"
 
     _info_msg "$(_yellow "Installing the jq command!")"
     JQ_VER="$(curl -Ls "${GITHUB_PROXY}https://api.github.com/repos/jqlang/jq/releases" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | sort -Vr | head -n1)"
