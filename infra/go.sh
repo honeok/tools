@@ -74,6 +74,7 @@ isChina() {
         fi
         echo 2>&1 "Location: $COUNTRY"
     fi
+    [ "$COUNTRY" = CN ]
 }
 
 checkRoot() {
