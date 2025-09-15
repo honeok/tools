@@ -18,12 +18,12 @@ _info_msg() { printf "\033[43m\033[1mInfo\033[0m %b\n" "$*"; }
 # 设置PATH环境变量
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
 
-# 各变量默认值
-TEMP_DIR="$(mktemp -d)"
-
 # 设置系统utf-8语言环境
 UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
 [ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
+
+# 各变量默认值
+TEMP_DIR="$(mktemp -d)"
 
 trap 'rm -rf "${TEMP_DIR:?}" >/dev/null 2>&1' INT TERM EXIT
 
