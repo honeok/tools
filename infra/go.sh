@@ -67,7 +67,7 @@ curl() {
     done
 }
 
-isChina() {
+is_china() {
     if [ -z "$COUNTRY" ]; then
         if ! COUNTRY="$(curl -Ls http://www.qualcomm.cn/cdn-cgi/trace | grep '^loc=' | cut -d= -f2 | grep .)"; then
             die "Can not get location."
@@ -77,20 +77,20 @@ isChina() {
     [ "$COUNTRY" = CN ]
 }
 
-checkRoot() {
+check_root() {
     if [ "$EUID" -ne 0 ] || [ "$(id -ru)" -ne 0 ]; then
         die "This script must be run as root!"
     fi
 }
 
-goInstall() {
+go_install() {
     local GO_WORKDIR GO_ENV GO_MIRROR GO_VER OS_NAME OS_ARCH
 
     GO_WORKDIR="/usr/local/go"
     GO_ENV="/etc/profile.d/go.sh"
     OS_NAME="$(uname -s 2>/dev/null | sed 's/.*/\L&/')"
 
-    if isChina; then
+    if is_china; then
         GO_MIRROR="golang.google.cn"
     else
         GO_MIRROR="go.dev"
@@ -129,7 +129,7 @@ EOF
     chown -R "$USER":"$USER" "${GOPATH:?}"
 }
 
-goInfo() {
+go_info() {
     if _exists go >/dev/null 2>&1; then
         _suc_msg "$(_green "Go installed successfully!")"
         go version 2>&1
@@ -138,14 +138,14 @@ goInfo() {
     fi
 }
 
-goProxy() {
-    if isChina; then
+go_proxy() {
+    if is_china; then
         go env -w GOPROXY=https://goproxy.cn,direct
     fi
 }
 
 clrscr
-checkRoot
-goInstall
-goInfo
-goProxy
+check_root
+go_install
+go_info
+go_proxy

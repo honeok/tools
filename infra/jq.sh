@@ -63,13 +63,13 @@ curl() {
 }
 
 # 确保root用户运行
-checkRoot() {
+check_root() {
     if [ "$EUID" -ne 0 ] || [ "$(id -ru)" -ne 0 ]; then
         die "This script must be run as root!"
     fi
 }
 
-checkBash() {
+check_bash() {
     local BASH_VER
     BASH_VER="$(bash --version 2>/dev/null | head -n1 | awk '{print $4}' | cut -d. -f1)"
     if [ -z "$BASH_VERSION" ]; then
@@ -80,19 +80,19 @@ checkBash() {
     fi
 }
 
-checkCdn() {
+check_cdn() {
     if [[ -n "$GITHUB_PROXY" && "$(curl -Ls http://www.qualcomm.cn/cdn-cgi/trace | grep '^loc=' | cut -d= -f2 | grep .)" != "CN" ]]; then
         unset GITHUB_PROXY
     fi
 }
 
-checkJq() {
+check_jq() {
     if ! _exists jq; then
         die "jq already installed."
     fi
 }
 
-installJq() {
+install_jq() {
     local JQ_VER OS_NAME OS_ARCH
     OS_NAME="$(uname -s 2>/dev/null | sed 's/.*/\L&/')"
 
@@ -125,8 +125,8 @@ installJq() {
 }
 
 clrscr
-checkRoot
-checkBash
-checkCdn
-checkJq
-installJq
+check_root
+check_bash
+check_cdn
+check_jq
+install_jq
