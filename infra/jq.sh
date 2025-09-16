@@ -71,11 +71,16 @@ check_root() {
 
 check_bash() {
     local BASH_VER
-    BASH_VER="$(bash --version 2>/dev/null | head -n1 | awk '{print $4}' | cut -d. -f1)"
+
+    # https://github.com/xykt/IPQuality/issues/28
+    BASH_VER="$(bash --version | head -n1 | awk -F ' ' '{for (i=1; i<=NF; i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+/) {print $i; exit}}' | cut -d . -f1)"
     if [ -z "$BASH_VERSION" ]; then
         die "This script needs to be run with bash, not sh!"
     fi
-    if [[ "$BASH_VER" =~ ^[0-3]$ ]]; then
+    if [ -z "$BASH_VER" ] || ! [[ "$BASH_VER" =~ ^[0-9]+$ ]]; then
+        die "Failed to parse Bash version!"
+    fi
+    if [ "$BASH_VER" -lt 4 ]; then
         die "Bash version is lower than 4.0!"
     fi
 }
