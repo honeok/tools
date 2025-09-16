@@ -36,14 +36,13 @@ UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
 # 各变量默认值
 OS_INFO="$(grep '^PRETTY_NAME=' /etc/os-release | awk -F'=' '{print $NF}' | sed 's#"##g')"
 OS_NAME="$(grep '^ID=' /etc/os-release | awk -F'=' '{print $NF}' | sed 's#"##g')"
-# shellcheck disable=SC2218
-RUNCOUNT="$(curl -Ls https://hits.honeok.com/get-docker?action=hit)" # 脚本运行计数器
 
 function _exit {
-    local EXIT_CODE CURRENT_TIME TODAY TOTAL
+    local EXIT_CODE CURRENT_TIME RUNCOUNT TODAY TOTAL
 
     EXIT_CODE=$?
     CURRENT_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+    RUNCOUNT="$(curl -Ls https://hits.honeok.com/get-docker?action=hit)" # 脚本运行计数器
     TODAY="$(sed -n 's/.*"daily": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
     TOTAL="$(sed -n 's/.*"total": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
 
