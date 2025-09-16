@@ -67,6 +67,12 @@ curl() {
     done
 }
 
+check_root() {
+    if [ "$EUID" -ne 0 ] || [ "$(id -ru)" -ne 0 ]; then
+        die "This script must be run as root!"
+    fi
+}
+
 is_china() {
     if [ -z "$COUNTRY" ]; then
         if ! COUNTRY="$(curl -Ls http://www.qualcomm.cn/cdn-cgi/trace | grep '^loc=' | cut -d= -f2 | grep .)"; then
@@ -75,12 +81,6 @@ is_china() {
         echo 2>&1 "Location: $COUNTRY"
     fi
     [ "$COUNTRY" = CN ]
-}
-
-check_root() {
-    if [ "$EUID" -ne 0 ] || [ "$(id -ru)" -ne 0 ]; then
-        die "This script must be run as root!"
-    fi
 }
 
 go_install() {
@@ -122,9 +122,9 @@ export GOROOT=/usr/local/go
 export GOPATH=\$GOROOT/gopath
 export PATH=\$PATH:\$GOROOT/bin
 EOF
-    chmod +x "$GO_ENV"
+    chmod +x "$GO_ENV" >/dev/null 2>&1
     # shellcheck source=/dev/null
-    . "$GO_ENV"
+    source "$GO_ENV"
     mkdir -p "${GOPATH:?}"/{bin,pkg,src}
     chown -R "$USER":"$USER" "${GOPATH:?}"
 }
