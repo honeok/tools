@@ -43,8 +43,8 @@ function _exit {
 
     EXIT_CODE=$?
     CURRENT_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
-    TODAY="$(sed -n 's/.*"daily": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
-    TOTAL="$(sed -n 's/.*"total": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
+    TODAY="$(sed -n 's/.*"daily": *\([0-9]\{1,\}\).*/\1/p' <<< "$RUNCOUNT")"
+    TOTAL="$(sed -n 's/.*"total": *\([0-9]\{1,\}\).*/\1/p' <<< "$RUNCOUNT")"
 
     _green "Current server time: $CURRENT_TIME Script completed."
     _purple "Thanks for using! More info: https://www.honeok.com"
