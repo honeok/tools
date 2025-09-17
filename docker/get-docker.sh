@@ -201,6 +201,7 @@ function clear_repos {
     [ -f "/etc/yum.repos.d/docker-ce-staging.repo" ] &&  rm -f /etc/yum.repos.d/docker-ce-staging.repo >/dev/null 2>&1
     [ -f "/etc/apt/keyrings/docker.asc" ] &&  rm -f /etc/apt/keyrings/docker.asc >/dev/null 2>&1
     [ -f "/etc/apt/sources.list.d/docker.list" ] &&  rm -f /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
+    true # 防止三目运算符意外退出
 }
 
 function fix_dpkg {
@@ -255,7 +256,7 @@ function docker_install {
             GPGKEY_URL="https://download.docker.com/linux/$OS_NAME/gpg"
         fi
 
-        fix_dpkg
+        fix_dpkg || true
         apt-get -qq update
         apt-get install -y -qq ca-certificates curl
         install -m 0755 -d /etc/apt/keyrings
