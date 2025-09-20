@@ -6,7 +6,7 @@ Description: This script is used to automate the installation of the latest dock
 
 <div align="center">
   <img src="https://hits.honeok.com/get-docker.svg?action=view&count_bg=brightgreen&title_bg=%23555555&title=Hits&edge_flat=true" alt="Total Runs"/>
-</p>
+</div>
 
 ```shell
 bash <(curl -Ls https://gitlab.com/honeok/tools/raw/master/docker/get-docker.sh)
