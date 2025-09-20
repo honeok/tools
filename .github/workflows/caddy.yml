@@ -10,14 +10,13 @@ defaults:
   run:
     shell: bash
 
-env:
-  DOCKER_USERNAME: ${{ github.repository_owner }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-
 jobs:
   build:
     name: 'Build and Publish Caddy'
     runs-on: ubuntu-latest
+    env:
+      DOCKER_USERNAME: ${{ github.repository_owner }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
     steps:
       - name: 'Check out repository'
