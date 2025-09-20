@@ -6,13 +6,17 @@ on:
     - cron: '0 16 * * 3,6'
   workflow_dispatch:
 
+defaults:
+  run:
+    shell: bash
+
 env:
   DOCKER_USERNAME: ${{ github.repository_owner }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
 jobs:
-  build_stable:
-    name: 'Build and Publish Stable Caddy'
+  build:
+    name: 'Build and Publish Caddy'
     runs-on: ubuntu-latest
 
     steps:
@@ -22,15 +26,13 @@ jobs:
           fetch-depth: 0
 
       - name: 'Fetch Versions and Determine Build'
+        id: bump_version
         run: |
-          CADDY_STABLE_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/caddyserver/caddy/releases/latest" | awk -F '["v]' '/tag_name/{print $5}')"
-          CADDY_STABLE_CVER="$(wget -qO- --tries=5 "https://hub.docker.com/v2/repositories/honeok/caddy/tags" 2>/dev/null | \
-            jq -r ".results // [] | .[].name" | grep -Ev 'alpine|beta' | sort -Vr | head -n1 || echo "")"
-          [ -z "$CADDY_STABLE_LVER" ] && { echo 'Error: Required parameters cannot be empty.'; exit 1; }
-          CADDY_ALPINE_LVER="$(docker run --rm caddy:"${CADDY_STABLE_LVER}"-alpine 2>/dev/null sh -c "caddy version 2>&1" | head -n1 | cut -d' ' -f1 | sed 's/^v//' | grep . || echo "")"
-          echo "CADDY_STABLE_LVER=$CADDY_STABLE_LVER" >> $GITHUB_ENV
-          echo "CADDY_STABLE_CVER=$CADDY_STABLE_CVER" >> $GITHUB_ENV
-          if [[ ( "$(echo -e "$CADDY_STABLE_LVER\n$CADDY_STABLE_CVER" | sort -V | head -n1)" != "$CADDY_STABLE_LVER" && "$CADDY_ALPINE_LVER" == "$CADDY_STABLE_LVER" ) || ( -z "$CADDY_STABLE_CVER" && -n "$CADDY_ALPINE_LVER" ) ]]; then
+          CADDY_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/caddyserver/caddy/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "v\([^"]*\)".*/\1/p')"
+          CADDY_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/caddy/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -v 'alpine' | sort -Vr | head -n1 || true)"
+          CADDY_ALPINE_LVER="$(docker run --rm caddy:${CADDY_LVER}-alpine 2>/dev/null sh -c 'caddy version 2>&1' | sed -n 's/^v\([0-9.]*\).*/\1/p' || true)"
+          echo "version=${CADDY_LVER}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$CADDY_LVER" "$CADDY_CVER" | sort -V | head -n1)" != "$CADDY_LVER" && "$CADDY_ALPINE_LVER" == "$CADDY_LVER" || -z "$CADDY_CVER" && "$CADDY_ALPINE_LVER" == "$CADDY_LVER" ]]; then
             echo "IS_RENEW=1" >> $GITHUB_ENV
           fi
 
@@ -49,66 +51,29 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
+      - name: 'Extract Docker metadata'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USERNAME }}/caddy
+          tags: |
+            type=raw,value=${{ steps.bump_version.outputs.version }}-alpine
+            type=raw,value=${{ steps.bump_version.outputs.version }}
+          labels: |
+            org.opencontainers.image.description=a powerful, enterprise-ready, open source web server with automatic HTTPS written in Go
+            org.opencontainers.image.source=https://github.com/caddyserver/caddy-docker
+            org.opencontainers.image.title=Caddy
+            org.opencontainers.image.url=https://caddyserver.com
+
       - name: 'Build and Push Caddy image'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/ldnmp/caddy
           file: ${{ github.workspace }}/ldnmp/caddy/Dockerfile
-          platforms: linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
-          build-args: CADDY_LVER=${{ env.CADDY_STABLE_LVER }}
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/caddy:${{ env.CADDY_STABLE_LVER }}-alpine
-            ${{ env.DOCKER_USERNAME }}/caddy:${{ env.CADDY_STABLE_LVER }}
-          push: true
-
-  build_beta:
-    name: 'Build and Publish Beta Caddy'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 'Check out repository'
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: 'Fetch Versions and Determine Build'
-        run: |
-          CADDY_BETA_LVER="$(wget -qO- --tries=5 "https://api.github.com/repos/caddyserver/caddy/releases" | awk -F '"' '/tag_name/ && /beta/ {sub(/^v/, "", $4); print $4}' | sort -Vr | head -n1)"
-          CADDY_BETA_CVER="$(wget -qO- --tries=5 "https://hub.docker.com/v2/repositories/honeok/caddy/tags" 2>/dev/null | \
-            jq -r ".results // [] | .[].name" | grep "beta" | grep -v "alpine" | sort -Vr | head -n1 || echo "")"
-          [ -z "$CADDY_BETA_LVER" ] && { echo 'Error: Required parameters cannot be empty.'; exit 1; }
-          CADDY_ALPINE_LVER="$(docker run --rm caddy:"${CADDY_BETA_LVER}"-alpine 2>/dev/null sh -c "caddy version 2>&1" | head -n1 | cut -d' ' -f1 | sed 's/^v//' | grep . || echo "")"
-          echo "CADDY_BETA_LVER=$CADDY_BETA_LVER" >> $GITHUB_ENV
-          echo "CADDY_BETA_CVER=$CADDY_BETA_CVER" >> $GITHUB_ENV
-          if [[ ( "$(echo -e "$CADDY_BETA_LVER\n$CADDY_BETA_CVER" | sort -V | head -n1)" != "$CADDY_BETA_LVER" && "$CADDY_ALPINE_LVER" == "$CADDY_BETA_LVER" ) || ( -z "$CADDY_BETA_CVER" && -n "$CADDY_ALPINE_LVER" ) ]]; then
-            echo "IS_RENEW=1" >> $GITHUB_ENV
-          fi
-
-      - name: 'Set up Docker QEMU'
-        if: env.IS_RENEW == 1
-        uses: docker/setup-qemu-action@v3
-
-      - name: 'Set up Docker Buildx'
-        if: env.IS_RENEW == 1
-        uses: docker/setup-buildx-action@v3
-
-      - name: 'Login to DockerHub'
-        if: env.IS_RENEW == 1
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
-
-      - name: 'Build and Push Caddy image'
-        if: env.IS_RENEW == 1
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ github.workspace }}/ldnmp/caddy
-          file: ${{ github.workspace }}/ldnmp/caddy/Dockerfile
-          platforms: linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64, linux/s390x
-          build-args: CADDY_LVER=${{ env.CADDY_BETA_LVER }}
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/caddy:${{ env.CADDY_BETA_LVER }}-alpine
-            ${{ env.DOCKER_USERNAME }}/caddy:${{ env.CADDY_BETA_LVER }}
+          platforms: linux/amd64, linux/arm64/v8
+          build-args: CADDY_VERSION=${{ steps.bump_version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           push: true
