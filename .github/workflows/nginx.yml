@@ -25,19 +25,18 @@ jobs:
           fetch-depth: 0
 
       - name: 'Fetch Versions and Determine Build'
+        id: bump_version
         run: |
-          NGX_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/nginx/tags 2>/dev/null | jq -r ".results // [] | .[].name" | grep -v '^alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "")"
-          NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/release-//')"
-          ZSTD_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//')"
-          NGX_ALPINE_LVER="$(docker run --rm nginx:"${NGX_LVER}-alpine" sh -c "nginx -v 2>&1 | awk -F'/' '{print \$NF}'" 2>/dev/null || true)"
-          NGX_ALPINE_TAG="$(docker run --rm nginx:"${NGX_LVER}-alpine" sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2' 2>/dev/null || true)"
-          echo "NGX_CVER=$NGX_CVER" >> $GITHUB_ENV
-          echo "NGX_LVER=$NGX_LVER" >> $GITHUB_ENV
-          echo "ZSTD_LVER=$ZSTD_LVER" >> $GITHUB_ENV
-          echo "NGX_ALPINE_LVER=$NGX_ALPINE_LVER" >> $GITHUB_ENV
-          echo "NGX_ALPINE_TAG=$NGX_ALPINE_TAG" >> $GITHUB_ENV
-          if [[ ("$(echo -e "$NGX_LVER\n$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_ALPINE_LVER" == "$NGX_LVER") || (-z "$NGX_CVER" && -n "$NGX_ALPINE_LVER" && -n "$NGX_ALPINE_TAG") ]]; then
-            echo "IS_RENEW=1" >> $GITHUB_ENV
+          NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          NGX_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/nginx/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E -- '-alpine$' | sort -Vr | head -n1 | sed 's/-alpine$//' || true)"
+          ZSTD_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          NGX_IMG_LVER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
+          NGX_ALPINE_VER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c 'cat /etc/alpine-release' 2>/dev/null | awk -F. '{print $1"."$2}' || true)"
+          echo "ngx_version=${NGX_LVER}" >> "$GITHUB_OUTPUT"
+          echo "zstd_version=${ZSTD_LVER}" >> "$GITHUB_OUTPUT"
+          echo "alpine_version=${NGX_ALPINE_VER}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$NGX_LVER" "$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_IMG_LVER" == "$NGX_LVER" || -z "$NGX_CVER" && "$NGX_IMG_LVER" == "$NGX_LVER" ]]; then
+            echo "IS_RENEW=1" >> "$GITHUB_ENV"
           fi
 
       - name: 'Set up Docker QEMU'
@@ -55,6 +54,22 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
+      - name: 'Extract Docker metadata'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USERNAME }}/nginx
+          tags: |
+            type=raw,value=${{ steps.bump_version.outputs.ngx_version }}-alpine${{ steps.bump_version.outputs.alpine_version }}
+            type=raw,value=${{ steps.bump_version.outputs.ngx_version }}-alpine
+            type=raw,value=alpine
+          labels: |
+            org.opencontainers.image.description=nginx is an HTTP web server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server.
+            org.opencontainers.image.source=https://github.com/nginx/nginx
+            org.opencontainers.image.title=Nginx
+            org.opencontainers.image.url=https://nginx.org
+
       - name: 'Build and Push Nginx image'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
@@ -63,10 +78,8 @@ jobs:
           file: ${{ github.workspace }}/ldnmp/nginx/Dockerfile
           platforms: linux/amd64, linux/arm64/v8
           build-args: |
-            NGX_VERSION=${{ env.NGX_LVER }}
-            ZSTD_VERSION=${{ env.ZSTD_LVER }}
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/nginx:alpine
-            ${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine
-            ${{ env.DOCKER_USERNAME }}/nginx:${{ env.NGX_LVER }}-alpine${{ env.NGX_ALPINE_TAG }}
+            NGX_VERSION=${{ steps.bump_version.outputs.ngx_version }}
+            ZSTD_VERSION=${{ steps.bump_version.outputs.zstd_version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           push: true
