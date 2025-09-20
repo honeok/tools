@@ -25,17 +25,16 @@ jobs:
           fetch-depth: 0
 
       - name: 'Fetch Versions and Determine Build'
+        id: bump_version
         run: |
-          PHP_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/php/tags 2>/dev/null | jq -r ".results // [] | .[].name" | grep -v '^fpm-alpine$' | sort -Vr | head -n1 | cut -d'-' -f1 || echo "")"
-          PHP_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/php/php-src/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/php-//')"
-          PHP_ALPINE_LVER="$(docker run --rm php:fpm-alpine sh -c 'php -v 2>&1' | awk '/^PHP/ {print $2; exit}' 2>/dev/null || true)"
-          PHP_ALPINE_TAG="$(docker run --rm php:fpm-alpine sh -c 'cat /etc/alpine-release | cut -d "." -f 1-2' || true)"
-          echo "PHP_CVER=$PHP_CVER" >> $GITHUB_ENV
-          echo "PHP_LVER=$PHP_LVER" >> $GITHUB_ENV
-          echo "PHP_ALPINE_LVER=$PHP_ALPINE_LVER" >> $GITHUB_ENV
-          echo "PHP_ALPINE_TAG=$PHP_ALPINE_TAG" >> $GITHUB_ENV
-          if [[ ("$(echo -e "$PHP_LVER\n$PHP_CVER" | sort -V | head -n1)" != "$PHP_LVER" && "$PHP_ALPINE_LVER" == "$PHP_LVER") || (-z "$PHP_CVER" && -n "$PHP_ALPINE_LVER" && -n "$PHP_ALPINE_TAG") ]]; then
-            echo "IS_RENEW=1" >> $GITHUB_ENV
+          PHP_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/php/php-src/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          PHP_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/php/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-fpm-alpine$' | sort -Vr | head -n1 | sed 's/-fpm-alpine$//' || true)"
+          PHP_IMG_LVER="$(docker run --rm php:${PHP_LVER}-fpm-alpine sh -c 'php -v 2>&1' 2>/dev/null | awk '/^PHP/ {print $2; exit}' || true)"
+          PHP_ALPINE_VER="$(docker run --rm php:${PHP_LVER}-fpm-alpine sh -c 'cat /etc/alpine-release' 2>/dev/null | awk -F. '{print $1"."$2}' || true)"
+          echo "php_version=${PHP_LVER}" >> "$GITHUB_OUTPUT"
+          echo "alpine_version=${PHP_ALPINE_VER}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$PHP_LVER" "$PHP_CVER" | sort -V | head -n1)" != "$PHP_LVER" && "$PHP_IMG_LVER" == "$PHP_LVER" || -z "$PHP_CVER" && "$PHP_IMG_LVER" == "$PHP_LVER" ]]; then
+            echo "IS_RENEW=1" >> "$GITHUB_ENV"
           fi
 
       - name: 'Set up Docker QEMU'
@@ -53,6 +52,22 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
+      - name: 'Extract Docker metadata'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USERNAME }}/php
+          tags: |
+            type=raw,value=${{ steps.bump_version.outputs.php_version }}-fpm-alpine${{ steps.bump_version.outputs.alpine_version }}
+            type=raw,value=${{ steps.bump_version.outputs.php_version }}-fpm-alpine
+            type=raw,value=fpm-alpine
+          labels: |
+            org.opencontainers.image.description=PHP is a popular general-purpose scripting language that is especially suited to web development. Fast, flexible and pragmatic, PHP powers everything from your blog to the most popular websites in the world.
+            org.opencontainers.image.source=https://github.com/php/php-src
+            org.opencontainers.image.title=PHP
+            org.opencontainers.image.url=https://www.php.net
+
       - name: 'Build and Push PHP image'
         if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
@@ -60,8 +75,7 @@ jobs:
           context: ${{ github.workspace }}/ldnmp/php
           file: ${{ github.workspace }}/ldnmp/php/Dockerfile
           platforms: linux/amd64, linux/arm64/v8
-          tags: |
-            ${{ env.DOCKER_USERNAME }}/php:fpm-alpine
-            ${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine
-            ${{ env.DOCKER_USERNAME }}/php:${{ env.PHP_LVER }}-fpm-alpine${{ env.PHP_ALPINE_TAG }}
+          build-args: PHP_VERSION=${{ steps.bump_version.outputs.php_version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           push: true
