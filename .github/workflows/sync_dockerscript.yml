@@ -1,5 +1,5 @@
 ---
-name: 'Sync Docker Install Script'
+name: 'Sync docker install script'
 
 on:
   schedule:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   sync:
-    name: 'Sync Docker Install Script'
+    name: 'Sync docker install script'
     runs-on: ubuntu-latest
 
     steps:
@@ -26,10 +26,11 @@ jobs:
           fetch-depth: 0
 
       - name: 'Download and compare install-docker.sh'
+        working-directory: ${{ github.workspace }}/docker
         run: |
-          curl -Ls https://get.docker.com -o install-docker.sh
-          if ! cmp -s docker/install-docker.sh install-docker.sh; then
-            mv -f install-docker.sh docker/install-docker.sh
+          curl -Lso install-docker.new https://get.docker.com
+          if ! cmp -s install-docker.new install-docker.sh; then
+            mv -f install-docker.new install-docker.sh
             echo "IS_RENEW=1" >> $GITHUB_ENV
           fi
 
