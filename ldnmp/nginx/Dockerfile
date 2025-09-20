@@ -1,12 +1,12 @@
-# Description: This dockerfile is used to custom compile nginx with brotli and zstandard compression.
+# Description: This dockerfile is used to add third-party modules to nginx and recompile the nginx web server.
 #
 # Copyright (c) 2024-2025 honeok <i@honeok.com>
 #
-# Thanks: kejilion <lion12776@outlook.com>
+# References:
+# https://github.com/kejilion/docker
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# Second stage image name
 ARG NGX_VERSION=""
 
 FROM alpine:latest AS builder
@@ -41,7 +41,7 @@ RUN set -ex \
         --add-dynamic-module=../ngx_brotli \
         --add-dynamic-module=../zstd-nginx-module \
     && make modules \
-    && apk del .build-deps \
+    && apk del --no-network .build-deps \
     && rm -rf /var/cache/apk/*
 
 FROM nginx:${NGX_VERSION}-alpine AS dist
