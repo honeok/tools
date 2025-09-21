@@ -2,12 +2,8 @@
 
 ## dmesg.sh
 
-Description: A simple script to view and analyze `dmesg` logs, quickly pinpointing system errors.
+Description: This script is used to filter oom/kill events from `dmesg`, calculate absolute time and format output.
 
 ```shell
-bash <(curl -sL https://gitlab.com/honeok/tools/raw/master/diag/dmesg.sh)
-```
-or
-```shell
-bash <(curl -sL https://github.com/honeok/tools/raw/master/diag/dmesg.sh)
+bash <(curl -Ls https://gitlab.com/honeok/tools/raw/master/diag/dmesg.sh)
 ```
