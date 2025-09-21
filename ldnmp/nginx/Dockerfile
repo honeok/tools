@@ -41,6 +41,7 @@ RUN set -ex \
         --add-dynamic-module=../ngx_brotli \
         --add-dynamic-module=../zstd-nginx-module \
     && make modules \
+    && strip objs/*.so \
     && apk del --no-network .build-deps \
     && rm -rf /var/cache/apk/*
 
@@ -54,10 +55,5 @@ COPY --from=builder /tmp/nginx-${NGX_VERSION}/objs/*.so /usr/lib/nginx/modules
 COPY html /usr/share/nginx/html
 
 RUN set -ex \
-    && apk add --update --no-cache --virtual .run-deps \
-        binutils \
-    && strip /usr/lib/nginx/modules/ngx_http_brotli_*.so \
-    && strip /usr/lib/nginx/modules/ngx_http_zstd_*.so \
-    && apk del --no-network .run-deps \
-    && curl -Ls https://cdn.skyimg.net/up/2025/5/29/d655ae75.webp -o /usr/share/nginx/html/favicon.ico \
+    && curl -Lso /usr/share/nginx/html/favicon.ico https://m.360buyimg.com/i/jfs/t1/338259/3/13529/2356/68cfeb12F04f8452e/5edd63c5e68fc7fa.webp \
     && rm -rf /var/cache/apk/*
