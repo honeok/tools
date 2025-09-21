@@ -18,7 +18,6 @@ ARG GEOIP2_TAG=""
 
 RUN set -ex \
     && apk add --update --no-cache --virtual .build-deps \
-        binutils \
         build-base \
         curl \
         git \
