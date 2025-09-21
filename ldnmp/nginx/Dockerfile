@@ -55,5 +55,5 @@ COPY --from=builder /tmp/nginx-${NGX_VERSION}/objs/*.so /usr/lib/nginx/modules
 COPY html /usr/share/nginx/html
 
 RUN set -ex \
-    && curl -Lso /usr/share/nginx/html/favicon.ico https://m.360buyimg.com/i/jfs/t1/338259/3/13529/2356/68cfeb12F04f8452e/5edd63c5e68fc7fa.webp \
+    && curl -Ls https://m.360buyimg.com/i/jfs/t1/338259/3/13529/2356/68cfeb12F04f8452e/5edd63c5e68fc7fa.webp -o /usr/share/nginx/html/favicon.ico \
     && rm -rf /var/cache/apk/*

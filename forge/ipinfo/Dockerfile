@@ -51,7 +51,7 @@ RUN set -ex \
     && apk add --update --no-cache \
         libmaxminddb \
     && rm -f /etc/nginx/conf.d/default.conf \
-    && curl -Lso /usr/share/nginx/html/favicon.ico https://m.360buyimg.com/i/jfs/t1/323476/2/22568/1018/68cf39ceF4ae3b432/6b7588e656baf098.webp \
+    && curl -Ls https://m.360buyimg.com/i/jfs/t1/323476/2/22568/1018/68cf39ceF4ae3b432/6b7588e656baf098.webp -o /usr/share/nginx/html/favicon.ico \
     && rm -rf /var/cache/apk/*
 
 HEALTHCHECK --timeout=10s --start-period=5s CMD curl -fs http://127.0.0.1:80/health || exit 1
