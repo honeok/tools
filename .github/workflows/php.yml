@@ -28,7 +28,7 @@ jobs:
         id: bump_version
         run: |
           PHP_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/php/php-src/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
-          PHP_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/php/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-fpm-alpine$' | sort -Vr | head -n1 | sed 's/-fpm-alpine$//' || true)"
+          PHP_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/php/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' | sort -Vr | head -n1 | sed 's/^\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' || true)"
           PHP_IMG_LVER="$(docker run --rm php:${PHP_LVER}-fpm-alpine sh -c 'php -v 2>&1' 2>/dev/null | awk '/^PHP/ {print $2; exit}' || true)"
           PHP_ALPINE_VER="$(docker run --rm php:${PHP_LVER}-fpm-alpine sh -c 'cat /etc/alpine-release' 2>/dev/null | awk -F. '{print $1"."$2}' || true)"
           echo "php_version=${PHP_LVER}" >> "$GITHUB_OUTPUT"
