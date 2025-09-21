@@ -2,8 +2,8 @@
 name: 'Build and Publish DanmakuRender'
 
 on:
-  schedule:
-    - cron: '0 16 * * 3,6'
+  # schedule:
+  #   - cron: '0 16 * * 3,6'
   workflow_dispatch:
 
 jobs:
