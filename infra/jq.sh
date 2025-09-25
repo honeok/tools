@@ -8,19 +8,19 @@
 
 set -eE
 
+# 设置PATH环境变量
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+
+# 设置系统UTF-8语言环境
+UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
+[ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
+
 _red() { printf "\033[31m%b\033[0m\n" "$*"; }
 _green() { printf "\033[32m%b\033[0m\n" "$*"; }
 _yellow() { printf "\033[33m%b\033[0m\n" "$*"; }
 _err_msg() { printf "\033[41m\033[1mError\033[0m %b\n" "$*"; }
 _suc_msg() { printf "\033[42m\033[1mSuccess\033[0m %b\n" "$*"; }
 _info_msg() { printf "\033[43m\033[1mInfo\033[0m %b\n" "$*"; }
-
-# 设置PATH环境变量
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-
-# 设置系统utf-8语言环境
-UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
-[ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
 
 # 各变量默认值
 GITHUB_PROXY='https://gh-proxy.com/'
