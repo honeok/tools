@@ -20,7 +20,7 @@ If Docker is not yet installed, follow the [official installation guide][3] to s
 
 This image was created to address specific requirements and explore creative enhancements.
 
-<img src="https://cdn.skyimg.net/up/2025/6/25/0fee8357.webp">
+<img src="https://m.360buyimg.com/i/jfs/t1/338939/26/15143/30360/68d64ae0Fb0b8e811/d71a4b0409db7ebd.webp">
 
 ## Pull the image
 
@@ -42,6 +42,7 @@ load_module modules/ngx_http_zstd_filter_module.so;
 load_module modules/ngx_http_zstd_static_module.so;
 load_module modules/ngx_http_brotli_filter_module.so;
 load_module modules/ngx_http_brotli_static_module.so;
+load_module modules/ngx_http_acme_module.so;
 ...
 ```
 
