@@ -30,10 +30,12 @@ jobs:
           NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
           NGX_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/nginx/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E -- '-alpine$' | sort -Vr | head -n1 | sed 's/-alpine$//' || true)"
           ZSTD_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          ACME_VERSION="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx-acme/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
           NGX_IMG_LVER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
           NGX_ALPINE_VER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c 'cat /etc/alpine-release' 2>/dev/null | awk -F. '{print $1"."$2}' || true)"
           echo "ngx_version=${NGX_LVER}" >> "$GITHUB_OUTPUT"
           echo "zstd_version=${ZSTD_LVER}" >> "$GITHUB_OUTPUT"
+          echo "acme_version=${ACME_VERSION}" >> "$GITHUB_OUTPUT"
           echo "alpine_version=${NGX_ALPINE_VER}" >> "$GITHUB_OUTPUT"
           if [[ "$(printf '%s\n%s\n' "$NGX_LVER" "$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_IMG_LVER" == "$NGX_LVER" || -z "$NGX_CVER" && "$NGX_IMG_LVER" == "$NGX_LVER" ]]; then
             echo "IS_RENEW=1" >> "$GITHUB_ENV"
@@ -80,6 +82,7 @@ jobs:
           build-args: |
             NGX_VERSION=${{ steps.bump_version.outputs.ngx_version }}
             ZSTD_VERSION=${{ steps.bump_version.outputs.zstd_version }}
+            ACME_VERSION=${{ steps.bump_version.outputs.acme_version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: true
