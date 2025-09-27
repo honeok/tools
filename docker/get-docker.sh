@@ -4,16 +4,24 @@
 # Description: This script is used to automate the installation of the latest docker community edition (ce) on supported linux distributions.
 #
 # Copyright (c) 2023-2025 honeok <i@honeok.com>
+# SPDX-License-Identifier: Apache-2.0
 #
 # References:
 # https://docs.docker.com/engine/install
-#
-# SPDX-License-Identifier: Apache-2.0
 
 set -eE
 
 # 当前脚本版本号
-readonly VERSION='v25.9.17'
+readonly VERSION='v25.9.27'
+
+# 设置PATH环境变量
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+# 环境变量用于在debian或ubuntu操作系统中设置非交互式 (noninteractive) 安装模式
+export DEBIAN_FRONTEND=noninteractive
+
+# 设置系统UTF-8语言环境
+UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
+[ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
 
 function _red { printf "\033[91m%b\033[0m\n" "$*"; }
 function _green { printf "\033[92m%b\033[0m\n" "$*"; }
@@ -23,15 +31,6 @@ function _cyan { printf "\033[96m%b\033[0m\n" "$*"; }
 function _err_msg { printf "\033[41m\033[1mError\033[0m %b\n" "$*"; }
 function _suc_msg { printf "\033[42m\033[1mSuccess\033[0m %b\n" "$*"; }
 function _info_msg { printf "\033[43m\033[1mInfo\033[0m %b\n" "$*"; }
-
-# 环境变量用于在debian或ubuntu操作系统中设置非交互式 (noninteractive) 安装模式
-export DEBIAN_FRONTEND=noninteractive
-# 设置PATH环境变量
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-
-# 设置系统utf-8语言环境
-UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
-[ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
 
 # 各变量默认值
 OS_INFO="$(grep '^PRETTY_NAME=' /etc/os-release | awk -F'=' '{print $NF}' | sed 's#"##g')"
@@ -56,8 +55,8 @@ function _exit {
 
 trap '_exit' SIGINT SIGTERM EXIT
 
-function clrscr {
-    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || clear
+function clear {
+    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || command clear
 }
 
 function die {
@@ -76,7 +75,7 @@ function _exists {
 # Logo from: https://www.lddgo.net/string/text-to-ascii-art (Small Slant)
 function show_logo {
     _yellow "
-  _____    __     __        __ 
+  _____    __     __        __
  / ______ / /____/ ___ ____/ /_____ ____
 / (_ / -_/ __/ _  / _ / __/  '_/ -_/ __/
 \___/\__/\__/\_,_/\___\__/_/\_\\__/_/
@@ -314,7 +313,7 @@ function docker_info {
     docker version 2>&1
 }
 
-clrscr
+clear
 show_logo
 check_root
 check_bash
