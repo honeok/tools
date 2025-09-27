@@ -1,5 +1,6 @@
-# Nginx Docker Image by honeok
+# Nginx
 
+[![GitHub Release](https://img.shields.io/github/v/tag/nginx/nginx.svg?style=flat-square&label=release&logo=github&color=brightgreen)](https://github.com/nginx/nginx/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/honeok/nginx.svg?style=flat-square&logo=docker&color=blue)](https://hub.docker.com/r/honeok/nginx)
 [![Docker Image Size](https://img.shields.io/docker/image-size/honeok/nginx.svg?style=flat-square&logo=docker&color=blue)](https://hub.docker.com/r/honeok/nginx)
 [![Docker Image Version](https://img.shields.io/docker/v/honeok/nginx.svg?style=flat-square&logo=docker&color=blue)](https://hub.docker.com/r/honeok/nginx)
