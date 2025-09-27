@@ -9,7 +9,14 @@
 set -eE
 
 # 当前脚本版本号
-readonly VERSION='v25.9.21'
+readonly VERSION='v25.9.27'
+
+# 设置PATH环境变量
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+
+# 设置系统UTF-8语言环境
+UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
+[ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
 
 # 自定义彩色字体
 _red() { printf "\033[91m%b\033[0m\n" "$*"; }
@@ -17,15 +24,8 @@ _yellow() { printf "\033[93m%b\033[0m\n" "$*"; }
 _cyan() { printf "\033[96m%b\033[0m\n" "$*"; }
 _err_msg() { printf "\033[41m\033[1mError\033[0m %b\n" "$*"; }
 
-# 设置PATH环境变量
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-
-# 设置系统utf-8语言环境
-UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
-[ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
-
 clear() {
-    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || clear
+    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || command clear
 }
 
 die() {
