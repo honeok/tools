@@ -3,7 +3,6 @@
 # Description: This script is used to quickly install the shellcheck binary without extra dependencies.
 #
 # Copyright (c) 2025 honeok <i@honeok.com>
-#
 # SPDX-License-Identifier: Apache-2.0
 
 set -eE
@@ -28,8 +27,8 @@ GITHUB_PROXY='https://gh-proxy.com/'
 
 trap 'rm -rf "${TEMP_DIR:?}" >/dev/null 2>&1' SIGINT SIGTERM EXIT
 
-clrscr() {
-    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || clear
+clear() {
+    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || command clear
 }
 
 die() {
@@ -135,7 +134,7 @@ install_sc() {
     fi
 }
 
-clrscr
+clear
 check_root
 check_bash
 check_cdn

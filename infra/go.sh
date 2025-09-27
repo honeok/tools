@@ -3,7 +3,6 @@
 # Description: This script is used to automatically installs or updates Go to the latest version.
 #
 # Copyright (c) 2025 honeok <i@honeok.com>
-#
 # SPDX-License-Identifier: Apache-2.0
 
 set -eE
@@ -27,8 +26,8 @@ TEMP_DIR="$(mktemp -d)"
 
 trap 'rm -rf "${TEMP_DIR:?}" >/dev/null 2>&1' INT TERM EXIT
 
-clrscr() {
-    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || clear
+clear() {
+    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || command clear
 }
 
 die() {
@@ -144,7 +143,7 @@ go_proxy() {
     fi
 }
 
-clrscr
+clear
 check_root
 go_install
 go_info
