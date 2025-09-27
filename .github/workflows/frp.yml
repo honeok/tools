@@ -1,0 +1,100 @@
+---
+name: 'Build and Publish frp'
+
+on:
+  schedule:
+    - cron: '0 16 * * 3,6'
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  DOCKER_USERNAME: ${{ github.repository_owner }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+jobs:
+  build:
+    name: 'Build and Publish frp'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 'Check out repository'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 'Fetch Versions and Determine Build'
+        id: bump_version
+        run: |
+          FRP_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/fatedier/frp/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          FRP_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/frp/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '$4!="latest"{print $4}' | sort -Vr | head -n1)"
+          echo "frp_version=${FRP_LVER}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$FRP_LVER" "$FRP_CVER" | sort -V | head -n1)" != "$FRP_LVER" || -z "$FRP_CVER" && -n "$FRP_LVER" ]]; then
+            echo "IS_RENEW=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: 'Set up Docker QEMU'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-qemu-action@v3
+
+      - name: 'Set up Docker Buildx'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: 'Login to DockerHub'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: 'Extract Docker metadata'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USERNAME }}/frp
+          tags: |
+            type=raw,value=${{ steps.bump_version.outputs.frp_version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.description=A fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet.
+            org.opencontainers.image.source=https://github.com/fatedier/frp
+            org.opencontainers.image.title=FRP
+            org.opencontainers.image.url=https://gofrp.org
+
+      - name: 'Build and Push frp image'
+        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ github.workspace }}/forge/frp
+          file: ${{ github.workspace }}/forge/frp/Dockerfile
+          platforms: linux/amd64, linux/arm64/v8
+          build-args: FRP_VERSION=${{ steps.bump_version.outputs.frp_version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: ${{ github.event_name != 'pull_request' }}
+
+  sync:
+    name: 'Sync README to dockerhub'
+    runs-on: ubuntu-latest
+    needs:
+      - build
+
+    steps:
+      - name: 'Check out repository'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # https://github.com/peter-evans/dockerhub-description
+      - name: 'Sync README to dockerhub'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKER_USERNAME }}/frp
+          readme-filepath: ${{ github.workspace }}/forge/frp/README.md
+          enable-url-completion: false
