@@ -16,7 +16,9 @@ bash <(curl -Ls https://github.com/honeok/tools/raw/master/infra/jq.sh)
 
 ## kernel.sh
 
-Description: The script based on xanmod and elrepo official source adaptation kernel upgrade one click script.
+[![Total Runs](https://hits.honeok.com/kernel.svg?action=view&count_bg=brightgreen&title_bg=gray&title=Hits&edge_flat=true)](https://github.com/honeok/tools)
+
+Description: This script is used to automatically install or upgrade the linux kernel for mainstream linux distributions.
 
 ```shell
 bash <(curl -Ls https://github.com/honeok/tools/raw/master/infra/kernel.sh)
