@@ -1,9 +1,9 @@
 # Nginx
 
-[![GitHub Release](https://img.shields.io/github/v/tag/nginx/nginx.svg?style=flat-square&label=release&logo=github)](https://github.com/nginx/nginx/releases)
-[![Docker Pulls](https://img.shields.io/docker/pulls/honeok/nginx.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/honeok/nginx)
-[![Docker Image Size](https://img.shields.io/docker/image-size/honeok/nginx.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/honeok/nginx)
-[![Docker Image Version](https://img.shields.io/docker/v/honeok/nginx.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/honeok/nginx)
+[![GitHub Release](https://img.shields.io/github/v/tag/nginx/nginx.svg?style=flat-square&label=release&logo=github&color=blue)](https://github.com/nginx/nginx/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/honeok/nginx.svg?style=flat-square&logo=docker&color=blue&logoColor=white)](https://hub.docker.com/r/honeok/nginx)
+[![Docker Image Size](https://img.shields.io/docker/image-size/honeok/nginx.svg?style=flat-square&logo=docker&color=blue&logoColor=white)](https://hub.docker.com/r/honeok/nginx)
+[![Docker Image Version](https://img.shields.io/docker/v/honeok/nginx.svg?style=flat-square&logo=docker&color=blue&logoColor=white)](https://hub.docker.com/r/honeok/nginx)
 
 [Nginx][1] is a high-performance HTTP and reverse proxy web server renowned for its stability, extensive feature set, straightforward configuration, and minimal resource usage.
 
