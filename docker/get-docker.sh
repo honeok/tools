@@ -12,7 +12,7 @@
 set -eE
 
 # 当前脚本版本号
-readonly VERSION='v25.9.27'
+readonly VERSION='v25.10.1'
 
 # 设置PATH环境变量
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
@@ -37,26 +37,32 @@ OS_INFO="$(grep '^PRETTY_NAME=' /etc/os-release | awk -F'=' '{print $NF}' | sed 
 OS_NAME="$(grep '^ID=' /etc/os-release | awk -F'=' '{print $NF}' | sed 's#"##g')"
 
 function _exit {
-    local EXIT_CODE CURRENT_TIME RUNCOUNT TODAY TOTAL
+    local EXIT_CODE CURRENT_TIME
 
-    EXIT_CODE=$?
+    EXIT_CODE="$?"
     CURRENT_TIME="$(date '+%Y-%m-%d %H:%M:%S %Z')"
-    RUNCOUNT="$(curl -Ls https://hits.honeok.com/get-docker?action=hit)" # 脚本运行计数器
-    TODAY="$(sed -n 's/.*"daily": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
-    TOTAL="$(sed -n 's/.*"total": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
 
     _green "Current server time: $CURRENT_TIME Script completed."
     _purple "Thanks for using! More info: https://www.honeok.com"
-    if [[ -n "$TODAY" && -n "$TOTAL" ]]; then
-        echo "$(_yellow "Number of script runs today:") $(_cyan "$TODAY") $(_yellow "total number of script runs:") $(_cyan "$TOTAL")"
-    fi
+
     exit "$EXIT_CODE"
 }
 
 trap '_exit' SIGINT SIGTERM EXIT
 
+function show_runstats {
+    local RUNCOUNT TODAY TOTAL
+
+    RUNCOUNT="$(curl -Ls https://hits.honeok.com/get-docker?action=hit)" # 脚本运行计数器
+    TODAY="$(sed -n 's/.*"daily": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
+    TOTAL="$(sed -n 's/.*"total": *\([0-9]*\).*/\1/p' <<< "$RUNCOUNT")"
+    if [[ -n "$TODAY" && -n "$TOTAL" ]]; then
+        echo "$(_yellow "The script runs today:") $(_cyan "$TODAY") $(_yellow "Total:") $(_cyan "$TOTAL")"
+    fi
+}
+
 function clear {
-    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || command clear
+    [ -t 1 ] && tput clear 2>/dev/null || printf "\033[2J\033[H" || command clear
 }
 
 function die {
@@ -93,9 +99,8 @@ function check_root {
 
 function check_bash {
     local BASH_VER
-
-    # https://github.com/xykt/IPQuality/issues/28
     BASH_VER="$(bash --version | head -n1 | awk -F ' ' '{for (i=1; i<=NF; i++) if ($i ~ /^[0-9]+\.[0-9]+\.[0-9]+/) {print $i; exit}}' | cut -d . -f1)"
+
     if [ -z "$BASH_VERSION" ]; then
         die "This script needs to be run with bash, not sh!"
     fi
@@ -259,7 +264,7 @@ function docker_install {
         apt-get -qq update
         apt-get install -y -qq ca-certificates curl
         install -m 0755 -d /etc/apt/keyrings
-        curl -fLsS "$GPGKEY_URL" -o /etc/apt/keyrings/docker.asc
+        curl -Ls "$GPGKEY_URL" -o /etc/apt/keyrings/docker.asc
         chmod a+r /etc/apt/keyrings/docker.asc
 
         # add the repository to apt sources
@@ -324,3 +329,4 @@ clear_repos
 docker_install
 check_status
 docker_info
+show_runstats
