@@ -14,10 +14,14 @@ ARG TARGETARCH
 RUN set -ex \
     && apk upgrade \
     && apk add --update --no-cache tzdata \
-    && wget -qO- https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_${TARGETOS}_${TARGETARCH}.tar.gz | tar xz -C /tmp --strip 1 \
-    && mkdir -p /etc/frp \
-    && mv /tmp/*.toml /etc/frp \
-    && mv /tmp/frp* /usr/bin \
+    && cd /tmp \
+    && wget https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_${TARGETOS}_${TARGETARCH}.tar.gz \
+    && wget https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_sha256_checksums.txt \
+    && grep -E "frp_${FRP_VERSION}_${TARGETOS}_${TARGETARCH}\.tar\.gz\$" frp_sha256_checksums.txt | sha256sum -c - \
+    && tar fxz frp_${FRP_VERSION}_${TARGETOS}_${TARGETARCH}.tar.gz --strip 1 \
+    && mkdir /etc/frp \
+    && mv *.toml /etc/frp \
+    && find . -maxdepth 1 -type f -regex './frp[cs]$' -exec mv {} /usr/bin/ \; \
     && rm -rf /var/cache/apk/* /tmp/*
 
 CMD ["/usr/bin/frps", "-c", "/etc/frp/frps.toml"]
