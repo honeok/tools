@@ -21,6 +21,6 @@ jobs:
         with:
           token: ${{ github.token }}
           repository: ${{ github.repository }}
-          retain_days: 7
+          retain_days: 30
           keep_minimum_runs: 0
           delete_run_by_conclusion_pattern: "cancelled, skipped, success"
