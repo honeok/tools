@@ -2,11 +2,9 @@
 
 ## get-docker.sh
 
-Description: This script is used to automate the installation of the latest docker community edition (ce) on supported linux distributions.
+[![Total Runs](https://hits.honeok.com/get-docker.svg?action=view&count_bg=brightgreen&title_bg=gray&title=Hits&edge_flat=true)](https://github.com/honeok/tools)
 
-<div align="center">
-  <img src="https://hits.honeok.com/get-docker.svg?action=view&count_bg=brightgreen&title_bg=%23555555&title=Hits&edge_flat=true" alt="Total Runs"/>
-</div>
+Description: This script is used to automate the installation of the latest docker community edition (ce) on supported linux distributions.
 
 ```shell
 bash <(curl -Ls https://gitlab.com/honeok/tools/raw/master/docker/get-docker.sh)
