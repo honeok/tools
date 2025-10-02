@@ -5,18 +5,10 @@
 </div>
 
 <div align="center">
-  <a href="https://github.com/caddyserver/caddy/releases">
-      <img src="https://img.shields.io/github/v/tag/caddyserver/caddy.svg?style=flat-square&label=release&logo=github&color=blue" alt="GitHub Release">
-  </a>
-  <a href="https://hub.docker.com/r/honeok/caddy">
-      <img src="https://img.shields.io/docker/pulls/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Pulls">
-  </a>
-  <a href="https://hub.docker.com/r/honeok/caddy">
-      <img src="https://img.shields.io/docker/image-size/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Image Size">
-  </a>
-  <a href="https://hub.docker.com/r/honeok/caddy">
-      <img src="https://img.shields.io/docker/v/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Image Version">
-  </a>
+  <img src="https://img.shields.io/github/v/tag/caddyserver/caddy.svg?style=flat-square&label=release&logo=github&color=blue" alt="GitHub Release" />
+  <img src="https://img.shields.io/docker/pulls/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Pulls" />
+  <img src="https://img.shields.io/docker/image-size/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Image Size" />
+  <img src="https://img.shields.io/docker/v/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Image Version" />
 </div>
 
 [Caddy][1] is a powerful, extensible platform to serve your sites, services, and apps, written in Go. If you're new to Caddy, the way you serve the Web is about to change.
