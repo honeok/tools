@@ -1,7 +1,7 @@
-# ipinfo Docker Image by honeok
+# ipinfo
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/honeok/ipinfo.svg?style=flat-square)](https://hub.docker.com/r/honeok/ipinfo)
-[![Docker Image Size](https://img.shields.io/docker/image-size/honeok/ipinfo.svg?style=flat-square)](https://hub.docker.com/r/honeok/ipinfo)
+[![Docker Pulls](https://img.shields.io/docker/pulls/honeok/ipinfo.svg?style=flat-square&logo=docker&color=blue&logoColor=white)](https://hub.docker.com/r/honeok/ipinfo)
+[![Docker Image Size](https://img.shields.io/docker/image-size/honeok/ipinfo.svg?style=flat-square&logo=docker&color=blue&logoColor=white)](https://hub.docker.com/r/honeok/ipinfo)
 
 [ipinfo][1] is a self-hosted, no-tracking, no-ads solution for displaying client IP information such as IP address, country, AS number/description.
 
