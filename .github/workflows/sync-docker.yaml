@@ -28,7 +28,7 @@ jobs:
       - name: 'Download and compare install-docker.sh'
         working-directory: ${{ github.workspace }}/docker
         run: |
-          curl -Ls https://get.docker.com -o install-docker.new
+          wget -qO install-docker.new https://get.docker.com
           if ! cmp -s install-docker.new install-docker.sh; then
             mv -f install-docker.new install-docker.sh
             echo "IS_RENEW=1" >> "$GITHUB_ENV"
