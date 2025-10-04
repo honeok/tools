@@ -3,4 +3,5 @@
 ---
 ignored:
   - DL3007
+  - DL3045
 disable-ignore-pragma: true
