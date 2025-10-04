@@ -79,7 +79,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
 
   sync:
-    name: 'Sync README to dockerhub'
+    name: 'Sync readme to dockerhub'
     runs-on: ubuntu-latest
     needs:
       - build
@@ -90,7 +90,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 'Sync README to dockerhub'
+      - name: 'Sync readme to dockerhub'
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ env.DOCKER_USERNAME }}

@@ -4,10 +4,10 @@ root = true
 
 [*]
 charset = utf-8
-indent_style = space
 end_of_line = lf
-trim_trailing_whitespace = true
+indent_style = space
 insert_final_newline = true
+trim_trailing_whitespace = true
 
 [*.{html,sh}]
 indent_size = 4
