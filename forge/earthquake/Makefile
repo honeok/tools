@@ -53,7 +53,7 @@ release: ## build multi platform images and push to dockerhub
 	@echo "--> version: $(VERSION) build complete!"
 
 clean: ## clean all build caches, containers and images
-	@docker rm -f $(CONTAINER_NAME) || true
+	@docker rm -f $(CONTAINER_NAME) 2>/dev/null || true
 	@docker buildx prune --all --force 2>/dev/null || true
 	@docker system prune -af --volumes 2>/dev/null || true
 	@docker buildx rm -f builder 2>/dev/null || true
