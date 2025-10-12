@@ -28,8 +28,7 @@ const tileUrl = isChina
   ? 'http://webst0{1-4}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
   : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const attribution = isChina ? '&copy; 高德地图 & OpenStreetMap contributors' : '&copy; OpenStreetMap contributors';
-L.tileLayer(tileUrl, { attribution }).addTo(map);
-
+const tileLayer = L.tileLayer(tileUrl, { attribution }).addTo(map);
 
 // 缓存DOM元素引用以提升性能
 let markers: any[] = [];
@@ -67,6 +66,7 @@ function updateMapAndList(data: ApiResponse): void {
     eventList.innerHTML = '<p class="text-muted">过去24小时内无地震数据（min 2.5级）</p>';
     eventCount.textContent = '0';
     updateTime.textContent = new Date().toLocaleString();
+    map.setView([0, 0], 2);
     return;
   }
 
@@ -98,7 +98,12 @@ function updateMapAndList(data: ApiResponse): void {
 
   if (data.earthquakes.length > 0) {
     const group = new L.featureGroup(markers);
-    map.fitBounds(group.getBounds().pad(0.1));
+    // 确保在地图图层加载完成后再执行自适应缩放
+    map.once('load', function () {
+      map.fitBounds(group.getBounds().pad(0.1));
+    });
+    // 重新计算地图尺寸
+    map.invalidateSize();
   }
 
   // 使用最新的数据数量和时间戳更新UI
