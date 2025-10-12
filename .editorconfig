@@ -5,14 +5,15 @@ root = true
 [*]
 charset = utf-8
 end_of_line = lf
-indent_style = space
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.sh]
+[{*.{py,sh},*[Dd]ockerfile*}]
+indent_style = space
 indent_size = 4
 
-[*.{html,json,yml,yaml}]
+[*.{css,html,js,json,ts,tsx,yml,yaml}]
+indent_style = space
 indent_size = 2
 
 [*.md]
