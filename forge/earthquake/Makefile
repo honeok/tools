@@ -34,7 +34,6 @@ run-dev: ## run development container
 
 clean-dev: ## clean docker container for development
 	@docker rm -f $(CONTAINER_NAME) || true
-	@docker system prune -af --volumes 2>/dev/null || true
 
 release-deps: ## setup the buildx builder environment
 	@docker buildx create --name builder --use || true
