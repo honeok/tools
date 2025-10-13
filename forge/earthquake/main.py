@@ -20,7 +20,7 @@ def index():
 
 @app.route('/api/earthquakes')
 def get_earthquakes():
-    base_url = "https://earthquake.usgs.gov/fdsnws/event/1/query"
+    usgs_url = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 
     """
     使用标准utc时间提供统一时间
@@ -42,7 +42,7 @@ def get_earthquakes():
         'orderby': 'time' # 按时间排序
     }
     try:
-        response = requests.get(base_url, params=params, timeout=10)
+        response = requests.get(usgs_url, params=params, timeout=10)
         response.raise_for_status()
         response.encoding = 'utf-8'
         data = response.json()
@@ -62,5 +62,5 @@ def get_earthquakes():
                 'depth': geom[2]
             })
         return jsonify({'earthquakes': processed})
-    except Exception as e:
-        return jsonify({'error': str(e), 'earthquakes': []}), 500
+    except Exception as error:
+        return jsonify({'error': str(error), 'earthquakes': []}), 500
