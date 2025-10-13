@@ -51,6 +51,7 @@ body {
   border: 1px solid var(--card-border);
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -66,22 +67,24 @@ body {
 #event-list {
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .event-item {
   background: var(--item-bg);
   color: var(--text-color);
-  border-radius: 8px;
+  border-radius: 12px;
   margin-bottom: 10px;
   padding: 12px 15px;
-  transition: all 0.2s ease-in-out;
+  transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
   border: 1px solid transparent;
 }
 
 .event-item:hover {
   background: var(--item-hover-bg);
-  transform: scale(1.02);
-  box-shadow: 0 4px 15px var(--shadow-color);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px var(--shadow-color);
 }
 
 small.text-muted {
