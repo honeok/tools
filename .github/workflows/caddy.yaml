@@ -94,7 +94,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Sync readme to dockerhub"
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
