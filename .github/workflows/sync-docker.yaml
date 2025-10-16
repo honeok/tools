@@ -1,31 +1,27 @@
 ---
-name: 'Sync docker install script'
+name: "Sync docker install script"
 
 on:
   schedule:
-    - cron: '0 16 * * *'
+    - cron: "0 16 * * *"
   workflow_dispatch:
-
-defaults:
-  run:
-    shell: bash
 
 permissions:
   contents: write
 
 jobs:
   sync:
-    name: 'Sync docker install script'
+    name: "Sync docker install script"
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Checkout repository'
+      - name: "Checkout repository"
         uses: actions/checkout@v5
         with:
           ref: release
           fetch-depth: 0
 
-      - name: 'Download and compare install-docker.sh'
+      - name: "Download and compare install-docker.sh"
         working-directory: ${{ github.workspace }}/docker
         run: |
           wget -qO install-docker.new https://get.docker.com
@@ -34,9 +30,10 @@ jobs:
             echo "IS_RENEW=1" >> "$GITHUB_ENV"
           fi
 
-      - name: 'Upload commit to repository'
+      - name: "Upload commit to repository"
         uses: stefanzweifel/git-auto-commit-action@v6
-        if: env.IS_RENEW == 1
+        if: env.IS_RENEW == '1'
         with:
           commit_message: "chore: bump script version by github actions"
           branch: release
+          commit_options: "--no-verify --signoff"
