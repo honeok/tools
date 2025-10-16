@@ -1,9 +1,9 @@
 ---
-name: 'Build and Publish Caddy'
+name: "Build and Publish Caddy"
 
 on:
   schedule:
-    - cron: '0 16 * * 3,6'
+    - cron: "0 16 * * 3,6"
   workflow_dispatch:
 
 defaults:
@@ -16,16 +16,18 @@ env:
 
 jobs:
   build:
-    name: 'Build and Publish Caddy'
+    name: "Build and Publish Caddy"
     runs-on: ubuntu-latest
+    outputs:
+      pushed: ${{ steps.bump_version.outputs.build_image }}
 
     steps:
-      - name: 'Check out repository'
+      - name: "Check out repository"
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: 'Fetch Versions and Determine Build'
+      - name: "Fetch Versions and Determine Build"
         id: bump_version
         run: |
           CADDY_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/caddyserver/caddy/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "v\([^"]*\)".*/\1/p')"
@@ -33,26 +35,26 @@ jobs:
           CADDY_ALPINE_LVER="$(docker run --rm caddy:${CADDY_LVER}-alpine 2>/dev/null sh -c 'caddy version 2>&1' | sed -n 's/^v\([0-9.]*\).*/\1/p' || true)"
           echo "caddy_version=${CADDY_LVER}" >> "$GITHUB_OUTPUT"
           if [[ "$(printf '%s\n%s\n' "$CADDY_LVER" "$CADDY_CVER" | sort -V | head -n1)" != "$CADDY_LVER" && "$CADDY_ALPINE_LVER" == "$CADDY_LVER" || -z "$CADDY_CVER" && "$CADDY_ALPINE_LVER" == "$CADDY_LVER" ]]; then
-            echo "IS_RENEW=1" >> $GITHUB_ENV
+            echo "build_image=1" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 'Set up Docker QEMU'
-        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+      - name: "Set up Docker QEMU"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         uses: docker/setup-qemu-action@v3
 
-      - name: 'Set up Docker Buildx'
-        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+      - name: "Set up Docker Buildx"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3
 
-      - name: 'Login to DockerHub'
-        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+      - name: "Login to DockerHub"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
 
-      - name: 'Extract Docker metadata'
-        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+      - name: "Extract Docker metadata"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -66,8 +68,8 @@ jobs:
             org.opencontainers.image.title=Caddy
             org.opencontainers.image.url=https://caddyserver.com
 
-      - name: 'Build and Push Caddy image'
-        if: env.IS_RENEW == 1 || github.event_name == 'workflow_dispatch'
+      - name: "Build and Push Caddy image"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}/ldnmp/caddy
@@ -79,18 +81,19 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
 
   sync:
-    name: 'Sync readme to dockerhub'
+    name: "Sync readme to dockerhub"
     runs-on: ubuntu-latest
     needs:
       - build
+    if: needs.build.outputs.pushed == '1'
 
     steps:
-      - name: 'Check out repository'
+      - name: "Check out repository"
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: 'Sync readme to dockerhub'
+      - name: "Sync readme to dockerhub"
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ env.DOCKER_USERNAME }}
