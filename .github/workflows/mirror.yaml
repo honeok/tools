@@ -1,5 +1,5 @@
 ---
-name: 'GitHub Actions Mirror'
+name: "GitHub Actions Mirror"
 
 on:
   push:
@@ -9,16 +9,16 @@ on:
 
 jobs:
   mirror_to_gitlab:
-    name: 'Mirror to gitlab'
+    name: "Mirror to gitlab"
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Checkout repository'
+      - name: "Checkout repository"
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: 'Mirror to gitlab'
+      - name: "Mirror to gitlab"
         uses: yesolutions/mirror-action@master
         with:
           REMOTE: git@gitlab.com:${{ github.repository }}.git
@@ -27,19 +27,37 @@ jobs:
           GIT_SSH_NO_VERIFY_HOST: true
 
   mirror_to_framagit:
-    name: 'Mirror to framagit'
+    name: "Mirror to framagit"
     runs-on: ubuntu-latest
 
     steps:
-      - name: 'Checkout repository'
+      - name: "Checkout repository"
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: 'Mirror to framagit'
+      - name: "Mirror to framagit"
         uses: yesolutions/mirror-action@master
         with:
           REMOTE: git@framagit.org:${{ github.repository }}.git
+          GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
+          PUSH_ALL_REFS: false
+          GIT_SSH_NO_VERIFY_HOST: true
+
+  mirror_to_codeberg:
+    name: "Mirror to codeberg"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Mirror to codeberg"
+        uses: yesolutions/mirror-action@master
+        with:
+          REMOTE: git@codeberg.org:${{ github.repository }}.git
           GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
           PUSH_ALL_REFS: false
           GIT_SSH_NO_VERIFY_HOST: true
