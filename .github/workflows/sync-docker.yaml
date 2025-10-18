@@ -31,7 +31,7 @@ jobs:
           fi
 
       - name: "Upload commit to repository"
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@v7
         if: env.IS_RENEW == '1'
         with:
           commit_message: "chore: bump script version by github actions"
