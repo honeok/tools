@@ -1,20 +1,15 @@
-## Caddy Docker Image by honeok
+# Caddy
 
-<p align="center">
-<img src="https://user-images.githubusercontent.com/1128849/210187356-dfb7f1c5-ac2e-43aa-bb23-fc014280ae1f.svg" alt="Caddy" width="60%">
-</p>
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/1128849/210187356-dfb7f1c5-ac2e-43aa-bb23-fc014280ae1f.svg" alt="Caddy" width="60%">
+</div>
 
-<p align="center">
-  <a href="https://hub.docker.com/r/honeok/caddy">
-      <img src="https://img.shields.io/docker/pulls/honeok/caddy.svg?style=flat-square" alt="Docker Pulls">
-  </a>
-  <a href="https://hub.docker.com/r/honeok/caddy">
-      <img src="https://img.shields.io/docker/image-size/honeok/caddy.svg?style=flat-square" alt="Docker Image Size">
-  </a>
-  <a href="https://hub.docker.com/r/honeok/caddy">
-      <img src="https://img.shields.io/docker/v/honeok/caddy.svg?style=flat-square" alt="Docker Image Version">
-  </a>
-</p>
+<div align="center">
+  <img src="https://img.shields.io/github/v/tag/caddyserver/caddy.svg?style=flat-square&label=release&logo=github&color=blue" alt="GitHub Release" />
+  <img src="https://img.shields.io/docker/pulls/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Pulls" />
+  <img src="https://img.shields.io/docker/image-size/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Image Size" />
+  <img src="https://img.shields.io/docker/v/honeok/caddy.svg?style=flat-square&logo=docker&color=blue&logoColor=white" alt="Docker Image Version" />
+</div>
 
 [Caddy][1] is a powerful, extensible platform to serve your sites, services, and apps, written in Go. If you're new to Caddy, the way you serve the Web is about to change.
 
@@ -22,7 +17,7 @@ Most people use Caddy as a web server or proxy, but at its core, Caddy is a serv
 
 Caddy compiles for all major platforms and has no runtime dependencies.
 
-### Plugins list
+## Plugins list
 
 - github.com/caddyserver/cache-handler
 - github.com/ueffel/caddy-brotli
@@ -62,7 +57,7 @@ docker run -d -p 80:80 --name caddy --restart=unless-stopped honeok/caddy
 
 For all other configuration details, please refer to the [Caddy official documentation][5].
 
-**Note**: The TCP port number `80` must be opened in firewall.
+**Note**: The port you configured must be opened in the firewall.
 
 [1]: https://github.com/gabrielecirulli/caddy
 [2]: https://docs.docker.com

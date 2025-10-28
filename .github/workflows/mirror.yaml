@@ -1,0 +1,64 @@
+---
+name: "GitHub Actions Mirror"
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  mirror_to_cnb:
+    name: "Mirror to cnb"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Mirror to cnb"
+        uses: yesolutions/mirror-action@master
+        with:
+          REMOTE: https://cnb.cool/${{ github.repository }}.git
+          GIT_USERNAME: cnb
+          GIT_PASSWORD: ${{ secrets.SYNC_CNB_TOKEN }}
+          PUSH_ALL_REFS: false
+          GIT_SSH_NO_VERIFY_HOST: true
+
+  mirror_to_framagit:
+    name: "Mirror to framagit"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Mirror to framagit"
+        uses: yesolutions/mirror-action@master
+        with:
+          REMOTE: git@framagit.org:${{ github.repository }}.git
+          GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
+          PUSH_ALL_REFS: false
+          GIT_SSH_NO_VERIFY_HOST: true
+
+  mirror_to_codeberg:
+    name: "Mirror to codeberg"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Mirror to codeberg"
+        uses: yesolutions/mirror-action@master
+        with:
+          REMOTE: git@codeberg.org:${{ github.repository }}.git
+          GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
+          PUSH_ALL_REFS: false
+          GIT_SSH_NO_VERIFY_HOST: true

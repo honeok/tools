@@ -1,67 +1,66 @@
+# SPDX-License-Identifier: BSD-2-Clause
+#
 # Description: This dockerfile creates an openresty production image on alpine, integrating nginx with optimized configurations for high-performance web serving.
-#
 # Copyright (c) 2025 honeok <i@honeok.com>
-#
+
 # References:
 # https://github.com/openresty/docker-openresty
 # https://github.com/nginx/docker-nginx
-# 
-# Thanks: YichunZhang <agentzh@gmail.com>
-#                     <admin@openresty.com>
-#
-# SPDX-License-Identifier: BSD-2-Clause
+# Acknowledgements:
+# openresty and it's author YichunZhang (agentzh) <agentzh@gmail.com>
+#                                                 <admin@openresty.com>
 
-FROM alpine:latest AS builder
+FROM alpine:3.22.2 AS base
+
+FROM base AS builder
 
 LABEL maintainer="honeok <i@honeok.com>"
 
-# Docker Build Arguments
-ARG RESTY_VERSION="1.27.1.2"
+ARG RESTY_VERSION=""
 ARG ZSTD_VERSION=""
 
 RUN set -ex \
     && apk add --update --no-cache --virtual .build-deps \
+        brotli-dev \
         build-base \
         curl \
         git \
         openssl-dev \
         pcre2-dev \
-        perl \
+        perl-dev \
         zlib-dev \
     && cd /tmp \
     && curl -Ls https://openresty.org/download/openresty-${RESTY_VERSION}.tar.gz -o openresty-${RESTY_VERSION}.tar.gz  \
     && tar fxz openresty-${RESTY_VERSION}.tar.gz \
+    && git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli \
     && curl -Ls https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz -o zstd-${ZSTD_VERSION}.tar.gz \
     && tar fxz zstd-${ZSTD_VERSION}.tar.gz \
     && cd zstd-${ZSTD_VERSION} \
     && make clean \
     && CFLAGS="-fPIC" make -j$(getconf _NPROCESSORS_ONLN) \
-    && make install \
+    && make -j$(getconf _NPROCESSORS_ONLN) install \
     && cd /tmp \
     && git clone --depth=10 https://github.com/tokers/zstd-nginx-module.git \
     && cd openresty-${RESTY_VERSION} \
     && ./configure \
         --with-compat \
+        --add-dynamic-module=../ngx_brotli \
         --add-dynamic-module=../zstd-nginx-module \
     && make \
+    && strip build/nginx-*/objs/*.so \
     && apk del --no-network .build-deps \
     && rm -rf /var/cache/apk/*
 
-FROM alpine:latest AS dist
+FROM base AS dist
 
-LABEL maintainer="Evan Wies <evan@neomantra.net>"
-LABEL maintainer="honeok <i@honeok.com>"
-
-# Docker Build Arguments
-ARG RESTY_VERSION="1.27.1.2"
+ARG RESTY_VERSION=""
 
 # https://github.com/openresty/openresty-packaging/blob/master/alpine/openresty-openssl3/APKBUILD
 ARG RESTY_OPENSSL_VERSION="3.4.1"
 ARG RESTY_OPENSSL_PATCH_VERSION="3.4.1"
 ARG RESTY_OPENSSL_URL_BASE="https://github.com/openssl/openssl/releases/download/openssl-${RESTY_OPENSSL_VERSION}"
-# legacy: https://www.openssl.org/source/old/1.1.1
-ARG RESTY_OPENSSL_BUILD_OPTIONS="enable-camellia enable-cms enable-fips enable-ktls enable-md2 enable-rc5 \
-    enable-rfc3779 enable-seed enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers \
+ARG RESTY_OPENSSL_BUILD_OPTIONS="enable-camellia enable-seed enable-rfc3779 enable-cms enable-md2 enable-rc5 \
+    enable-weak-ssl-ciphers enable-ssl3 enable-ssl3-method enable-md2 enable-ktls enable-fips \
     "
 
 # https://github.com/openresty/openresty-packaging/blob/master/alpine/openresty-pcre2/APKBUILD
@@ -125,7 +124,6 @@ ARG RESTY_CONFIG_OPTIONS="\
     --with-stream_geoip_module \
     --with-stream_ssl_preread_module \
     --with-compat \
-    --add-module=modules/ngx_brotli \
     "
 
 ARG RESTY_CONFIG_OPTIONS_MORE=""
@@ -134,10 +132,10 @@ ARG RESTY_PCRE_OPTIONS="--with-pcre-jit"
 
 ARG RESTY_ADD_PACKAGE_BUILDDEPS=""
 ARG RESTY_ADD_PACKAGE_RUNDEPS=""
-ARG RESTY_EVAL_PRE_CONFIGURE=""
-ARG RESTY_EVAL_POST_DOWNLOAD_PRE_CONFIGURE=""
-ARG RESTY_EVAL_PRE_MAKE=""
-ARG RESTY_EVAL_POST_MAKE=""
+# ARG RESTY_EVAL_PRE_CONFIGURE=""
+# ARG RESTY_EVAL_POST_DOWNLOAD_PRE_CONFIGURE=""
+# ARG RESTY_EVAL_PRE_MAKE=""
+# ARG RESTY_EVAL_POST_MAKE=""
 
 ARG RESTY_STRIP_BINARIES=""
 
@@ -147,24 +145,27 @@ ARG RESTY_CONFIG_DEPS="--with-pcre \
     --with-ld-opt='-L/usr/local/openresty/pcre2/lib -L/usr/local/openresty/openssl3/lib -Wl,-rpath,/usr/local/openresty/pcre2/lib:/usr/local/openresty/openssl3/lib' \
     "
 
+LABEL maintainer="honeok <i@honeok.com>" \
+    org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT" \
+    org.opencontainers.image.licenses="BSD-2-Clause" \
+    org.opencontainers.image.source="https://github.com/openresty/openresty" \
+    org.opencontainers.image.title="OpenResty" \
+    org.opencontainers.image.url="https://openresty.org" \
+    org.opencontainers.image.version=${RESTY_VERSION}
+
 COPY --from=builder /tmp/openresty-${RESTY_VERSION}/build/nginx-*/objs/*.so /usr/local/openresty/nginx/modules/
 
 RUN set -ex \
-# create nginx user/group first, to be consistent throughout docker variants
     && addgroup -g 101 -S nginx \
-    && adduser -S -D -H -u 101 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx \
-# let's build binaries from the published packaging sources
+    && adduser -S -D -H -u 101 -h /var/cache/openresty -s /sbin/nologin -G nginx -g nginx nginx \
     && apk add --update --no-cache --virtual .build-deps \
         brotli-dev \
         build-base \
-        binutils \
         coreutils \
         gd-dev \
         geoip-dev \
-        git \
         libxslt-dev \
         linux-headers \
-        make \
         perl-dev \
         readline-dev \
         zlib-dev \
@@ -173,6 +174,7 @@ RUN set -ex \
         curl \
         gd \
         geoip \
+        gettext-envsubst \
         libgcc \
         libxslt \
         tzdata \
@@ -182,7 +184,7 @@ RUN set -ex \
     && curl -Ls "${RESTY_OPENSSL_URL_BASE}/openssl-${RESTY_OPENSSL_VERSION}.tar.gz" -o openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && tar fxz openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && cd openssl-${RESTY_OPENSSL_VERSION} \
-# patching openssl 3.x for openresty
+# Patching openssl 3.x for openresty
     && curl -Ls https://github.com/openresty/openresty/raw/master/patches/openssl-${RESTY_OPENSSL_PATCH_VERSION}-sess_set_get_cb_yield.patch | patch -p1 \
     && ./config \
         shared zlib -g \
@@ -207,7 +209,6 @@ RUN set -ex \
     && curl -Ls https://openresty.org/download/openresty-${RESTY_VERSION}.tar.gz -o openresty-${RESTY_VERSION}.tar.gz \
     && tar fxz openresty-${RESTY_VERSION}.tar.gz \
     && cd openresty-${RESTY_VERSION} \
-    && git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli modules/ngx_brotli \
     && eval ./configure -j$(getconf _NPROCESSORS_ONLN) ${RESTY_CONFIG_DEPS} ${RESTY_CONFIG_OPTIONS} ${RESTY_CONFIG_OPTIONS_MORE} ${RESTY_LUAJIT_OPTIONS} ${RESTY_PCRE_OPTIONS} \
     && make -j$(getconf _NPROCESSORS_ONLN) \
     && make -j$(getconf _NPROCESSORS_ONLN) install \
@@ -225,24 +226,21 @@ RUN set -ex \
     && apk del --no-network .build-deps \
 # Temporary file cache directory.
     && mkdir -p /var/cache/openresty \
-    && curl -Ls https://openresty.org/favicon.ico -o /usr/local/openresty/nginx/html/favicon.ico \
-# Add `envsubst` for templating environment variables.
-    && apk add --no-cache gettext-envsubst \
-# if we have leftovers from building, let's purge them (including extra, unnecessary build deps)
+# If we have leftovers from building, let's purge them (including extra, unnecessary build deps)
     && rm -rf /var/cache/apk/* \
-# forward request and error logs to docker log collector.
+# Forward request and error logs to docker log collector.
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log \
-# create a docker-entrypoint.d directory
+# Create a docker-entrypoint.d directory
     && mkdir /docker-entrypoint.d
 
-ENV TZ=UTC
 # Add additional binaries into PATH for convenience.
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/usr/local/openresty/bin
 
 # Copy nginx configuration files.
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY nginx.vh.default.conf /etc/nginx/conf.d/default.conf
+
 COPY docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
@@ -253,4 +251,4 @@ EXPOSE 80
 # See https://github.com/nginx/docker-nginx/issues/377
 STOPSIGNAL SIGQUIT
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["openresty", "-g", "daemon off;"]

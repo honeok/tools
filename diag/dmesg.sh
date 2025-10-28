@@ -8,7 +8,7 @@
 
 set -eE
 
-_yellow() { printf "\033[93m%b\033[0m" "$*"; }
+_yellow() { printf "\033[93m%b\033[0m\n" "$*"; }
 
 # 获取系统启动时间
 BOOTTIME="$(date -d "$(uptime -s)" +%s 2>/dev/null || awk '/btime/ {print $2}' /proc/stat 2>/dev/null)"

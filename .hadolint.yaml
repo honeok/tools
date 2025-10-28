@@ -1,0 +1,8 @@
+# https://github.com/hadolint/hadolint
+
+---
+ignored:
+  - DL3007
+  - DL3022
+  - DL3045
+disable-ignore-pragma: true

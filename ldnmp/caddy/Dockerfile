@@ -1,6 +1,6 @@
-# Description: This dockerfile is designed for containerizing the Caddy web server.
+# Description: This dockerfile is used to add caddy common modules and recompile the container caddy web server.
 #
-# Copyright (c) 2025 honeok <honeok@disroot.org>
+# Copyright (c) 2025 honeok <i@honeok.com>
 #
 # References:
 # https://github.com/caddyserver/caddy-docker
@@ -11,9 +11,9 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-ARG CADDY_LVER
-FROM caddy:${CADDY_LVER}-builder AS builder
-LABEL maintainer="honeok <honeok@disroot.org>"
+ARG CADDY_VERSION
+FROM caddy:${CADDY_VERSION}-builder AS builder
+LABEL maintainer="honeok <i@honeok.com>"
 WORKDIR /usr/bin
 RUN set -ex; \
     xcaddy build \
@@ -29,12 +29,10 @@ RUN set -ex; \
     --with github.com/caddy-dns/alidns \
     --with github.com/caddy-dns/acmedns
 
-ARG CADDY_LVER
-FROM caddy:${CADDY_LVER}-alpine AS dist
-LABEL maintainer="honeok <honeok@disroot.org>"
+FROM caddy:${CADDY_VERSION}-alpine AS dist
+LABEL maintainer="honeok <i@honeok.com>"
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 RUN set -ex \
-    && apk upgrade \
-    && apk add --no-cache tzdata \
+    && apk add --update --no-cache tzdata \
     && rm -rf /var/cache/apk/*
 ENV TZ=Asia/Shanghai

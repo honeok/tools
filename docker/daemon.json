@@ -1,0 +1,21 @@
+{
+  "registry-mirrors": [
+    "https://docker.gh-proxy.com",
+    "https://mirror.ccs.tencentyun.com",
+    "https://docker.m.daocloud.io"
+  ],
+  "storage-driver": "overlay2",
+  "exec-opts": [
+    "native.cgroupdriver=systemd"
+  ],
+  "log-driver": "local",
+  "log-opts": {
+    "max-size": "200m",
+    "max-file": "3",
+    "compress": "true"
+  },
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 5,
+  "default-shm-size": "128M",
+  "live-restore": true
+}

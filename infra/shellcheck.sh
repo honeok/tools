@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Description: This script is used to quickly install the jq binary without extra dependencies.
+# Description: This script is used to quickly install the shellcheck binary without extra dependencies.
 #
 # Copyright (c) 2025 honeok <i@honeok.com>
 # SPDX-License-Identifier: Apache-2.0
@@ -22,7 +22,10 @@ _suc_msg() { printf "\033[42m\033[1mSuccess\033[0m %b\n" "$*"; }
 _info_msg() { printf "\033[43m\033[1mInfo\033[0m %b\n" "$*"; }
 
 # 各变量默认值
+TEMP_DIR="$(mktemp -d)"
 GITHUB_PROXY='https://gh-proxy.com/'
+
+trap 'rm -rf "${TEMP_DIR:?}" >/dev/null 2>&1' SIGINT SIGTERM EXIT
 
 clear() {
     [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || command clear
@@ -31,6 +34,8 @@ clear() {
 die() {
     _err_msg >&2 "$(_red "$@")"; exit 1
 }
+
+cd "$TEMP_DIR" >/dev/null 2>&1 || die "Unable to enter the work path."
 
 _exists() {
     local _CMD="$1"
@@ -90,41 +95,42 @@ check_cdn() {
     fi
 }
 
-check_jq() {
-    if ! _exists jq; then
-        die "jq already installed."
+check_sc() {
+    if _exists shellcheck; then
+        die "shellcheck already installed."
     fi
 }
 
-install_jq() {
-    local JQ_VER OS_NAME OS_ARCH
+install_sc() {
+    local SC_VER OS_NAME OS_ARCH
     OS_NAME="$(uname -s 2>/dev/null | sed 's/.*/\L&/')"
 
-    _info_msg "$(_yellow "Installing the jq command!")"
-    JQ_VER="$(curl -Ls "${GITHUB_PROXY}https://api.github.com/repos/jqlang/jq/releases" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | sort -Vr | head -n1)"
+    _info_msg "$(_yellow "Installing the shellcheck command!")"
+    SC_VER="$(curl -Ls "${GITHUB_PROXY}https://api.github.com/repos/koalaman/shellcheck/releases" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | sort -Vr | head -n1)"
 
     case "$(uname -m)" in
-        i*86|x86) OS_ARCH="i386" ;;
-        x86_64|x64|amd64) OS_ARCH="amd64" ;;
-        armv6*) OS_ARCH="armel" ;;
-        armv7*|arm) OS_ARCH="armhf" ;;
-        armv8*|arm64|aarch64) OS_ARCH="arm64" ;;
-        ppc64le) OS_ARCH="ppc64el" ;;
-        s390x) OS_ARCH="s390x" ;;
+        x86_64|amd64) OS_ARCH="x86_64" ;;
+        armv6*) OS_ARCH="armv6hf" ;;
+        armv8*|arm64|aarch64) OS_ARCH="aarch64" ;;
+        riscv64) OS_ARCH="riscv64" ;;
         *) die "Unsupported architecture: $(uname -m)" ;;
     esac
 
-    if ! curl -Lso /usr/bin/jq "${GITHUB_PROXY}https://github.com/jqlang/jq/releases/download/$JQ_VER/jq-$OS_NAME-$OS_ARCH"; then
+    if ! curl -LO "${GITHUB_PROXY}https://github.com/koalaman/shellcheck/releases/download/$SC_VER/shellcheck-$SC_VER.$OS_NAME.$OS_ARCH.tar.xz"; then
         die "download failed, please check the network."
     fi
-    if [ ! -x /usr/bin/jq ]; then
-        chmod +x /usr/bin/jq >/dev/null 2>&1
+
+    tar fJx "shellcheck-$SC_VER.$OS_NAME.$OS_ARCH.tar.xz"
+
+    if [ ! -x "shellcheck-$SC_VER/shellcheck" ]; then
+        chmod +x "shellcheck-$SC_VER/shellcheck" >/dev/null 2>&1
     fi
-    if _exists jq; then
-        _suc_msg "$(_green "Download jq success!")"
-        jq --version 2>&1 | sed 's/jq-\(.*\)/jq version: \1/'
+    mv "shellcheck-$SC_VER/shellcheck" /usr/bin/shellcheck >/dev/null 2>&1
+    if _exists shellcheck; then
+        _suc_msg "$(_green "Download shellcheck success!")"
+        shellcheck -V 2>&1 | sed -n 's/^version: \(.*\)$/Shellcheck Version: \1/p'
     else
-        die "Download jq failed."
+        die "Download shellcheck failed."
     fi
 }
 
@@ -132,5 +138,5 @@ clear
 check_root
 check_bash
 check_cdn
-check_jq
-install_jq
+check_sc
+install_sc

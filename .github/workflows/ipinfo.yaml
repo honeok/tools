@@ -1,0 +1,90 @@
+---
+name: "Build and Publish Ipinfo"
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: "Build and Publish Ipinfo"
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USERNAME: ${{ github.repository_owner }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+    steps:
+      - name: "Check out repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Fetch Versions and Determine Build"
+        id: bump_version
+        run: |
+          NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          GEOIP2_TAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/leev/ngx_http_geoip2_module/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          NGX_IMG_LVER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
+          echo "ngx_version=${NGX_LVER}" >> "$GITHUB_OUTPUT"
+          echo "geoip2_tag=${GEOIP2_TAG}" >> "$GITHUB_OUTPUT"
+          if [[ "$NGX_LVER" == "$NGX_IMG_LVER" && -n "$GEOIP2_TAG" ]]; then
+            echo "build_image=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Download GeoLite2 mmdb file"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        working-directory: ${{ github.workspace }}/forge/ipinfo
+        run: |
+          wget --tries=50 -qO GeoLite2-ASN.mmdb https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb
+          wget --tries=50 -qO GeoLite2-ASN.mmdb.sha256 https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/ASN.mmdb.sha256
+          sed -i 's/ASN.mmdb/GeoLite2-ASN.mmdb/g' GeoLite2-ASN.mmdb.sha256
+          sha256sum -c GeoLite2-ASN.mmdb.sha256
+          wget --tries=50 -qO GeoLite2-Country.mmdb https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb
+          wget --tries=50 -qO GeoLite2-Country.mmdb.sha256 https://github.com/xjasonlyu/maxmind-geoip/releases/latest/download/Country.mmdb.sha256
+          sed -i 's/Country.mmdb/GeoLite2-Country.mmdb/g' GeoLite2-Country.mmdb.sha256
+          sha256sum -c GeoLite2-Country.mmdb.sha256
+
+      - name: "Set up Docker QEMU"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-qemu-action@v3
+
+      - name: "Set up Docker Buildx"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: "Extract Docker metadata"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USERNAME }}/ipinfo
+          tags: type=raw,value=latest
+          labels: |
+            org.opencontainers.image.description=Ipinfo is a self-hosted, no-tracking, no-ads solution for displaying client IP information such as IP address, country, AS number/description.
+            org.opencontainers.image.title=Ipinfo
+
+      - name: "Build and Push ipinfo image"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ github.workspace }}/forge/ipinfo
+          file: ${{ github.workspace }}/forge/ipinfo/Dockerfile
+          platforms: linux/amd64, linux/arm64/v8
+          build-args: |
+            NGX_VERSION=${{ steps.bump_version.outputs.ngx_version }}
+            GEOIP2_TAG=${{ steps.bump_version.outputs.geoip2_tag }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: ${{ github.event_name != 'pull_request' }}
