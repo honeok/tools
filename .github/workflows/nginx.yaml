@@ -2,6 +2,9 @@
 name: "Build and Publish Nginx"
 
 on:
+  push:
+    branches:
+      - master
   schedule:
     - cron: "0 16 * * 3,6"
   workflow_dispatch:
@@ -11,7 +14,7 @@ defaults:
     shell: bash
 
 env:
-  DOCKER_USERNAME: ${{ github.repository_owner }}
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
 jobs:
@@ -31,17 +34,13 @@ jobs:
         id: bump_version
         run: |
           NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
-          NGX_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/nginx/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E -- '-alpine$' | sort -Vr | head -n1 | sed 's/-alpine$//' || true)"
-          ZSTD_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
-          HEADERS_MORE_LTAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/openresty/headers-more-nginx-module/tags | sed -n 's/.*"name": "v\?\([0-9][0-9.]*\)".*/\1/p' | sort -Vr | head -n1)"
-          ACME_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx-acme/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          NGX_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/nginx/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E -- '-alpine$' | sort -rV | head -n1 | sed 's/-alpine$//' || true)"
           NGX_IMG_LVER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
-          NGX_ALPINE_VER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c 'cat /etc/alpine-release' 2>/dev/null | awk -F. '{print $1"."$2}' || true)"
+          ZSTD_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          HEADERS_MORE_LTAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/openresty/headers-more-nginx-module/tags | sed -n 's/.*"name": "v\?\([0-9][0-9.]*\)".*/\1/p' | sort -rV | head -n1)"
           echo "ngx_version=${NGX_LVER}" >> "$GITHUB_OUTPUT"
           echo "zstd_version=${ZSTD_LVER}" >> "$GITHUB_OUTPUT"
           echo "headers_more_tag=${HEADERS_MORE_LTAG}" >> "$GITHUB_OUTPUT"
-          echo "acme_version=${ACME_LVER}" >> "$GITHUB_OUTPUT"
-          echo "alpine_version=${NGX_ALPINE_VER}" >> "$GITHUB_OUTPUT"
           if [[ "$(printf '%s\n%s\n' "$NGX_LVER" "$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_IMG_LVER" == "$NGX_LVER" || -z "$NGX_CVER" && "$NGX_IMG_LVER" == "$NGX_LVER" ]]; then
             echo "build_image=1" >> "$GITHUB_OUTPUT"
           fi
@@ -68,9 +67,8 @@ jobs:
         with:
           images: ${{ env.DOCKER_USERNAME }}/nginx
           tags: |
-            type=raw,value=${{ steps.bump_version.outputs.ngx_version }}-alpine${{ steps.bump_version.outputs.alpine_version }}
-            type=raw,value=${{ steps.bump_version.outputs.ngx_version }}-alpine
             type=raw,value=alpine
+            type=raw,value=${{ steps.bump_version.outputs.ngx_version }}-alpine
           labels: |
             org.opencontainers.image.description=nginx is an HTTP web server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server.
             org.opencontainers.image.source=https://github.com/nginx/nginx
@@ -88,7 +86,6 @@ jobs:
             NGX_VERSION=${{ steps.bump_version.outputs.ngx_version }}
             ZSTD_VERSION=${{ steps.bump_version.outputs.zstd_version }}
             HEADERS_MORE_TAG=${{ steps.bump_version.outputs.headers_more_tag }}
-            ACME_VERSION=${{ steps.bump_version.outputs.acme_version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ github.event_name != 'pull_request' }}
@@ -98,7 +95,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - build
-    if: needs.build.outputs.pushed == '1'
 
     steps:
       - name: "Check out repository"
@@ -107,6 +103,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Sync readme to dockerhub"
+        if: needs.build.outputs.pushed == '1' || github.event_name == 'workflow_dispatch'
         uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ env.DOCKER_USERNAME }}
