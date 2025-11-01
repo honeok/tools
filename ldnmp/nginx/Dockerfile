@@ -4,10 +4,8 @@
 # Copyright (c) 2024-2025 honeok <i@honeok.com>
 
 # References:
-# https://github.com/kejilion/docker
 # https://github.com/google/ngx_brotli
 # https://github.com/facebook/zstd
-# https://github.com/nginx/nginx-acme
 
 ARG NGX_VERSION=""
 
