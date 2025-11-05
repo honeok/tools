@@ -1,63 +1,46 @@
-# Description: creating a containerized solution for automated DanmakuRender video recording.
+# SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (c) 2024-2025 honeok <honeok@duck.com>
-#
-# References:
-# https://github.com/biliup/biliup-rs
-# https://github.com/SmallPeaches/DanmakuRender
-#
-# Licensed under the Apache License, Version 2.0.
-# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
-# See http://www.apache.org/licenses/LICENSE-2.0 for details.
+# Description: The dockerfile is used for containerizing danmakurender, providing real time recording and rendering of live streams.
+# Copyright (c) 2024-2025 honeok <i@honeok.com>
 
-FROM rust:alpine AS builder
-
-WORKDIR /biliup-rs
-
+FROM python:3.9-slim-bookworm AS dist
+LABEL maintainer="honeok <i@honeok.com>"
+ARG DANMAKU_RUN_DEPS="\
+    curl \
+    ffmpeg \
+    nodejs \
+    npm \
+    tzdata \
+    "
+ARG DANMAKU_BUILD_DEPS="\
+    build-essential \
+    git \
+    xz-utils \
+    "
+ARG DANMAKU_TAG=""
+ARG BILIUP_VERSION=""
+WORKDIR /app
+COPY docker-entrypoint.sh /
 RUN set -ex \
-        && apk update && apk upgrade \
-        && apk add --no-cache --virtual .build-deps \
-            curl \
-            git \
-            musl-dev \
-            python3 \
-        && TAG=$(curl -fsL --retry 5 "https://api.github.com/repos/biliup/biliup-rs/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | grep -v '^py') \
-        && git clone --depth=1 --branch "$TAG" "https://github.com/biliup/biliup-rs.git" \
-        && cd biliup-rs \
-        && cargo build --release \
-        && apk del .build-deps \
-        && rm -rf /var/cache/apk/* /tmp/*
-
-FROM python:3.9-alpine
-
-WORKDIR /DanmakuRender
-
-COPY build.sh .
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-COPY --from=builder /biliup-rs/biliup-rs/target/release/biliup /DanmakuRender/biliup
-
-RUN set -ex \
-        && apk update && apk upgrade \
-        && apk add --no-cache --virtual .build-deps \
-            build-base \
-            cargo \
-            git \
-            linux-headers \
-            musl-dev \
-            python3-dev \
-            rust \
-        && apk add --no-cache \
-            ffmpeg \
-            nodejs \
-            npm \
-            tzdata \
-        && chmod +x /docker-entrypoint.sh build.sh \
-        && ./build.sh && rm -f build.sh \
-        && python3 -m pip install --no-cache-dir -r requirements.txt --root-user-action=ignore \
-        && python3 -m pip install --no-cache-dir quickjs --root-user-action=ignore \
-        && apk del .build-deps \
-        && rm -rf /var/cache/apk/* /tmp/*
-
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ${DANMAKU_RUN_DEPS} \
+        ${DANMAKU_BUILD_DEPS} \
+    && git clone --depth=1 --branch ${DANMAKU_TAG} https://github.com/SmallPeaches/DanmakuRender.git . \
+    && python3 -m pip install --no-cache-dir -r requirements.txt --root-user-action=ignore \
+    && python3 -m pip install --no-cache-dir quickjs --root-user-action=ignore \
+    && case "$(uname -m)" in \
+        amd64|x86_64) \
+            OS_ARCH="x86_64" \
+        ;; \
+        arm64|aarch64) \
+            OS_ARCH="aarch64" \
+        ;; \
+    esac \
+    && curl -Ls https://github.com/biliup/biliup-rs/releases/download/v${BILIUP_VERSION}/biliupR-v${BILIUP_VERSION}-${OS_ARCH}-linux.tar.xz | tar xJf - -C tools/ --strip 1 \
+    && chmod +x /docker-entrypoint.sh \
+    && apt-get purge -y --auto-remove ${DANMAKU_BUILD_DEPS} \
+    && rm -rf /var/lib/apt/lists/* /tmp/* docs/ Dockerfile README.md requirements.txt
 ENV TZ=Asia/Shanghai
-
-ENTRYPOINT [ "/docker-entrypoint.sh" ]
+VOLUME ["/app"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
