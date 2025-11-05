@@ -1,24 +1,10 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (c) 2025 honeok <honeok@duck.com>
-#
-# References:
-# https://github.com/SmallPeaches/DanmakuRender
-#
-# Licensed under the Apache License, Version 2.0.
-# Distributed on an "AS IS" basis, WITHOUT WARRANTIES.
-# See http://www.apache.org/licenses/LICENSE-2.0 for details.
+# Copyright (c) 2025 honeok <i@honeok.com>
+# Copyright 2024 The Nezha Authors. All rights reserved.
 
-WORKDIR="/DanmakuRender"
-DANMAKU_CONFIG="$WORKDIR/configs"
-DANMAKU_TEMP_CONFIG="/opt/configs"
+WORKDIR="/app"
 
-if [ -d "$DANMAKU_CONFIG" ] && [ -z "$(find "$DANMAKU_CONFIG" -mindepth 1 -print -quit)" ]; then
-    command cp -rf "$DANMAKU_TEMP_CONFIG"/* "$DANMAKU_CONFIG/"
-fi
-
-if [ "$#" -eq 0 ]; then
-    exec python3 -u "$WORKDIR/main.py" --config "$DANMAKU_CONFIG" --skip_update
-else
-    exec "$@"
-fi
+printf "nameserver 127.0.0.11\nnameserver 8.8.4.4\nnameserver 223.5.5.5\n" >/etc/resolv.conf
+exec python3 -u "$WORKDIR/main.py" --config "$WORKDIR/configs" --skip_update
