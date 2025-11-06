@@ -7,7 +7,7 @@ Description: This script is used to query the ip ownership of mainland china fro
 Usage: `$1` is empty to query the server login user ip, and the parameter is the query parameter ip, which is only available in mainland `china`.
 
 ```shell
-bash <(curl -Ls https://gitlab.com/honeok/tools/raw/master/whims/iplocation.sh) 123.123.123.124
+bash <(curl -Ls https://cnb.cool/honeok/tools/-/git/raw/master/whims/iplocation.sh) 123.123.123.124
 ```
 
 ## weather.sh
