@@ -1,0 +1,108 @@
+---
+name: "Build and Publish DanmakuRender"
+
+on:
+  schedule:
+    - cron: "0 16 * * 3,6"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  DOCKER_USERNAME: ${{ github.repository_owner }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+jobs:
+  build:
+    name: "Build and Publish DanmakuRender"
+    runs-on: ubuntu-latest
+    outputs:
+      pushed: ${{ steps.bump_version.outputs.build_image }}
+
+    steps:
+      - name: "Check out repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Fetch Versions and Determine Build"
+        id: bump_version
+        run: |
+          DANMAKU_TAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/SmallPeaches/DanmakuRender/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          DANMAKU_LVER="$(awk -F. '{printf("%d.%d.%d", substr($1,3), $2, $3)}' <<< "$DANMAKU_TAG")"
+          DANMAKU_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/danmakurender/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '$4!="latest"{print $4}' | sort -rV | head -n1 || true)"
+          BILIUP_VERSION="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/biliup/biliup-rs/releases | grep -E '"tag_name": "v[0-9]' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p' | sort -rV | head -n1)"
+          echo "danmaku_tag=${DANMAKU_TAG}" >> "$GITHUB_OUTPUT"
+          echo "danmaku_version=${DANMAKU_LVER}" >> "$GITHUB_OUTPUT"
+          echo "biliup_version=${BILIUP_VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$DANMAKU_LVER" "$DANMAKU_CVER" | sort -V | head -n1)" != "$DANMAKU_LVER" || -z "$DANMAKU_CVER" && -n "$DANMAKU_LVER" ]]; then
+            echo "build_image=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Set up Docker QEMU"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-qemu-action@v3
+
+      - name: "Set up Docker Buildx"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: "Extract Docker metadata"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USERNAME }}/danmakurender
+          tags: |
+            type=raw,value=${{ steps.bump_version.outputs.danmaku_version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.description=A small tool that can record live streams with danmaku.
+            org.opencontainers.image.source=https://github.com/SmallPeaches/DanmakuRender
+            org.opencontainers.image.title=DanmakuRender
+            org.opencontainers.image.url=https://hub.docker.com/r/honeok/danmakurender
+
+      - name: "Build and push DanmakuRender image"
+        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ github.workspace }}/forge/danmakurender
+          file: ${{ github.workspace }}/forge/danmakurender/Dockerfile
+          platforms: linux/amd64, linux/arm64/v8
+          build-args: |
+            DANMAKU_TAG=${{ steps.bump_version.outputs.danmaku_tag }}
+            BILIUP_VERSION=${{ steps.bump_version.outputs.biliup_version }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          push: ${{ github.event_name != 'pull_request' }}
+
+  sync:
+    name: "Sync readme to dockerhub"
+    runs-on: ubuntu-latest
+    needs:
+      - build
+
+    steps:
+      - name: "Check out repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Sync readme to dockerhub"
+        if: needs.build.outputs.pushed == '1' || github.event_name == 'workflow_dispatch'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKER_USERNAME }}/danmakurender
+          readme-filepath: ${{ github.workspace }}/forge/danmakurender/README.md
+          enable-url-completion: false
