@@ -11,3 +11,14 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "chore"
+
+  - package-ecosystem: "docker"
+    directory: "/ldnmp/openresty/plain"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "16:00"
+    target-branch: "release"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"

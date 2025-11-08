@@ -1,9 +1,0 @@
-services:
-  danmakurender:
-    image: honeok/danmakurender
-    restart: unless-stopped
-    container_name: danmakurender
-    volumes:
-      - $PWD/logs:/DanmakuRender/logs
-      - $PWD/configs:/DanmakuRender/configs
-    network_mode: host

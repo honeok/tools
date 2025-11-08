@@ -7,19 +7,17 @@
 
 [Nginx][1] is a high-performance HTTP and reverse proxy web server renowned for its stability, extensive feature set, straightforward configuration, and minimal resource usage.
 
-This Docker image is designed for rapid deployment across various cloud computing platforms.
+This Docker image is optimized for quick deployment across different cloud platforms.
 
-For additional details on Docker and containerization technologies, consult the [official document][2].
+For additional details on Docker and containerization technologies, refer to the [official documentation][2].
 
 ## Preparing the Host
 
-If Docker is not yet installed, follow the [official installation guide][3] to set it up on your system.
+If Docker isn’t installed yet, follow the [official installation guide][3] to install it on your system.
 
 ## Purpose of This Build
 
 This image was created to address specific requirements and explore creative enhancements.
-
-<img src="https://m.360buyimg.com/i/jfs/t1/338939/26/15143/30360/68d64ae0Fb0b8e811/d71a4b0409db7ebd.webp" alt="Nginx" width="85%">
 
 ## Pull the image
 
@@ -27,26 +25,25 @@ This image was created to address specific requirements and explore creative enh
 docker pull honeok/nginx:alpine
 ```
 
-## Start a container
+## Start the Container
 
-Refer to the official [documentation][4] for guidance on running the container.
+For detailed instructions on running the container, see the official [documentation][4].
 
-To leverage the unique features of this image, append the following lines to your configuration file:
+To take advantage of this image’s unique features, add the following lines to your configuration file:
 
 ```shell
 vim /etc/nginx/nginx.conf
 
 ...
+load_module modules/ngx_http_brotli_filter_module.so;
+load_module modules/ngx_http_brotli_static_module.so;
 load_module modules/ngx_http_headers_more_filter_module.so;
 load_module modules/ngx_http_zstd_filter_module.so;
 load_module modules/ngx_http_zstd_static_module.so;
-load_module modules/ngx_http_brotli_filter_module.so;
-load_module modules/ngx_http_brotli_static_module.so;
-load_module modules/ngx_http_acme_module.so;
 ...
 ```
 
-**Note**: The port you configured must be opened in the firewall.
+**Note**: Make sure the configured port is allowed through your firewall.
 
 [1]: https://nginx.org
 [2]: https://docs.docker.com

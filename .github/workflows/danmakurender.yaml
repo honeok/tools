@@ -1,5 +1,5 @@
 ---
-name: "Build and Publish frp"
+name: "Build and Publish DanmakuRender"
 
 on:
   schedule:
@@ -16,7 +16,7 @@ env:
 
 jobs:
   build:
-    name: "Build and Publish frp"
+    name: "Build and Publish DanmakuRender"
     runs-on: ubuntu-latest
     outputs:
       pushed: ${{ steps.bump_version.outputs.build_image }}
@@ -30,10 +30,14 @@ jobs:
       - name: "Fetch Versions and Determine Build"
         id: bump_version
         run: |
-          FRP_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/fatedier/frp/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
-          FRP_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/frp/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '$4!="latest"{print $4}' | sort -Vr | head -n1 || true)"
-          echo "frp_version=${FRP_LVER}" >> "$GITHUB_OUTPUT"
-          if [[ "$(printf '%s\n%s\n' "$FRP_LVER" "$FRP_CVER" | sort -V | head -n1)" != "$FRP_LVER" || -z "$FRP_CVER" && -n "$FRP_LVER" ]]; then
+          DANMAKU_TAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/SmallPeaches/DanmakuRender/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          DANMAKU_LVER="$(awk -F. '{printf("%d.%d.%d", substr($1,3), $2, $3)}' <<< "$DANMAKU_TAG")"
+          DANMAKU_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/$DOCKER_USERNAME/danmakurender/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '$4!="latest"{print $4}' | sort -rV | head -n1 || true)"
+          BILIUP_VERSION="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/biliup/biliup-rs/releases | grep -E '"tag_name": "v[0-9]' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p' | sort -rV | head -n1)"
+          echo "danmaku_tag=${DANMAKU_TAG}" >> "$GITHUB_OUTPUT"
+          echo "danmaku_version=${DANMAKU_LVER}" >> "$GITHUB_OUTPUT"
+          echo "biliup_version=${BILIUP_VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$DANMAKU_LVER" "$DANMAKU_CVER" | sort -V | head -n1)" != "$DANMAKU_LVER" || -z "$DANMAKU_CVER" && -n "$DANMAKU_LVER" ]]; then
             echo "build_image=1" >> "$GITHUB_OUTPUT"
           fi
 
@@ -57,24 +61,26 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKER_USERNAME }}/frp
+          images: ${{ env.DOCKER_USERNAME }}/danmakurender
           tags: |
-            type=raw,value=${{ steps.bump_version.outputs.frp_version }}
+            type=raw,value=${{ steps.bump_version.outputs.danmaku_version }}
             type=raw,value=latest
           labels: |
-            org.opencontainers.image.description=A fast reverse proxy to help you expose a local server behind a NAT or firewall to the internet.
-            org.opencontainers.image.source=https://github.com/fatedier/frp
-            org.opencontainers.image.title=FRP
-            org.opencontainers.image.url=https://gofrp.org
+            org.opencontainers.image.description=A small tool that can record live streams with danmaku.
+            org.opencontainers.image.source=https://github.com/SmallPeaches/DanmakuRender
+            org.opencontainers.image.title=DanmakuRender
+            org.opencontainers.image.url=https://hub.docker.com/r/honeok/danmakurender
 
-      - name: "Build and Push frp image"
+      - name: "Build and push DanmakuRender image"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
-          context: ${{ github.workspace }}/forge/frp
-          file: ${{ github.workspace }}/forge/frp/Dockerfile
+          context: ${{ github.workspace }}/forge/danmakurender
+          file: ${{ github.workspace }}/forge/danmakurender/Dockerfile
           platforms: linux/amd64, linux/arm64/v8
-          build-args: FRP_VERSION=${{ steps.bump_version.outputs.frp_version }}
+          build-args: |
+            DANMAKU_TAG=${{ steps.bump_version.outputs.danmaku_tag }}
+            BILIUP_VERSION=${{ steps.bump_version.outputs.biliup_version }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ github.event_name != 'pull_request' }}
@@ -97,6 +103,6 @@ jobs:
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
-          repository: ${{ env.DOCKER_USERNAME }}/frp
-          readme-filepath: ${{ github.workspace }}/forge/frp/README.md
+          repository: ${{ env.DOCKER_USERNAME }}/danmakurender
+          readme-filepath: ${{ github.workspace }}/forge/danmakurender/README.md
           enable-url-completion: false

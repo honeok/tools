@@ -25,9 +25,11 @@ RUN set -ex \
         build-base \
         curl \
         git \
+        lz4-dev \
         openssl-dev \
         pcre2-dev \
         perl-dev \
+        xz-dev \
         zlib-dev \
     && cd /tmp \
     && curl -Ls https://openresty.org/download/openresty-${RESTY_VERSION}.tar.gz -o openresty-${RESTY_VERSION}.tar.gz  \
