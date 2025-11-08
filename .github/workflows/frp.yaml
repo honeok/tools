@@ -93,7 +93,7 @@ jobs:
 
       - name: "Sync readme to dockerhub"
         if: needs.build.outputs.pushed == '1' || github.event_name == 'workflow_dispatch'
-        uses: peter-evans/dockerhub-description@v4
+        uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
