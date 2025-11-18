@@ -13,7 +13,18 @@ updates:
       prefix: "chore"
 
   - package-ecosystem: "docker"
-    directory: "/ldnmp/openresty/plain"
+    directory: "/ldnmp/openresty/stable"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "16:00"
+    target-branch: "release"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: "docker"
+    directory: "/ldnmp/openresty/edge"
     schedule:
       interval: "weekly"
       day: "saturday"
