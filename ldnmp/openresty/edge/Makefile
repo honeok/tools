@@ -26,7 +26,7 @@ build: prepare
 		--build-arg RESTY_VERSION="$(RESTY_VERSION)" \
 		--build-arg ZSTD_VERSION="$(ZSTD_VERSION)" \
 		--build-arg RESTY_STRIP_BINARIES=1 \
-		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):edge-$(RESTY_VERSION)-dev .
+		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):$(RESTY_VERSION)-dev .
 
 release-deps:
 	@docker buildx create --name builder --use || true
