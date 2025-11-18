@@ -25,6 +25,7 @@ build: prepare
 	@docker build $(DOCKER_BUILD_ARGS) \
 		--build-arg RESTY_VERSION="$(RESTY_VERSION)" \
 		--build-arg ZSTD_VERSION="$(ZSTD_VERSION)" \
+		--build-arg RESTY_STRIP_BINARIES=1 \
 		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):dev .
 
 release-deps:
@@ -38,8 +39,9 @@ release: prepare release-deps
 		--platform $(PLATFORMS) \
 		--build-arg RESTY_VERSION="$(RESTY_VERSION)" \
 		--build-arg ZSTD_VERSION="$(ZSTD_VERSION)" \
-		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):$(RESTY_VERSION)-alpine \
+		--build-arg RESTY_STRIP_BINARIES=1 \
 		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):alpine \
+		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):$(RESTY_VERSION)-alpine \
 		--push \
 		.
 	@echo "--> version: $(RESTY_VERSION) build complete!"
