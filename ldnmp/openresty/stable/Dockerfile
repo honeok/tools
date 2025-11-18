@@ -1,14 +1,12 @@
 # SPDX-License-Identifier: BSD-2-Clause
-#
-# Description: This dockerfile creates an openresty production image on alpine, integrating nginx with optimized configurations for high-performance web serving.
 # Copyright (c) 2025 honeok <i@honeok.com>
 
 # References:
 # https://github.com/openresty/docker-openresty
 # https://github.com/nginx/docker-nginx
 # Acknowledgements:
-# openresty and it's author YichunZhang (agentzh) <agentzh@gmail.com>
-#                                                 <admin@openresty.com>
+# openresty and it's author agentzh <agentzh@gmail.com>
+#                                   <admin@openresty.com>
 
 FROM alpine:3.22.2 AS base
 
