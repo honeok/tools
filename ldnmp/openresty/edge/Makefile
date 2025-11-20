@@ -7,7 +7,7 @@ DOCKER_REPO           := openresty
 DOCKER_BUILD_ARGS     := --no-cache --progress=plain
 PLATFORMS             := linux/amd64,linux/arm64
 
-RESTY_VERSION := $(shell wget -qO- https://api.github.com/repos/openresty/openresty/tags | grep '"name":' | sed -E 's/.*"name": *"([^"]+)".*/\1/' | sort -rV | head -n1 | sed 's/v//')
+RESTY_VERSION := $(shell wget -qO- https://api.github.com/repos/teddysun/openresty/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//')
 ZSTD_VERSION := $(shell wget -qO- https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//')
 
 export DOCKER_BUILDKIT = 1
@@ -25,7 +25,8 @@ build: prepare
 	@docker build $(DOCKER_BUILD_ARGS) \
 		--build-arg RESTY_VERSION="$(RESTY_VERSION)" \
 		--build-arg ZSTD_VERSION="$(ZSTD_VERSION)" \
-		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):dev .
+		--build-arg RESTY_STRIP_BINARIES=1 \
+		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):$(RESTY_VERSION)-dev .
 
 release-deps:
 	@docker buildx create --name builder --use || true
@@ -38,8 +39,9 @@ release: prepare release-deps
 		--platform $(PLATFORMS) \
 		--build-arg RESTY_VERSION="$(RESTY_VERSION)" \
 		--build-arg ZSTD_VERSION="$(ZSTD_VERSION)" \
-		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):$(RESTY_VERSION)-alpine \
-		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):alpine \
+		--build-arg RESTY_STRIP_BINARIES=1 \
+		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):alpine-edge \
+		--tag $(DOCKER_USERNAME)/$(DOCKER_REPO):$(RESTY_VERSION)-alpine-edge \
 		--push \
 		.
 	@echo "--> version: $(RESTY_VERSION) build complete!"
