@@ -4,32 +4,32 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "16:00"
-    target-branch: "release"
+      interval: "daily"
+      time: "00:00"
+      timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
+    target-branch: "release"
     commit-message:
       prefix: "chore"
 
   - package-ecosystem: "docker"
     directory: "/ldnmp/openresty/stable"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "16:00"
-    target-branch: "release"
+      interval: "daily"
+      time: "00:00"
+      timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
+    target-branch: "release"
     commit-message:
-      prefix: "chore"
+      prefix: "ldnmp"
 
   - package-ecosystem: "docker"
     directory: "/ldnmp/openresty/edge"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "16:00"
-    target-branch: "release"
+      interval: "daily"
+      time: "00:00"
+      timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
+    target-branch: "release"
     commit-message:
-      prefix: "chore"
+      prefix: "ldnmp"
