@@ -1,12 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+#
 # Description: This dockerfile is used to build a pre-configured, performance-tuned php-fpm image.
-#
 # Copyright (c) 2024-2025 honeok <i@honeok.com>
-#
+
 # References:
 # https://github.com/kejilion/docker
 # https://github.com/mlocati/docker-php-extension-installer
-#
-# SPDX-License-Identifier: Apache-2.0
 
 ARG PHP_VERSION=""
 
@@ -20,11 +19,11 @@ RUN set -ex \
         gcc \
         g++ \
         git \
+        imagemagick-dev \
         make \
         pkgconfig \
     && apk add --update --no-cache \
         imagemagick \
-        imagemagick-dev \
         libgomp \
     && curl -Ls https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o /usr/local/bin/install-php-extensions \
     && chmod +x /usr/local/bin/install-php-extensions \
@@ -32,7 +31,6 @@ RUN set -ex \
         bcmath \
         exif \
         gd \
-        imagick \
         intl \
         mysqli \
         opcache \
