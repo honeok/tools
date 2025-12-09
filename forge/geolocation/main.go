@@ -15,7 +15,7 @@ import (
 
 var (
 	VersionX   byte   = 1
-	VersionY   byte   = 0
+	VersionY   byte   = 1
 	VersionZ   byte   = 0
 	Codename          = "Geolocation, Fast and Lightweight."
 	Intro             = "A lightweight API IP lookup service."
@@ -39,7 +39,7 @@ func PrintBanner() {
 type ApiResponse struct {
 	Success bool             `json:"success"`
 	IP      string           `json:"ip"`
-	MtGeo   *MeituanGeoData  `json:"mt_geo"`
+	MtGeo   *MeituanGeoData  `json:"mt_geo,omitempty"`
 	IPSB    *IpSbGeoData     `json:"ipsb"`
 }
 
@@ -83,6 +83,12 @@ func fetchJsonFromApi(apiUrl string, target interface{}) error {
 	return json.Unmarshal(bodyBytes, target)
 }
 
+// Health endpoint
+func healthHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	responseWriter.Header().Set("Content-Type", "application/json")
+	responseWriter.Write([]byte(`{"status":"ok"}`))
+}
+
 func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	// Serve frontend page on GET
 	if request.Method != "POST" {
@@ -97,83 +103,116 @@ func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	// Meituan IP location API
-	meituanApiUrl := "https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=" + url.QueryEscape(queriedIP)
-
-	var meituanRawResponse map[string]interface{}
-	if err := fetchJsonFromApi(meituanApiUrl, &meituanRawResponse); err != nil {
-		json.NewEncoder(responseWriter).Encode(ApiResponse{Success: false})
-		return
+	// Safe string getter
+	safeString := func(m map[string]interface{}, key string) string {
+		if v, ok := m[key].(string); ok {
+			return v
+		}
+		return ""
 	}
 
-	meituanData := meituanRawResponse["data"].(map[string]interface{})
-	meituanReverseGeo := meituanData["rgeo"].(map[string]interface{})
-	latitude := meituanData["lat"].(float64)
-	longitude := meituanData["lng"].(float64)
+	// Safe float getter
+	safeFloat := func(m map[string]interface{}, key string) float64 {
+		if v, ok := m[key].(float64); ok {
+			return v
+		}
+		return 0
+	}
 
-	// Meituan city detail API
-	meituanCityApiUrl := fmt.Sprintf(
-		"https://apimobile.meituan.com/group/v1/city/latlng/%f,%f?tag=0",
-		latitude, longitude,
-	)
+	// Concurrent channels
+	mtChan := make(chan *MeituanGeoData)
+	ipsbChan := make(chan *IpSbGeoData)
 
-	var meituanCityRawResponse map[string]interface{}
-	fetchJsonFromApi(meituanCityApiUrl, &meituanCityRawResponse)
+	// Fetch Meituan concurrently
+	go func() {
+		meituanApiUrl := "https://apimobile.meituan.com/locate/v2/ip/loc?rgeo=true&ip=" + url.QueryEscape(queriedIP)
 
-	cityDetail := ""
-	if meituanCityRawResponse["data"] != nil {
-		if dataMap, ok := meituanCityRawResponse["data"].(map[string]interface{}); ok {
-			if val, ok := dataMap["detail"].(string); ok {
-				cityDetail = val
+		var meituanRawResponse map[string]interface{}
+		meituanGeoData := (*MeituanGeoData)(nil)
+
+		if err := fetchJsonFromApi(meituanApiUrl, &meituanRawResponse); err == nil {
+
+			data, ok := meituanRawResponse["data"].(map[string]interface{})
+			if ok {
+
+				rgeo, _ := data["rgeo"].(map[string]interface{})
+				latitude := safeFloat(data, "lat")
+				longitude := safeFloat(data, "lng")
+
+				meituanDetail := ""
+
+				if latitude != 0 || longitude != 0 {
+					meituanCityApiUrl := fmt.Sprintf(
+						"https://apimobile.meituan.com/group/v1/city/latlng/%f,%f?tag=0",
+						latitude, longitude,
+					)
+
+					var meituanCityRawResponse map[string]interface{}
+					if fetchJsonFromApi(meituanCityApiUrl, &meituanCityRawResponse) == nil {
+						if dm, ok := meituanCityRawResponse["data"].(map[string]interface{}); ok {
+							if v, ok := dm["detail"].(string); ok {
+								meituanDetail = v
+							}
+						}
+					}
+				}
+
+				meituanGeoData = &MeituanGeoData{
+					Lat:      latitude,
+					Lng:      longitude,
+					Country:  safeString(rgeo, "country"),
+					Province: safeString(rgeo, "province"),
+					City:     safeString(rgeo, "city"),
+					District: safeString(rgeo, "district"),
+					Detail:   meituanDetail,
+				}
 			}
 		}
-	}
 
-	meituanGeoData := &MeituanGeoData{
-		Lat:      latitude,
-		Lng:      longitude,
-		Country:  meituanReverseGeo["country"].(string),
-		Province: meituanReverseGeo["province"].(string),
-		City:     meituanReverseGeo["city"].(string),
-		District: meituanReverseGeo["district"].(string),
-		Detail:   cityDetail,
-	}
+		mtChan <- meituanGeoData
+	}()
 
-	// IP.SB GeoIP API
-	ipSbApiUrl := "https://api.ip.sb/geoip/" + url.QueryEscape(queriedIP)
+	// Fetch IP.SB concurrently
+	go func() {
+		ipSbApiUrl := "https://api.ip.sb/geoip/" + url.QueryEscape(queriedIP)
 
-	var ipSbRawResponse map[string]interface{}
-	ipSbGeoData := &IpSbGeoData{}
+		var ipSbRawResponse map[string]interface{}
+		ipSbGeoData := &IpSbGeoData{}
 
-	if fetchJsonFromApi(ipSbApiUrl, &ipSbRawResponse) == nil {
-		ipSbGeoData.ISP, _ = ipSbRawResponse["isp"].(string)
-		ipSbGeoData.Organization, _ = ipSbRawResponse["organization"].(string)
+		if fetchJsonFromApi(ipSbApiUrl, &ipSbRawResponse) == nil {
 
-		// ASN may be string or number
-		rawASN := ipSbRawResponse["asn"]
-		switch value := rawASN.(type) {
-		case string:
-			ipSbGeoData.ASN = value
-		case float64:
-			ipSbGeoData.ASN = fmt.Sprintf("%.0f", value)
+			ipSbGeoData.ISP = safeString(ipSbRawResponse, "isp")
+			ipSbGeoData.Organization = safeString(ipSbRawResponse, "organization")
+			ipSbGeoData.ASNOrganization = safeString(ipSbRawResponse, "asn_organization")
+			ipSbGeoData.Country = safeString(ipSbRawResponse, "country")
+			ipSbGeoData.CountryCode = safeString(ipSbRawResponse, "country_code")
+			ipSbGeoData.Region = safeString(ipSbRawResponse, "region")
+			ipSbGeoData.RegionCode = safeString(ipSbRawResponse, "region_code")
+			ipSbGeoData.City = safeString(ipSbRawResponse, "city")
+
+			switch v := ipSbRawResponse["asn"].(type) {
+			case string:
+				ipSbGeoData.ASN = v
+			case float64:
+				ipSbGeoData.ASN = fmt.Sprintf("%.0f", v)
+			case json.Number:
+				ipSbGeoData.ASN = v.String()
+			}
+
+			if lat, ok := ipSbRawResponse["latitude"].(float64); ok {
+				ipSbGeoData.Latitude = lat
+			}
+			if lng, ok := ipSbRawResponse["longitude"].(float64); ok {
+				ipSbGeoData.Longitude = lng
+			}
 		}
 
-		ipSbGeoData.ASNOrganization, _ = ipSbRawResponse["asn_organization"].(string)
-		ipSbGeoData.Country, _ = ipSbRawResponse["country"].(string)
-		ipSbGeoData.CountryCode, _ = ipSbRawResponse["country_code"].(string)
-		ipSbGeoData.Region, _ = ipSbRawResponse["region"].(string)
-		ipSbGeoData.RegionCode, _ = ipSbRawResponse["region_code"].(string)
-		ipSbGeoData.City, _ = ipSbRawResponse["city"].(string)
+		ipsbChan <- ipSbGeoData
+	}()
 
-		if lat, ok := ipSbRawResponse["latitude"].(float64); ok {
-			ipSbGeoData.Latitude = lat
-		}
-		if lng, ok := ipSbRawResponse["longitude"].(float64); ok {
-			ipSbGeoData.Longitude = lng
-		}
-	}
+	meituanGeoData := <-mtChan
+	ipSbGeoData := <-ipsbChan
 
-	// Final JSON output
 	finalResponse := ApiResponse{
 		Success: true,
 		IP:      queriedIP,
@@ -188,6 +227,7 @@ func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Reques
 func main() {
 	PrintBanner()
 
+	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/", rootRequestHandler)
 
 	// Start HTTP server
