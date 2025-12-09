@@ -24,6 +24,7 @@ WORKDIR /app
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /go/bin/geolocation .
 COPY index.html .
+COPY favicon.ico .
 ENV TZ=$TZ
 EXPOSE 8080
-ENTRYPOINT [ "./geolocation" ]
+ENTRYPOINT ["./geolocation"]
