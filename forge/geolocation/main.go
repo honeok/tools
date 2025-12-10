@@ -16,8 +16,8 @@ import (
 
 var (
 	VersionX byte = 1
-	VersionY byte = 1
-	VersionZ byte = 1
+	VersionY byte = 2
+	VersionZ byte = 0
 	Codename      = "Geolocation, Fast and Lightweight."
 	Intro         = "A lightweight API IP lookup service."
 )
