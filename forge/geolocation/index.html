@@ -15,7 +15,6 @@
         ><h1 class="text-xl font-medium mb-6 text-center text-gray-700">IP Geolocation</h1></a
       >
 
-      <!-- Search Form -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4 mb-6">
         <form id="searchForm" class="flex gap-2">
           <input
@@ -40,15 +39,12 @@
     </div>
     <script>
       (async () => {
-        // Handle URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const searchIp = urlParams.get("ip");
 
-        // Function to process IP and display results
         async function processIp(ip, containerId, color = "#3b82f6", label = "IP Location") {
           const container = document.getElementById(containerId);
 
-          // Show loading state
           container.innerHTML = `
                 <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
                     <div class="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
@@ -73,7 +69,7 @@
                 </div>`;
 
           try {
-            // Get location
+            // 调用后端Go接口获取详细地理位置数据
             const data = await fetch(location.href, {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -87,10 +83,9 @@
               return;
             }
 
-            // Update content - Meituan data
-            let contentHTML = `
-                    <!--div class="font-mono text-gray-600">IP: ${ip}   <a target="_blank" href="https://iplark.com/${ip}">   (Moreinfo)</a></div-->`;
+            let contentHTML = ``;
 
+            // 渲染Meituan数据
             if (data.mt_geo && Object.keys(data.mt_geo).length > 0) {
               contentHTML += `
                         <div class="mt-3">
@@ -107,7 +102,7 @@
                         </div>`;
             }
 
-            // Add ip.sb data
+            // 渲染IP.SB数据
             if (data.ipsb && Object.keys(data.ipsb).length > 0) {
               contentHTML += `
                         <div class="mt-3">
@@ -136,7 +131,7 @@
 
             document.getElementById(`${containerId}-content`).innerHTML = contentHTML;
 
-            // Show map with CARTO basemap (use first available coordinates)
+            // 地图渲染 优先使用Meituan坐标 没有则用IP.SB坐标
             const coords = data.mt_geo?.lat
               ? [data.mt_geo.lat, data.mt_geo.lng]
               : data.ipsb?.latitude
@@ -151,7 +146,6 @@
                 subdomains: "abcd",
               }).addTo(map);
 
-              // Add marker with popup
               const marker = L.circleMarker(coords, {
                 radius: 8,
                 color: color,
@@ -180,52 +174,44 @@
           }
         }
 
-        // Handle form submission
+        // 处理搜索表单提交
         document.getElementById("searchForm").addEventListener("submit", (e) => {
           e.preventDefault();
           const ip = document.getElementById("ipInput").value.trim();
           if (ip) {
             window.location.href = `./?ip=${encodeURIComponent(ip)}`;
           } else {
-            window.location.href = "./"; // 如果输入为空，返回当前页
+            window.location.href = "./";
           }
         });
 
-        // Main logic
+        // 主逻辑入口
         const cardsContainer = document.getElementById("cards");
 
         if (searchIp) {
-          // If there's an IP in URL, show only that
           cardsContainer.innerHTML = '<div id="search-result"></div>';
           await processIp(searchIp, "search-result", "#6366f1", "IP Location");
         } else {
-          // Otherwise show original Foreign and Domestic IP detection
           const sources = [
-            { id: "f", url: "https://ipv4.lvhai.org/", label: "Foreign IP", color: "#3b82f6" },
+            { id: "f", url: "https://api.ipify.org?format=json", label: "Foreign IP", color: "#3b82f6" },
             { id: "d", url: "https://ipv4_cu.itdog.cn/", label: "Domestic IP", color: "#10b981" },
           ];
 
-          // Create cards & fetch IPs
           sources.forEach((s) => {
-            cardsContainer.innerHTML += `
-                    <div id="${s.id}-container"></div>`;
+            cardsContainer.innerHTML += `<div id="${s.id}-container"></div>`;
 
-            // Process IP
             (async () => {
               try {
-                // Get IP
                 const ip = await fetch(s.url)
-                  .then((r) =>
-                    s.url.includes("lvhai")
-                      ? r.text().then((t) => {
-                          try {
-                            return JSON.parse(t).ip || t.trim();
-                          } catch {
-                            return t.trim();
-                          }
-                        })
-                      : r.json().then((j) => j.ip)
-                  )
+                  .then((r) => r.text())
+                  .then((text) => {
+                    try {
+                      const json = JSON.parse(text);
+                      return json.ip || text.trim();
+                    } catch {
+                      return text.trim();
+                    }
+                  })
                   .catch(() => null);
 
                 if (!ip) {
