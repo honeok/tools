@@ -11,14 +11,15 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"time"
 )
 
 var (
-	VersionX   byte   = 1
-	VersionY   byte   = 1
-	VersionZ   byte   = 0
-	Codename          = "Geolocation, Fast and Lightweight."
-	Intro             = "A lightweight API IP lookup service."
+	VersionX byte = 1
+	VersionY byte = 1
+	VersionZ byte = 1
+	Codename      = "Geolocation, Fast and Lightweight."
+	Intro         = "A lightweight API IP lookup service."
 )
 
 func Version() string {
@@ -37,10 +38,10 @@ func PrintBanner() {
 }
 
 type ApiResponse struct {
-	Success bool             `json:"success"`
-	IP      string           `json:"ip"`
-	MtGeo   *MeituanGeoData  `json:"mt_geo,omitempty"`
-	IPSB    *IpSbGeoData     `json:"ipsb"`
+	Success bool            `json:"success"`
+	IP      string          `json:"ip"`
+	MtGeo   *MeituanGeoData `json:"mt_geo,omitempty"`
+	IPSB    *IpSbGeoData    `json:"ipsb"`
 }
 
 type MeituanGeoData struct {
@@ -69,11 +70,27 @@ type IpSbGeoData struct {
 
 // FetchJsonFromApi fetches JSON from API and unmarshals it
 func fetchJsonFromApi(apiUrl string, target interface{}) error {
-	httpResponse, err := http.Get(apiUrl)
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", apiUrl, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "application/json")
+
+	httpResponse, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer httpResponse.Body.Close()
+
+	if httpResponse.StatusCode != 200 {
+		return fmt.Errorf("Error: API returned non 200 status: %d", httpResponse.StatusCode)
+	}
 
 	bodyBytes, err := io.ReadAll(httpResponse.Body)
 	if err != nil {
@@ -179,7 +196,8 @@ func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Reques
 		var ipSbRawResponse map[string]interface{}
 		ipSbGeoData := &IpSbGeoData{}
 
-		if fetchJsonFromApi(ipSbApiUrl, &ipSbRawResponse) == nil {
+		// Only process if no error occurred
+		if err := fetchJsonFromApi(ipSbApiUrl, &ipSbRawResponse); err == nil {
 
 			ipSbGeoData.ISP = safeString(ipSbRawResponse, "isp")
 			ipSbGeoData.Organization = safeString(ipSbRawResponse, "organization")
@@ -205,6 +223,9 @@ func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Reques
 			if lng, ok := ipSbRawResponse["longitude"].(float64); ok {
 				ipSbGeoData.Longitude = lng
 			}
+		} else {
+			// Optional: Log error if needed
+			log.Printf("Error: fetching IP.SB data for %s: %v", queriedIP, err)
 		}
 
 		ipsbChan <- ipSbGeoData
