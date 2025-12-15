@@ -247,6 +247,22 @@
           }
         });
 
+        function findValidIp(text) {
+          if (!text) return null;
+
+          const regex = /\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g;
+          const matches = text.matchAll(regex);
+
+          for (const match of matches) {
+            const ipCandidate = match[0];
+            const parts = ipCandidate.split(".").map(Number);
+            if (!parts.every((n) => n >= 0 && n <= 255)) continue;
+            if (parts[0] === 0) continue;
+            return ipCandidate;
+          }
+          return null;
+        }
+
         // 主逻辑入口
         const cardsContainer = document.getElementById("cards");
 
@@ -256,7 +272,7 @@
         } else {
           const sources = [
             { id: "f", url: "https://api.ipify.org?format=json", label: "Foreign IP", color: "#3b82f6" },
-            { id: "d", url: "https://ipv4_cu.itdog.cn/", label: "Domestic IP", color: "#10b981" },
+            { id: "d", url: "https://my.ip.cn/", label: "Domestic IP", color: "#10b981" },
           ];
 
           sources.forEach((s) => {
@@ -264,32 +280,30 @@
 
             (async () => {
               try {
-                const ip = await fetch(s.url)
+                const rawText = await fetch(s.url)
                   .then((r) => r.text())
-                  .then((text) => {
-                    try {
-                      const json = JSON.parse(text);
-                      return json.ip || text.trim();
-                    } catch {
-                      return text.trim();
-                    }
-                  })
-                  .catch(() => null);
+                  .catch(() => "");
+
+                // 使用严格筛选函数
+                const ip = findValidIp(rawText);
 
                 if (!ip) {
                   document.getElementById(`${s.id}-container`).innerHTML = `
-                                <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-3">
-                                    <div class="text-red-500">Failed to get IP from ${s.label}</div>
-                                </div>`;
+                        <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-3">
+                            <div class="text-red-500">Failed to get IP from ${s.label}</div>
+                            <div class="text-xs text-gray-400 mt-1 truncate" title="${rawText.replace(/"/g, "&quot;")}">
+                                Format unrecognizable
+                            </div>
+                        </div>`;
                   return;
                 }
 
                 await processIp(ip, `${s.id}-container`, s.color, s.label);
               } catch (err) {
                 document.getElementById(`${s.id}-container`).innerHTML = `
-                            <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-3">
-                                <div class="text-red-500">Error: ${err.message}</div>
-                            </div>`;
+                    <div class="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-3">
+                        <div class="text-red-500">Error: ${err.message}</div>
+                    </div>`;
               }
             })();
           });

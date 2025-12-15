@@ -9,7 +9,7 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 max_line_length = 120
 
-[{*.{go,mk},*[Mm]akefile*}]
+[{*.{go,mk},go.{mod,sum},*[Mm]akefile*}]
 indent_style = tab
 indent_size = 4
 
