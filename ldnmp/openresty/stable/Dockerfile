@@ -8,7 +8,7 @@
 # openresty and it's author agentzh <agentzh@gmail.com>
 #                                   <admin@openresty.com>
 
-FROM alpine:3.23.0 AS base
+FROM alpine:3.23.2 AS base
 
 FROM base AS builder
 
