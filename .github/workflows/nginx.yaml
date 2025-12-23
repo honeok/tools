@@ -39,7 +39,7 @@ jobs:
           NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
           NGX_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/nginx/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E -- '-alpine$' | sort -rV | head -n1 | sed 's/-alpine$//' || true)"
           NGX_IMG_LVER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
-          ACME_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" wget -qO- https://api.github.com/repos/nginx/nginx-acme/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
+          ACME_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx-acme/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
           ZSTD_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
           HEADERS_MORE_LTAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/openresty/headers-more-nginx-module/tags | sed -n 's/.*"name": "v\?\([0-9][0-9.]*\)".*/\1/p' | sort -rV | head -n1)"
           echo "ngx_version=${NGX_LVER}" >> "$GITHUB_OUTPUT"
