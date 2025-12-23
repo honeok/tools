@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-#
-# Description: This script is used to retrieve the province and city information of a specified ip address in mainland china using public api services.
-#
-# Copyright (c) 2025 honeok <i@honeok.com>
 # SPDX-License-Identifier: Apache-2.0
-#
+
+# Description: This script is used to retrieve the province and city information of a specified ip address in mainland china using public api services.
+# Copyright (c) 2025 honeok <i@honeok.com>
+
 # References:
 # https://github.com/ihmily/ip-info-api
 # https://lolicp.com/others/202405106.html
@@ -15,7 +14,7 @@ set -eEuo pipefail
 
 # 当前脚本版本号
 # shellcheck disable=SC2034
-readonly SCRIPT_VER='v25.10.10'
+readonly SCRIPT_VER='v25.12.22'
 
 # 设置PATH环境变量
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
@@ -98,10 +97,23 @@ taobao_api() {
     IP_API="$(curl -Ls "https://ip.taobao.com/outGetIpInfo?accessKey=alibaba-inc&ip=$CHECK_IP")"
     PROVIDER="taobao"
     IP="$(sed -En 's/.*"ip":"([^"]+)".*/\1/p' <<< "$IP_API")"
-    PROVINCE="$(sed -rn 's/.*"region":"([^"]+)".*/\1/p' <<< "$IP_API")"
+    PROVINCE="$(sed -En 's/.*"region":"([^"]+)".*/\1/p' <<< "$IP_API")"
     CITY="$(sed -En 's/.*"city":"([^"]+)".*/\1/p' <<< "$IP_API")"
 
-    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "api from: $PROVIDER $IP $PROVINCE $CITY"
+    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "Api from: $PROVIDER $IP $PROVINCE $CITY"
+}
+
+meituan_api() {
+    local CHECK_IP="$1"
+    local IP_API PROVIDER IP PROVINCE CITY
+
+    IP_API="$(curl -Ls "https://apimobile.meituan.com/locate/v2/ip/loc?client_source=yourAppKey&rgeo=true&ip=$CHECK_IP")"
+    PROVIDER="meituan"
+    IP="$(sed -En 's/.*"ip":"([^"]+)".*/\1/p' <<< "$IP_API")"
+    PROVINCE="$(sed -En 's/.*"province":"([^"]+?)(省|市|壮族自治区|回族自治区|维吾尔自治区|自治区)".*/\1/p' <<< "$IP_API")"
+    CITY="$(sed -En 's/.*"city":"([^"]+)".*/\1/p' <<< "$IP_API")"
+
+    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "Api from: $PROVIDER $IP $PROVINCE $CITY"
 }
 
 baidu_api() {
@@ -114,20 +126,20 @@ baidu_api() {
     PROVINCE="$(sed -En 's/.*"location":"([^省市自治区特别行政区"]+)(省|市|自治区|特别行政区).*/\1/p' <<< "$IP_API")"
     CITY="$(sed -En 's/.*"location":"([^"]*?)(省|市|自治区|特别行政区)([^市"]+)市.*/\3/p' <<< "$IP_API")"
 
-    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "api from: $PROVIDER $IP $PROVINCE $CITY"
+    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "Api from: $PROVIDER $IP $PROVINCE $CITY"
 }
 
 pconline_api() {
     local CHECK_IP="$1"
     local IP_API PROVIDER IP PROVINCE CITY
 
-    IP_API="$(curl -Ls "https://whois.pconline.com.cn/ipJson.jsp?ip=$CHECK_IP" | iconv -f gb2312 -t utf-8)"
+    IP_API="$(curl -Ls "https://whois.pconline.com.cn/ipJson.jsp?ip=$CHECK_IP&json=true" | iconv -f gbk -t utf-8)"
     PROVIDER="pconline"
     IP="$(sed -En 's/.*"ip":"([^"]+)".*/\1/p' <<< "$IP_API")"
     PROVINCE="$(sed -En 's/.*"pro":"([^"]+?)(省|市|自治区|特别行政区)".*/\1/p' <<< "$IP_API")"
     CITY="$(sed -En 's/.*"city":"([^"]+?)市".*/\1/p' <<< "$IP_API")"
 
-    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "api from: $PROVIDER $IP $PROVINCE $CITY"
+    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "Api from: $PROVIDER $IP $PROVINCE $CITY"
 }
 
 bilibili_api() {
@@ -140,13 +152,13 @@ bilibili_api() {
     PROVINCE="$(sed -En 's/.*"province":"([^"]+)".*/\1/p' <<< "$IP_API")"
     CITY="$(sed -En 's/.*"city":"([^"]+)".*/\1/p' <<< "$IP_API")"
 
-    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "api from: $PROVIDER $IP $PROVINCE $CITY"
+    [[ -n "$IP" && -n "$PROVINCE" && -n "$CITY" ]] && echo "Api from: $PROVIDER $IP $PROVINCE $CITY"
 }
 
 iplocation() {
     local CHECK_IP="$1"
     local -a API_LISTS
-    API_LISTS=("taobao_api" "baidu_api" "pconline_api" "bilibili_api")
+    API_LISTS=("taobao_api" "meituan_api" "baidu_api" "pconline_api" "bilibili_api")
 
     for ((i=0; i<"${#API_LISTS[@]}"; i++)); do
         if "${API_LISTS[i]}" "$CHECK_IP"; then
