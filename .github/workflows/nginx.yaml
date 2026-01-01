@@ -4,116 +4,208 @@ name: "Build Nginx"
 on:
   push:
     branches:
-      - master
+      - "**"
     paths:
       - "ldnmp/nginx/**"
-      - "!ldnmp/nginx/**.md"
+      - "!ldnmp/nginx/**/*.md"
+      - ".github/workflows/nginx.yaml"
   schedule:
-    - cron: "0 16 * * 3,6"
+    - cron: "0 16 * * *"
   workflow_dispatch:
 
-defaults:
-  run:
-    shell: bash
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
 
 env:
-  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  WORK_DIR: ldnmp/nginx
+  DOCKERHUB_REPO: ${{ secrets.DOCKER_USERNAME }}/nginx
 
 jobs:
-  build:
-    name: "Build and Publish Nginx"
+  check:
+    name: "Pre check"
     runs-on: ubuntu-latest
     outputs:
-      pushed: ${{ steps.bump_version.outputs.build_image }}
+      ngx_version: ${{ steps.ver.outputs.ngx_version }}
+      acme_version: ${{ steps.ver.outputs.acme_version }}
+      zstd_version: ${{ steps.ver.outputs.zstd_version }}
+      headers_more_tag: ${{ steps.ver.outputs.headers_more_tag }}
+      trigger: ${{ steps.ver.outputs.trigger }}
 
     steps:
-      - name: "Check out repository"
+      - name: "Get Version and Decide"
+        id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eEuxo pipefail
+          TRIGGER="false"
+          LATEST_VER="$(gh release view -R nginx/nginx --json tagName -q .tagName | sed 's#^release-##')"
+          LATEST_IMG_VER="$(docker run --rm nginx:${LATEST_VER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
+          CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | grep -E -- '-alpine$' | sort -rV | head -n1 | sed 's#-alpine$##' || true)"
+          ACME_VER="$(gh release view -R nginx/nginx-acme --json tagName -q .tagName | sed 's#v##')"
+          ZSTD_VER="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
+          HEADERS_MORE_TAG="$(gh api repos/openresty/headers-more-nginx-module/tags -q '.[].name' | sort -rV | head -n1 | sed 's#v##')"
+          echo "ngx_version=${LATEST_VER}" >> "$GITHUB_OUTPUT"
+          echo "acme_version=${ACME_VER}" >> "$GITHUB_OUTPUT"
+          echo "zstd_version=${ZSTD_VER}" >> "$GITHUB_OUTPUT"
+          echo "headers_more_tag=${HEADERS_MORE_TAG}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n1)" != "$LATEST_VER" && "$LATEST_VER" == "$LATEST_IMG_VER" ]] || \
+            [[ -z "$CURRENT_VER" && "$LATEST_VER" == "$LATEST_IMG_VER" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "Build required."
+            TRIGGER="true"
+          else
+            echo "No build required."
+          fi
+          echo "trigger=${TRIGGER}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: "Build image"
+    needs:
+      - check
+    if: needs.check.outputs.trigger == 'true'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-24.04, platform: linux/amd64 }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64 }
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: "Prepare"
+        run: |
+          PLATFORM=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
+
+      - name: "Checkout repository"
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: "Fetch Versions and Determine Build"
-        id: bump_version
-        run: |
-          NGX_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
-          NGX_CVER="$(wget -qO- --tries=50 https://hub.docker.com/v2/repositories/honeok/nginx/tags 2>/dev/null | grep -o '"name":"[^"]*"' | awk -F'"' '{print $4}' | grep -E -- '-alpine$' | sort -rV | head -n1 | sed 's/-alpine$//' || true)"
-          NGX_IMG_LVER="$(docker run --rm nginx:${NGX_LVER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
-          ACME_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/nginx/nginx-acme/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
-          ZSTD_LVER="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/facebook/zstd/releases/latest | grep '"tag_name":' | sed -n 's/.*"tag_name": "[^0-9]*\([0-9.]*\)".*/\1/p')"
-          HEADERS_MORE_LTAG="$(wget -qO- --tries=50 --header="Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/openresty/headers-more-nginx-module/tags | sed -n 's/.*"name": "v\?\([0-9][0-9.]*\)".*/\1/p' | sort -rV | head -n1)"
-          echo "ngx_version=${NGX_LVER}" >> "$GITHUB_OUTPUT"
-          echo "acme_version=${ACME_LVER}" >> "$GITHUB_OUTPUT"
-          echo "zstd_version=${ZSTD_LVER}" >> "$GITHUB_OUTPUT"
-          echo "headers_more_tag=${HEADERS_MORE_LTAG}" >> "$GITHUB_OUTPUT"
-          if [[ "$(printf '%s\n%s\n' "$NGX_LVER" "$NGX_CVER" | sort -V | head -n1)" != "$NGX_LVER" && "$NGX_IMG_LVER" == "$NGX_LVER" || -z "$NGX_CVER" && "$NGX_IMG_LVER" == "$NGX_LVER" ]]; then
-            echo "build_image=1" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: "Set up Docker QEMU"
-        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
-        uses: docker/setup-qemu-action@v3
-
-      - name: "Set up Docker Buildx"
-        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+      - name: "Setup Docker Buildx"
         uses: docker/setup-buildx-action@v3
 
       - name: "Login to DockerHub"
-        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v3
         with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: "Extract Docker metadata"
-        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+      - name: "Docker metadata"
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKER_USERNAME }}/nginx
+          images: ${{ env.DOCKERHUB_REPO }}
           tags: |
             type=raw,value=alpine
-            type=raw,value=${{ steps.bump_version.outputs.ngx_version }}-alpine
+            type=raw,value=${{ needs.check.outputs.ngx_version }}-alpine
           labels: |
             org.opencontainers.image.description=nginx is an HTTP web server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server.
             org.opencontainers.image.source=https://github.com/nginx/nginx
             org.opencontainers.image.title=Nginx
             org.opencontainers.image.url=https://nginx.org
 
-      - name: "Build and Push Nginx image"
-        if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
+      - name: "Build and export"
+        id: build
         uses: docker/build-push-action@v6
         with:
-          context: ${{ github.workspace }}/ldnmp/nginx
-          file: ${{ github.workspace }}/ldnmp/nginx/Dockerfile
-          platforms: linux/amd64, linux/arm64/v8
+          context: ${{ env.WORK_DIR }}
+          platforms: ${{ matrix.platform }}
           build-args: |
-            NGX_VERSION=${{ steps.bump_version.outputs.ngx_version }}
-            ACME_VERSION=${{ steps.bump_version.outputs.acme_version }}
-            ZSTD_VERSION=${{ steps.bump_version.outputs.zstd_version }}
-            HEADERS_MORE_TAG=${{ steps.bump_version.outputs.headers_more_tag }}
-          tags: ${{ steps.meta.outputs.tags }}
+            NGX_VERSION=${{ needs.check.outputs.ngx_version }}
+            ACME_VERSION=${{ needs.check.outputs.acme_version }}
+            ZSTD_VERSION=${{ needs.check.outputs.zstd_version }}
+            HEADERS_MORE_TAG=${{ needs.check.outputs.headers_more_tag }}
           labels: ${{ steps.meta.outputs.labels }}
-          push: ${{ github.event_name != 'pull_request' }}
+          outputs: type=image,name=${{ env.DOCKERHUB_REPO }},push-by-digest=true,name-canonical=true,push=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
 
-  sync:
-    name: "Sync readme to dockerhub"
-    runs-on: ubuntu-latest
+      - name: "Export digest"
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        run: |
+          rm -rf /tmp/digests
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: "Upload artifact"
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        uses: actions/upload-artifact@v6
+        with:
+          name: digest-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: "Merge manifest"
     needs:
+      - check
       - build
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
 
     steps:
-      - name: "Check out repository"
+      - name: "Download digests"
+        uses: actions/download-artifact@v7
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - name: "Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Docker metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=alpine
+            type=raw,value=${{ needs.check.outputs.ngx_version }}-alpine
+          labels: |
+            org.opencontainers.image.description=nginx is an HTTP web server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server.
+            org.opencontainers.image.source=https://github.com/nginx/nginx
+            org.opencontainers.image.title=Nginx
+            org.opencontainers.image.url=https://nginx.org
+
+      - name: "Create manifest list and push"
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKERHUB_REPO }}@sha256:%s ' *)
+
+      - name: "Inspect image"
+        run: |
+          docker buildx imagetools inspect ${{ env.DOCKERHUB_REPO }}:${{ needs.check.outputs.ngx_version }}-alpine
+
+  sync:
+    name: "Sync readme"
+    needs:
+      - merge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout repository"
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: "Sync readme to dockerhub"
-        if: needs.build.outputs.pushed == '1' || github.event_name == 'workflow_dispatch'
         uses: peter-evans/dockerhub-description@v5
         with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
-          repository: ${{ env.DOCKER_USERNAME }}/nginx
-          readme-filepath: ${{ github.workspace }}/ldnmp/nginx/README.md
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: ${{ env.DOCKERHUB_REPO }}
+          readme-filepath: ${{ env.WORK_DIR }}/README.md
           enable-url-completion: false
