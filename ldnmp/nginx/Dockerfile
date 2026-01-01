@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Description: This dockerfile is used to add third-party modules to nginx and recompile the nginx web server.
-# Copyright (c) 2024-2025 honeok <i@honeok.com>
+# Copyright (c) 2024-2026 honeok <i@honeok.com>
 
 ARG NGX_VERSION=""
 
-FROM alpine:latest AS builder
+FROM public.ecr.aws/docker/library/alpine AS builder
 
 LABEL maintainer="honeok <i@honeok.com>"
 
@@ -58,7 +58,7 @@ RUN set -ex \
     && apk del --no-network .build-deps \
     && rm -rf /var/cache/apk/*
 
-FROM nginx:${NGX_VERSION}-alpine AS dist
+FROM public.ecr.aws/docker/library/nginx:${NGX_VERSION}-alpine AS dist
 
 LABEL maintainer="honeok <i@honeok.com>"
 
