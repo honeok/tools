@@ -217,7 +217,6 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
     -h | --help)
         show_usage
-        shift
         ;;
     -x | --debug)
         set -x
