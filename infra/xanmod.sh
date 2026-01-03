@@ -44,12 +44,12 @@ linux_logo() {
     ##      ## @@# #  ##     ##  ###   ###    ##   ##    QQQQQQQ#     #QQQQQQQ
   ############  ###  ####   ####   #### ### ##### ######   QQQQQ#######QQQQQ
 
-       Linux Version $(uname -r 2>/dev/null), Compiled $(uname -v 2>/dev/null | awk '{print $1,$2,$3}')
+       Linux Version $(uname -r 2> /dev/null), Compiled $(uname -v 2> /dev/null | awk '{print $1,$2,$3}')
 "
 }
 
 clear() {
-    [ -t 1 ] && tput clear 2>/dev/null || printf "\033[2J\033[H" || command clear
+    [ -t 1 ] && tput clear 2> /dev/null || printf "\033[2J\033[H" || command clear
 }
 
 die() {
@@ -61,7 +61,7 @@ die() {
 }
 
 show_usage() {
-    tee >&2 <<'EOF'
+    tee >&2 << 'EOF'
 Usage: ./xanmod.sh
 
 Options:
@@ -79,7 +79,7 @@ get_cmd_path() {
 }
 
 is_have_cmd() {
-    get_cmd_path "$1" >/dev/null 2>&1
+    get_cmd_path "$1" > /dev/null 2>&1
 }
 
 check_root() {
@@ -105,7 +105,7 @@ check_bash() {
 
 check_arch() {
     if [ -z "$OS_ARCH" ]; then
-        case "$(uname -m 2>/dev/null)" in
+        case "$(uname -m 2> /dev/null)" in
         amd64 | x86_64) OS_ARCH="amd64" ;;
         *) die "This architecture is not supported." ;;
         esac
@@ -188,11 +188,11 @@ xanmod_install() {
     fi
 
     # https://gitlab.com/xanmod/linux
-    XANMOD_VERSION="$(curl -L "$XANMOD_CHECK_SCRIPT" | awk -f - 2>/dev/null | awk -F 'x86-64-v' '{v=$2+0; if(v==4)v=3; print v}')"
+    XANMOD_VERSION="$(curl -L "$XANMOD_CHECK_SCRIPT" | awk -f - 2> /dev/null | awk -F 'x86-64-v' '{v=$2+0; if(v==4)v=3; print v}')"
     XANMOD_KEYRING="/etc/apt/keyrings/xanmod-archive-keyring.gpg"
     XANMOD_APTLIST="/etc/apt/sources.list.d/xanmod-release.list"
 
-    dpkg -s gnupg >/dev/null 2>&1 || install_pkg gnupg
+    dpkg -s gnupg > /dev/null 2>&1 || install_pkg gnupg
     curl -L "$XANMOD_KEY" | gpg --dearmor -vo "$XANMOD_KEYRING"
     echo "deb [signed-by=$XANMOD_KEYRING] http://deb.xanmod.org $VERSION_CODENAME main" | tee "$XANMOD_APTLIST"
     if [[ -n "$XANMOD_VERSION" && "$XANMOD_VERSION" =~ ^[0-9]$ ]]; then
