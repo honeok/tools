@@ -1,0 +1,50 @@
+---
+name: "XanMod CI"
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "infra/xanmod.sh"
+      - ".github/workflows/xanmod.yaml"
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - "infra/xanmod.sh"
+      - ".github/workflows/xanmod.yaml"
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: "XanMod install"
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+          # debian
+          - debian:bookworm # 12
+          - debian:trixie # 13
+          - debian:forky # 14
+          - debian:sid
+          # ubuntu
+          - ubuntu:jammy # 22.04
+          - ubuntu:noble # 24.04
+          - ubuntu:plucky # 25.04
+          - ubuntu:rolling
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.os }}
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v6
+
+      - name: "Run XanMod install"
+        working-directory: infra
+        run: |
+          bash ci-deps.sh
+          bash xanmod.sh --debug --ci
