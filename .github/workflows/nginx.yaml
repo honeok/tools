@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: "Check out repository"
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
@@ -52,15 +52,15 @@ jobs:
 
       - name: "Set up Docker QEMU"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
       - name: "Set up Docker Buildx"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: "Login to DockerHub"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
@@ -68,7 +68,7 @@ jobs:
       - name: "Extract Docker metadata"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
           images: ${{ env.DOCKER_USERNAME }}/nginx
           tags: |
@@ -82,7 +82,7 @@ jobs:
 
       - name: "Build and Push Nginx image"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: ${{ github.workspace }}/ldnmp/nginx
           file: ${{ github.workspace }}/ldnmp/nginx/Dockerfile
@@ -104,13 +104,13 @@ jobs:
 
     steps:
       - name: "Check out repository"
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
       - name: "Sync readme to dockerhub"
         if: needs.build.outputs.pushed == '1' || github.event_name == 'workflow_dispatch'
-        uses: peter-evans/dockerhub-description@v5
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}

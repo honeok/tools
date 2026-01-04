@@ -14,12 +14,12 @@ jobs:
 
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
       - name: "Mirror to cnb"
-        uses: yesolutions/mirror-action@master
+        uses: yesolutions/mirror-action@662fce0eced8996f64d7fa264d76cddd84827f33 # master
         with:
           REMOTE: https://cnb.cool/${{ github.repository }}.git
           GIT_USERNAME: cnb
@@ -33,12 +33,12 @@ jobs:
 
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
       - name: "Mirror to framagit"
-        uses: yesolutions/mirror-action@master
+        uses: yesolutions/mirror-action@662fce0eced8996f64d7fa264d76cddd84827f33 # master
         with:
           REMOTE: git@framagit.org:${{ github.repository }}.git
           GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
@@ -51,12 +51,12 @@ jobs:
 
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v6
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
       - name: "Mirror to codeberg"
-        uses: yesolutions/mirror-action@master
+        uses: yesolutions/mirror-action@662fce0eced8996f64d7fa264d76cddd84827f33 # master
         with:
           REMOTE: git@codeberg.org:${{ github.repository }}.git
           GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
