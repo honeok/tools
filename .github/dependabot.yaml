@@ -33,3 +33,48 @@ updates:
     target-branch: "release"
     commit-message:
       prefix: "ldnmp"
+
+  - package-ecosystem: docker
+    directory: /forge/danmakurender
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /forge/frp
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /forge/geolocation
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /forge/geolocation
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /forge/ipinfo
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /ldnmp/caddy
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /ldnmp/nginx
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /ldnmp/openresty/luarocks
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /ldnmp/php
+    schedule:
+      interval: daily
