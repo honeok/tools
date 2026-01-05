@@ -9,27 +9,32 @@ updates:
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
     target-branch: "release"
+    labels:
+      - "dependencies"
     commit-message:
       prefix: "chore"
+      include: "scope"
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "docker"
-    directory: "/ldnmp/openresty/stable"
+    directories:
+      - "/ldnmp/openresty/stable"
+      - "/ldnmp/openresty/edge"
     schedule:
       interval: "daily"
       time: "00:00"
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
     target-branch: "release"
+    labels:
+      - "dependencies"
     commit-message:
-      prefix: "ldnmp"
-
-  - package-ecosystem: "docker"
-    directory: "/ldnmp/openresty/edge"
-    schedule:
-      interval: "daily"
-      time: "00:00"
-      timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 10
-    target-branch: "release"
-    commit-message:
-      prefix: "ldnmp"
+      prefix: "chore"
+      include: "scope"
+    groups:
+      docker:
+        patterns:
+          - "*"
