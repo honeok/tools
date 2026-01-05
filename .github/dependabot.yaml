@@ -9,8 +9,6 @@ updates:
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
     target-branch: "release"
-    labels:
-      - "dependencies"
     commit-message:
       prefix: "chore"
       include: "scope"
@@ -29,8 +27,6 @@ updates:
       timezone: "Asia/Shanghai"
     open-pull-requests-limit: 10
     target-branch: "release"
-    labels:
-      - "dependencies"
     commit-message:
       prefix: "chore"
       include: "scope"
