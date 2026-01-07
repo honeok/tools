@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# vim:sw=4:ts=4:et
-#
-# Description: This script is used to automate the installation of the latest docker community edition (ce) on supported linux distributions.
-#
-# Copyright (c) 2023-2025 honeok <i@honeok.com>
+# vim: set sw=4 ts=4 et:
 # SPDX-License-Identifier: Apache-2.0
-#
+
+# Description: This script is used to automate the installation of the latest docker community edition (ce) on supported linux distributions.
+# Copyright (c) 2023-2025 honeok <i@honeok.com>
+
 # References:
 # https://docs.docker.com/engine/install
 
@@ -20,7 +19,7 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
 export DEBIAN_FRONTEND=noninteractive
 
 # 设置系统UTF-8语言环境
-UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
+UTF8_LOCALE="$(locale -a 2> /dev/null | grep -iEm1 "UTF-8|utf8")"
 [ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
 
 function _red { printf "\033[91m%b\033[0m\n" "$*"; }
@@ -62,19 +61,24 @@ function show_runstats {
 }
 
 function clear {
-    [ -t 1 ] && tput clear 2>/dev/null || printf "\033[2J\033[H" || command clear
+    [ -t 1 ] && tput clear 2> /dev/null || printf "\033[2J\033[H" || command clear
 }
 
 function die {
-    _err_msg >&2 "$(_red "$@")"; exit 1
+    _err_msg >&2 "$(_red "$@")"
+    exit 1
 }
 
 function _exists {
     local _CMD="$1"
-    if type "$_CMD" >/dev/null 2>&1; then return;
-    elif command -v "$_CMD" >/dev/null 2>&1; then return;
-    elif which "$_CMD" >/dev/null 2>&1; then return;
-    else return 1;
+    if type "$_CMD" > /dev/null 2>&1; then
+        return
+    elif command -v "$_CMD" > /dev/null 2>&1; then
+        return
+    elif which "$_CMD" > /dev/null 2>&1; then
+        return
+    else
+        return 1
     fi
 }
 
@@ -117,7 +121,7 @@ function curl {
     # 添加 --fail 不然404退出码也为0
     # 32位cygwin已停止更新, 证书可能有问题, 添加 --insecure
     # centos7 curl 不支持 --retry-connrefused --retry-all-errors 因此手动 retry
-    for ((i=1; i<=5; i++)); do
+    for ((i = 1; i <= 5; i++)); do
         command curl --connect-timeout 10 --fail --insecure "$@"
         RET=$?
         if [ "$RET" -eq 0 ]; then
@@ -162,55 +166,55 @@ function is_china {
 
 function check_osVer {
     case "$OS_NAME" in
-        debian)
-            # 检查debian版本是否小于10
-            if [ "$(grep -oE '[0-9]+' /etc/debian_version | head -1)" -lt 10 ]; then
-                die "This version of Debian is no longer supported!"
-            fi
+    debian)
+        # 检查debian版本是否小于10
+        if [ "$(grep -oE '[0-9]+' /etc/debian_version | head -1)" -lt 10 ]; then
+            die "This version of Debian is no longer supported!"
+        fi
         ;;
-        ubuntu)
-            # 检查ubuntu版本是否小于20.04
-            if [ "$(grep "^VERSION_ID" /etc/os-release | cut -d '"' -f 2 | tr -d '.')" -lt '2004' ]; then
-                die "This version of Ubuntu is no longer supported!"
-            fi
+    ubuntu)
+        # 检查ubuntu版本是否小于20.04
+        if [ "$(grep "^VERSION_ID" /etc/os-release | cut -d '"' -f 2 | tr -d '.')" -lt '2004' ]; then
+            die "This version of Ubuntu is no longer supported!"
+        fi
         ;;
-        centos)
-            if [ "$(grep -shoE '[0-9]+' /etc/centos-release /etc/redhat-release | head -1)" -lt 7 ]; then
-                die "This installer requires version $OS_NAME 7 or higher."
-            fi
+    centos)
+        if [ "$(grep -shoE '[0-9]+' /etc/centos-release /etc/redhat-release | head -1)" -lt 7 ]; then
+            die "This installer requires version $OS_NAME 7 or higher."
+        fi
         ;;
-        almalinux|rhel|rocky)
-            # 检查almalinux/rhel/rocky版本是否小于8
-            if [ "$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/redhat-release /etc/rocky-release | head -1)" -lt 8 ]; then
-                die "This installer requires version $OS_NAME 8 or higher."
-            fi
+    almalinux | rhel | rocky)
+        # 检查almalinux/rhel/rocky版本是否小于8
+        if [ "$(grep -shoE '[0-9]+' /etc/almalinux-release /etc/redhat-release /etc/rocky-release | head -1)" -lt 8 ]; then
+            die "This installer requires version $OS_NAME 8 or higher."
+        fi
         ;;
-        *)
-            die "The current operating system is not supported!"
+    *)
+        die "The current operating system is not supported!"
         ;;
     esac
 }
 
 function check_install {
-    if _exists docker >/dev/null 2>&1 \
-        || docker --version >/dev/null 2>&1 \
-        || docker compose version >/dev/null 2>&1 \
-        || _exists docker-compose >/dev/null 2>&1; then
+    if _exists docker > /dev/null 2>&1 ||
+        docker --version > /dev/null 2>&1 ||
+        docker compose version > /dev/null 2>&1 ||
+        _exists docker-compose > /dev/null 2>&1; then
         die "Docker is already installed. Exiting the installer."
     fi
 }
 
 function clear_repos {
-    [ -f "/etc/yum.repos.d/docker-ce.repo" ] &&  rm -f /etc/yum.repos.d/docker-ce.repo >/dev/null 2>&1
-    [ -f "/etc/yum.repos.d/docker-ce-staging.repo" ] &&  rm -f /etc/yum.repos.d/docker-ce-staging.repo >/dev/null 2>&1
-    [ -f "/etc/apt/keyrings/docker.asc" ] &&  rm -f /etc/apt/keyrings/docker.asc >/dev/null 2>&1
-    [ -f "/etc/apt/sources.list.d/docker.list" ] &&  rm -f /etc/apt/sources.list.d/docker.list >/dev/null 2>&1
+    [ -f "/etc/yum.repos.d/docker-ce.repo" ] && rm -f /etc/yum.repos.d/docker-ce.repo > /dev/null 2>&1
+    [ -f "/etc/yum.repos.d/docker-ce-staging.repo" ] && rm -f /etc/yum.repos.d/docker-ce-staging.repo > /dev/null 2>&1
+    [ -f "/etc/apt/keyrings/docker.asc" ] && rm -f /etc/apt/keyrings/docker.asc > /dev/null 2>&1
+    [ -f "/etc/apt/sources.list.d/docker.list" ] && rm -f /etc/apt/sources.list.d/docker.list > /dev/null 2>&1
     true # 防止三目运算符意外退出
 }
 
 function fix_dpkg {
-    pkill -9 -f 'apt|dpkg' >/dev/null 2>&1
-    rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1
+    pkill -9 -f 'apt|dpkg' > /dev/null 2>&1
+    rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock > /dev/null 2>&1
     dpkg --configure -a
 }
 
@@ -220,7 +224,7 @@ function docker_install {
     _info_msg "$(_yellow 'Installing the Docker environment!')"
     echo
     if [ "$OS_NAME" = "almalinux" ] || [ "$OS_NAME" = "centos" ] || [ "$OS_NAME" = "rocky" ]; then
-        pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine >/dev/null 2>&1
+        pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine > /dev/null 2>&1
 
         if is_china; then
             REPO_URL="https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo"
@@ -228,20 +232,20 @@ function docker_install {
             REPO_URL="https://download.docker.com/linux/centos/docker-ce.repo"
         fi
 
-        if _exists dnf >/dev/null 2>&1; then
-            dnf config-manager --help >/dev/null 2>&1 || dnf install -y dnf-plugins-core
-            dnf config-manager --add-repo "$REPO_URL" 2>/dev/null
+        if _exists dnf > /dev/null 2>&1; then
+            dnf config-manager --help > /dev/null 2>&1 || dnf install -y dnf-plugins-core
+            dnf config-manager --add-repo "$REPO_URL" 2> /dev/null
             dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        elif _exists yum >/dev/null 2>&1; then
-            rpm -q yum-utils >/dev/null 2>&1 || yum install -y yum-utils
-            yum-config-manager --add-repo "$REPO_URL" >/dev/null 2>&1
+        elif _exists yum > /dev/null 2>&1; then
+            rpm -q yum-utils > /dev/null 2>&1 || yum install -y yum-utils
+            yum-config-manager --add-repo "$REPO_URL" > /dev/null 2>&1
             yum makecache fast
             yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         fi
     elif [ "$OS_NAME" = "rhel" ]; then
-        pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc >/dev/null 2>&1
+        pkg_uninstall docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc > /dev/null 2>&1
 
-        dnf config-manager --help >/dev/null 2>&1 || dnf install -y dnf-plugins-core
+        dnf config-manager --help > /dev/null 2>&1 || dnf install -y dnf-plugins-core
         if is_china; then
             dnf config-manager --add-repo https://mirrors.aliyun.com/docker-ce/linux/rhel/docker-ce.repo
         else
@@ -250,7 +254,7 @@ function docker_install {
         dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     elif [ "$OS_NAME" = "debian" ] || [ "$OS_NAME" = "ubuntu" ]; then
         VERSION_CODE="$(grep "^VERSION_CODENAME" /etc/os-release | cut -d= -f2)"
-        pkg_uninstall docker.io docker-doc docker-compose podman-docker containerd runc >/dev/null 2>&1
+        pkg_uninstall docker.io docker-doc docker-compose podman-docker containerd runc > /dev/null 2>&1
 
         if is_china; then
             REPO_URL="https://mirrors.aliyun.com/docker-ce/linux/$OS_NAME"
@@ -268,7 +272,7 @@ function docker_install {
         chmod a+r /etc/apt/keyrings/docker.asc
 
         # add the repository to apt sources
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $REPO_URL $VERSION_CODE stable" |  tee /etc/apt/sources.list.d/docker.list >/dev/null
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] $REPO_URL $VERSION_CODE stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
         apt-get -qq update
         apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     else
@@ -280,11 +284,11 @@ function docker_install {
 }
 
 function check_status {
-    if systemctl is-active --quiet docker \
-        || docker info >/dev/null 2>&1 \
-        || /etc/init.d/docker status | grep -q 'started' \
-        || service docker status >/dev/null 2>&1 \
-        || curl -s --unix-socket /var/run/docker.sock http://localhost/version >/dev/null 2>&1; then
+    if systemctl is-active --quiet docker ||
+        docker info > /dev/null 2>&1 ||
+        /etc/init.d/docker status | grep -q 'started' ||
+        service docker status > /dev/null 2>&1 ||
+        curl -s --unix-socket /var/run/docker.sock http://localhost/version > /dev/null 2>&1; then
         _suc_msg "$(_green 'Docker has completed self-check, started, and set to start on boot!')"
     else
         die "Docker status check failed or service not starting. Check logs or start Docker manually."
@@ -296,16 +300,16 @@ function docker_info {
     local COMPOSE_V=""
 
     # 获取Docker版本
-    if _exists docker >/dev/null 2>&1; then
+    if _exists docker > /dev/null 2>&1; then
         DOCKER_V="$(docker --version | awk -F '[ ,]' '{print $3}')"
-    elif _exists docker.io >/dev/null 2>&1; then
+    elif _exists docker.io > /dev/null 2>&1; then
         DOCKER_V="$(docker.io --version | awk -F '[ ,]' '{print $3}')"
     fi
 
     # 获取Docker Compose版本
-    if docker compose version >/dev/null 2>&1; then
+    if docker compose version > /dev/null 2>&1; then
         COMPOSE_V="$(docker compose version --short)"
-    elif _exists docker-compose >/dev/null 2>&1; then
+    elif _exists docker-compose > /dev/null 2>&1; then
         COMPOSE_V="$(docker-compose version --short)"
     fi
 

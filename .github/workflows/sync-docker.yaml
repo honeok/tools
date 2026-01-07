@@ -6,13 +6,19 @@ on:
     - cron: "0 16 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   sync:
     name: "Sync docker install script"
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: "Checkout repository"
@@ -21,10 +27,10 @@ jobs:
           ref: release
           fetch-depth: 0
 
-      - name: "Download and compare install-docker.sh"
-        working-directory: ${{ github.workspace }}/docker
+      - name: "Download and compare"
+        working-directory: ${{ github.workspace }}/container
         run: |
-          wget -qO install-docker.new https://get.docker.com
+          curl -L -o install-docker.new https://get.docker.com
           if ! cmp -s install-docker.new install-docker.sh; then
             mv -f install-docker.new install-docker.sh
             echo "IS_RENEW=1" >> "$GITHUB_ENV"
@@ -35,7 +41,6 @@ jobs:
         if: env.IS_RENEW == '1'
         with:
           commit_message: "chore: bump script version by github actions"
-          branch: release
           commit_options: "--signoff --no-verify"
           commit_user_name: github-actions[bot]
           commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
