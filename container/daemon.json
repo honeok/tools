@@ -5,9 +5,7 @@
     "https://docker.m.daocloud.io"
   ],
   "storage-driver": "overlay2",
-  "exec-opts": [
-    "native.cgroupdriver=systemd"
-  ],
+  "exec-opts": ["native.cgroupdriver=systemd"],
   "log-driver": "local",
   "log-opts": {
     "max-size": "300m",
