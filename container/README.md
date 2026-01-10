@@ -1,4 +1,4 @@
-# docker
+# Container
 
 ## get-docker.sh
 
@@ -8,6 +8,14 @@ Description: This script is used to automate the installation of the latest dock
 
 ```shell
 bash <(curl -Ls https://cnb.cool/honeok/tools/-/git/raw/master/container/get-docker.sh)
+```
+
+## img2proxy.pl
+
+Description: The script recursively rewrites Docker image references in text files to use a proxy registry.
+
+```shell
+perl <(curl -Ls https://cnb.cool/honeok/tools/-/git/raw/master/container/img2proxy.pl) .
 ```
 
 ## install-docker.sh

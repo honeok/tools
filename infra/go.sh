@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-#
-# Description: This script is used to automatically installs or updates Go to the latest version.
-#
-# Copyright (c) 2025 honeok <i@honeok.com>
 # SPDX-License-Identifier: Apache-2.0
+
+# Description: This script is used to automatically installs or updates Go to the latest version.
+# Copyright (c) 2025-2026 honeok <i@honeok.com>
 
 set -eE
 
@@ -11,7 +10,7 @@ set -eE
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
 
 # 设置系统UTF-8语言环境
-UTF8_LOCALE="$(locale -a 2>/dev/null | grep -iEm1 "UTF-8|utf8")"
+UTF8_LOCALE="$(locale -a 2> /dev/null | grep -iEm1 "UTF-8|utf8")"
 [ -n "$UTF8_LOCALE" ] && export LC_ALL="$UTF8_LOCALE" LANG="$UTF8_LOCALE" LANGUAGE="$UTF8_LOCALE"
 
 _red() { printf "\033[91m%b\033[0m\n" "$*"; }
@@ -27,22 +26,27 @@ TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TEMP_DIR:?}" >/dev/null 2>&1' INT TERM EXIT
 
 clear() {
-    [ -t 1 ] && tput clear 2>/dev/null || echo -e "\033[2J\033[H" || command clear
+    [ -t 1 ] && tput clear 2> /dev/null || echo -e "\033[2J\033[H" || command clear
 }
 
 die() {
-    _err_msg >&2 "$(_red "$@")"; exit 1
+    _err_msg >&2 "$(_red "$@")"
+    exit 1
 }
 
 # 临时工作目录
-cd "$TEMP_DIR" >/dev/null 2>&1
+cd "$TEMP_DIR" > /dev/null 2>&1
 
 _exists() {
     local _CMD="$1"
-    if type "$_CMD" >/dev/null 2>&1; then return;
-    elif command -v "$_CMD" >/dev/null 2>&1; then return;
-    elif which "$_CMD" >/dev/null 2>&1; then return;
-    else return 1;
+    if type "$_CMD" > /dev/null 2>&1; then
+        return
+    elif command -v "$_CMD" > /dev/null 2>&1; then
+        return
+    elif which "$_CMD" > /dev/null 2>&1; then
+        return
+    else
+        return 1
     fi
 }
 
@@ -51,7 +55,7 @@ curl() {
     # 添加 --fail 不然404退出码也为0
     # 32位cygwin已停止更新, 证书可能有问题, 添加 --insecure
     # centos7 curl 不支持 --retry-connrefused --retry-all-errors 因此手动 retry
-    for ((i=1; i<=5; i++)); do
+    for ((i = 1; i <= 5; i++)); do
         command curl --connect-timeout 10 --fail --insecure "$@"
         RET=$?
         if [ "$RET" -eq 0 ]; then
@@ -87,7 +91,7 @@ go_install() {
 
     GO_WORKDIR="/usr/local/go"
     GO_ENV="/etc/profile.d/go.sh"
-    OS_NAME="$(uname -s 2>/dev/null | sed 's/.*/\L&/')"
+    OS_NAME="$(uname -s 2> /dev/null | sed 's/.*/\L&/')"
 
     if is_china; then
         GO_MIRROR="golang.google.cn"
@@ -98,38 +102,37 @@ go_install() {
     GO_VER="$(curl -Ls "https://$GO_MIRROR/dl/?mode=json" | awk '/version/ {print $2}' | sed -n '1s/.*"go\(.*\)".*/\1/p')"
 
     case "$(uname -m)" in
-        i*86|x86) OS_ARCH="386" ;;
-        x86_64|amd64) OS_ARCH="amd64" ;;
-        armv6*) OS_ARCH="armv6" ;;
-        arm64|aarch64) OS_ARCH="arm64" ;;
-        *) die "unsupported architecture: $(uname -m)" ;;
+    i*86 | x86) OS_ARCH="386" ;;
+    x86_64 | amd64) OS_ARCH="amd64" ;;
+    armv6*) OS_ARCH="armv6" ;;
+    arm64 | aarch64) OS_ARCH="arm64" ;;
+    *) die "unsupported architecture: $(uname -m)" ;;
     esac
 
-    _info_msg "$(_yellow "Start downloading the go install package.")"
-    if ! curl -LO "https://$GO_MIRROR/dl/go$GO_VER.$OS_NAME-$OS_ARCH.tar.gz"; then
+    _info_msg "$(_yellow "Download Go install package.")"
+    if ! curl -L -O "https://$GO_MIRROR/dl/go$GO_VER.$OS_NAME-$OS_ARCH.tar.gz"; then
         die "Failed to download go install package, please check the network!"
     fi
-    rm -rf "$GO_WORKDIR" >/dev/null 2>&1
-    rm -f "$GO_ENV" >/dev/null 2>&1
+    rm -rf "$GO_WORKDIR" > /dev/null 2>&1 || true
+    rm -f "$GO_ENV" > /dev/null 2>&1 || true
     tar fxz "go$GO_VER.linux-$OS_ARCH.tar.gz" -C /usr/local
-    tee "$GO_ENV" >/dev/null <<EOF
+    tee "$GO_ENV" > /dev/null <<- 'EOF'
 #!/bin/sh
-# Copyright (c) 2025 honeok <i@honeok.com>
 
-# GoLang Environment
+# GoLang
 export GOROOT=/usr/local/go
-export GOPATH=\$GOROOT/gopath
-export PATH=\$PATH:\$GOROOT/bin
+export GOPATH=$GOROOT/gopath
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 EOF
-    chmod +x "$GO_ENV" >/dev/null 2>&1
+    chmod +x "$GO_ENV" > /dev/null 2>&1
     # shellcheck source=/dev/null
-    source "$GO_ENV"
+    . "$GO_ENV"
     mkdir -p "${GOPATH:?}"/{bin,pkg,src}
     chown -R "$USER":"$USER" "${GOPATH:?}"
 }
 
 go_info() {
-    if _exists go >/dev/null 2>&1; then
+    if _exists go > /dev/null 2>&1; then
         _suc_msg "$(_green "Go installed successfully!")"
         go version 2>&1
     else
@@ -143,8 +146,13 @@ go_proxy() {
     fi
 }
 
+go_config() {
+    go env -w GO111MODULE=on
+}
+
 clear
 check_root
 go_install
 go_info
 go_proxy
+go_config

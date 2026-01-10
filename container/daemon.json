@@ -1,6 +1,6 @@
 {
   "registry-mirrors": [
-    "https://docker.gh-proxy.com",
+    "https://docker.gh-proxy.org",
     "https://mirror.ccs.tencentyun.com",
     "https://docker.m.daocloud.io"
   ],
