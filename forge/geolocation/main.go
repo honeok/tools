@@ -24,7 +24,7 @@ var staticFiles embed.FS
 var (
 	VersionX byte = 1
 	VersionY byte = 3
-	VersionZ byte = 0
+	VersionZ byte = 1
 	Codename      = "Geolocation, Fast and Lightweight."
 	Intro         = "A lightweight API IP lookup service."
 )
@@ -110,7 +110,9 @@ func fetchJsonFromApi(apiUrl string, target interface{}) error {
 // Health endpoint
 func healthHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	responseWriter.Header().Set("Content-Type", "application/json")
-	responseWriter.Write([]byte(`{"status":"ok"}`))
+	if _, err := responseWriter.Write([]byte(`{"status":"ok"}`)); err != nil {
+		log.Printf("Health check write error: %v", err)
+	}
 }
 
 func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Request) {
@@ -122,7 +124,9 @@ func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Reques
 		}
 		responseWriter.Header().Set("Content-Type", "image/x-icon")
 		responseWriter.Header().Set("Cache-Control", "public, max-age=86400")
-		responseWriter.Write(content)
+		if _, err := responseWriter.Write(content); err != nil {
+			log.Printf("Favicon write error: %v", err)
+		}
 		return
 	}
 
@@ -137,16 +141,25 @@ func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Reques
 			return
 		}
 		responseWriter.Header().Set("Content-Type", "text/html")
-		responseWriter.Write(content)
+		if _, err := responseWriter.Write(content); err != nil {
+			log.Printf("Index page write error: %v", err)
+		}
 		return
 	}
 
-	request.ParseForm()
+	if err := request.ParseForm(); err != nil {
+		log.Printf("ParseForm error: %v", err)
+		http.Error(responseWriter, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
 	queriedIP := request.FormValue("ip")
 
 	// IP format validation
 	if queriedIP == "" || net.ParseIP(queriedIP) == nil {
-		json.NewEncoder(responseWriter).Encode(ApiResponse{Success: false})
+		if err := json.NewEncoder(responseWriter).Encode(ApiResponse{Success: false}); err != nil {
+			log.Printf("JSON encode error (invalid IP): %v", err)
+		}
 		return
 	}
 
@@ -276,7 +289,9 @@ func rootRequestHandler(responseWriter http.ResponseWriter, request *http.Reques
 	}
 
 	responseWriter.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(responseWriter).Encode(finalResponse)
+	if err := json.NewEncoder(responseWriter).Encode(finalResponse); err != nil {
+		log.Printf("JSON encode error: %v", err)
+	}
 }
 
 func main() {
