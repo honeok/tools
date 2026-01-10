@@ -1,11 +1,8 @@
 {
-  "registry-mirrors": [
-    "https://docker.gh-proxy.org",
-    "https://mirror.ccs.tencentyun.com",
-    "https://docker.m.daocloud.io"
-  ],
-  "storage-driver": "overlay2",
+  "data-root": "/var/lib/docker",
+  "default-shm-size": "128M",
   "exec-opts": ["native.cgroupdriver=systemd"],
+  "live-restore": true,
   "log-driver": "local",
   "log-opts": {
     "max-size": "300m",
@@ -14,6 +11,12 @@
   },
   "max-concurrent-downloads": 10,
   "max-concurrent-uploads": 5,
-  "default-shm-size": "128M",
-  "live-restore": true
+  "registry-mirrors": [
+    "https://docker.m.ixdev.cn",
+    "https://docker.gh-proxy.org",
+    "https://docker.1panel.live",
+    "https://mirror.ccs.tencentyun.com",
+    "https://docker.m.daocloud.io"
+  ],
+  "storage-driver": "overlay2"
 }
