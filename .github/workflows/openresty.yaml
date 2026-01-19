@@ -1,0 +1,347 @@
+---
+name: "Build OpenResty"
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: "Select build stage"
+        required: true
+        type: choice
+        default: "all"
+        options:
+          - all
+          - stable
+          - edge
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  WORK_DIR: ldnmp/openresty
+  DOCKERHUB_REPO: ${{ secrets.DOCKER_USERNAME }}/openresty
+
+jobs:
+  check-stable:
+    name: "Stable pre check"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.build == 'stable' || github.event.inputs.build == 'all'
+    outputs:
+      renew: ${{ steps.vers.outputs.renew }}
+      resty_version: ${{ steps.vers.outputs.resty_version }}
+      zstd_version: ${{ steps.vers.outputs.zstd_version }}
+
+    steps:
+      - name: "Get version and decide"
+        id: vers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eEuxo pipefail
+          RENEW="false"
+          LATEST_VER="$(gh release view -R openresty/openresty --json tagName -q .tagName | sed 's#v##')"
+          CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | grep -Ev '^alpine$|edge|fat' | sort -rV | head -n1 | sed 's#-alpine##' || true)"
+          ZSTD_VER="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
+          echo "resty_version=${LATEST_VER}" >> "$GITHUB_OUTPUT"
+          echo "zstd_version=${ZSTD_VER}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n1)" != "$LATEST_VER" ]] || [[ -z "$CURRENT_VER" && -n "$LATEST_VER" ]]; then
+            echo "Build required."
+            RENEW="true"
+          fi
+          echo "renew=${RENEW}" >> "$GITHUB_OUTPUT"
+
+  build-stable:
+    name: "Build stable image"
+    needs: [check-stable]
+    if: |
+      needs.check-stable.result == 'success' && (needs.check-stable.outputs.renew == 'true' || github.event_name == 'workflow_dispatch')
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-24.04, platform: linux/amd64 }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64 }
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: "Prepare"
+        run: |
+          PLATFORM_PAIR=$(awk -F/ '{print $1"-"$2$3}' <<< "${{ matrix.platform }}")
+          echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> "$GITHUB_ENV"
+
+      - name: "Set permissions"
+        working-directory: ${{ env.WORK_DIR }}/stable
+        run: |
+          set -eEuxo pipefail
+          find . -type f -name "*.sh" -exec chmod +x {} +
+
+      - name: "Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Docker metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=alpine
+            type=raw,value=${{ needs.check-stable.outputs.resty_version }}-alpine
+          labels: |
+            org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT"
+            org.opencontainers.image.licenses="BSD-2-Clause"
+            org.opencontainers.image.source="https://github.com/openresty/openresty"
+            org.opencontainers.image.title="OpenResty"
+            org.opencontainers.image.url="https://openresty.org"
+
+      - name: "Build and export"
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.WORK_DIR }}/stable
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            RESTY_VERSION=${{ needs.check-stable.outputs.resty_version }}
+            ZSTD_VERSION=${{ needs.check-stable.outputs.zstd_version }}
+            RESTY_STRIP_BINARIES=1
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.DOCKERHUB_REPO }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: "Export digest"
+        run: |
+          rm -rf /tmp/digests
+          mkdir -p /tmp/digests
+          digest=${{ steps.build.outputs.digest }}
+          touch /tmp/digests/${digest#sha256:}
+
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v6
+        with:
+          name: stable-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-stable:
+    name: "Merge stable manifest"
+    needs: [check-stable, build-stable]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Download digests"
+        uses: actions/download-artifact@v7
+        with:
+          path: /tmp/digests
+          pattern: stable-*
+          merge-multiple: true
+
+      - name: "Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Docker metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=alpine
+            type=raw,value=${{ needs.check-stable.outputs.resty_version }}-alpine
+          labels: |
+            org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT"
+            org.opencontainers.image.licenses="BSD-2-Clause"
+            org.opencontainers.image.source="https://github.com/openresty/openresty"
+            org.opencontainers.image.title="OpenResty"
+            org.opencontainers.image.url="https://openresty.org"
+
+      - name: "Create manifest list and push"
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKERHUB_REPO }}@sha256:%s ' *)
+
+      - name: "Inspect image"
+        run: |
+          docker buildx imagetools inspect ${{ env.DOCKERHUB_REPO }}:${{ needs.check-stable.outputs.resty_version }}-alpine
+
+  check-edge:
+    name: "Edge pre check"
+    runs-on: ubuntu-latest
+    if: github.event.inputs.build == 'edge' || github.event.inputs.build == 'all'
+    outputs:
+      renew: ${{ steps.vers.outputs.renew }}
+      resty_version: ${{ steps.vers.outputs.resty_version }}
+      zstd_version: ${{ steps.vers.outputs.zstd_version }}
+
+    steps:
+      - name: "Get version and decide"
+        id: vers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eEuxo pipefail
+          RENEW="false"
+          LATEST_VER="$(gh release view -R teddysun/openresty --json tagName -q .tagName | sed 's#v##')"
+          CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[] | select(contains("edge") and . != "alpine-edge")' | sort -rV | head -n1 | sed 's#-alpine-edge##' || true)"
+          ZSTD_VER="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
+          echo "resty_version=${LATEST_VER}" >> "$GITHUB_OUTPUT"
+          echo "zstd_version=${ZSTD_VER}" >> "$GITHUB_OUTPUT"
+          if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n1)" != "$LATEST_VER" ]] || [[ -z "$CURRENT_VER" && -n "$LATEST_VER" ]]; then
+            echo "Build required."
+            RENEW="true"
+          fi
+          echo "renew=${RENEW}" >> "$GITHUB_OUTPUT"
+
+  build-edge:
+    name: "Build edge image"
+    needs: [check-edge]
+    if: |
+      needs.check-edge.result == 'success' && (needs.check-edge.outputs.renew == 'true' || github.event_name == 'workflow_dispatch')
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-24.04, platform: linux/amd64 }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64 }
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: "Prepare"
+        run: |
+          PLATFORM_PAIR=$(awk -F/ '{print $1"-"$2$3}' <<< "${{ matrix.platform }}")
+          echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> "$GITHUB_ENV"
+
+      - name: "Set permissions"
+        working-directory: ${{ env.WORK_DIR }}/edge
+        run: |
+          set -eEuxo pipefail
+          find . -type f -name "*.sh" -exec chmod +x {} +
+
+      - name: "Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Docker metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=alpine-edge
+            type=raw,value=${{ needs.check-edge.outputs.resty_version }}-alpine-edge
+          labels: |
+            org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT"
+            org.opencontainers.image.licenses="BSD-2-Clause"
+            org.opencontainers.image.source="https://github.com/openresty/openresty"
+            org.opencontainers.image.title="OpenResty"
+            org.opencontainers.image.url="https://openresty.org"
+
+      - name: "Build and export"
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.WORK_DIR }}/edge
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            RESTY_VERSION=${{ needs.check-edge.outputs.resty_version }}
+            ZSTD_VERSION=${{ needs.check-edge.outputs.zstd_version }}
+            RESTY_STRIP_BINARIES=1
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.DOCKERHUB_REPO }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: "Export digest"
+        run: |
+          rm -rf /tmp/digests
+          mkdir -p /tmp/digests
+          digest=${{ steps.build.outputs.digest }}
+          touch /tmp/digests/${digest#sha256:}
+
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v6
+        with:
+          name: edge-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-edge:
+    name: "Merge edge manifest"
+    needs: [check-edge, build-edge]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Download digests"
+        uses: actions/download-artifact@v7
+        with:
+          path: /tmp/digests
+          pattern: edge-*
+          merge-multiple: true
+
+      - name: "Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Docker metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=alpine-edge
+            type=raw,value=${{ needs.check-edge.outputs.resty_version }}-alpine-edge
+          labels: |
+            org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT"
+            org.opencontainers.image.licenses="BSD-2-Clause"
+            org.opencontainers.image.source="https://github.com/openresty/openresty"
+            org.opencontainers.image.title="OpenResty"
+            org.opencontainers.image.url="https://openresty.org"
+
+      - name: "Create manifest list and push"
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKERHUB_REPO }}@sha256:%s ' *)
+
+      - name: "Inspect image"
+        run: |
+          docker buildx imagetools inspect ${{ env.DOCKERHUB_REPO }}:${{ needs.check-edge.outputs.resty_version }}-alpine-edge
