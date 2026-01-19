@@ -14,12 +14,10 @@ Description: This script is used to install the jq command through a binary file
 bash <(curl -Ls https://github.com/honeok/tools/raw/master/infra/jq.sh)
 ```
 
-## kernel.sh
+## xanmod.sh
 
-[![Total Runs](https://hits.honeok.com/kernel.svg?action=view&count_bg=brightgreen&title_bg=gray&title=Hits&edge_flat=true)](https://github.com/honeok/tools)
-
-Description: This script is used to automatically install or upgrade the linux kernel for mainstream linux distributions.
+Description: The script installs the high performance xanmod kernel on debian based systems.
 
 ```shell
-bash <(curl -Ls https://github.com/honeok/tools/raw/master/infra/kernel.sh)
+bash <(curl -Ls https://github.com/honeok/tools/raw/master/infra/xanmod.sh)
 ```
