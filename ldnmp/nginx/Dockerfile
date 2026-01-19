@@ -6,7 +6,7 @@
 
 ARG NGX_VERSION=""
 
-FROM public.ecr.aws/docker/library/alpine AS builder
+FROM alpine:3.23.2@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62 AS builder
 
 LABEL maintainer="honeok <i@honeok.com>"
 
@@ -58,7 +58,7 @@ RUN set -ex \
     && apk del --no-network .build-deps \
     && rm -rf /var/cache/apk/*
 
-FROM public.ecr.aws/docker/library/nginx:${NGX_VERSION}-alpine AS dist
+FROM nginx:${NGX_VERSION}-alpine AS dist
 
 LABEL maintainer="honeok <i@honeok.com>"
 

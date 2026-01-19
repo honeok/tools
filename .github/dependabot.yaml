@@ -19,8 +19,9 @@ updates:
 
   - package-ecosystem: "docker"
     directories:
-      - "/ldnmp/openresty/stable"
+      - "/ldnmp/nginx"
       - "/ldnmp/openresty/edge"
+      - "/ldnmp/openresty/stable"
     schedule:
       interval: "daily"
       time: "00:00"

@@ -2,6 +2,7 @@
 
 ## get-docker.sh
 
+[![GitHub Release](https://img.shields.io/github/v/release/moby/moby.svg?logo=github)](https://github.com/moby/moby/releases/latest)
 [![Total Runs](https://hits.honeok.com/get-docker.svg?action=view&count_bg=brightgreen&title_bg=gray&title=Hits&edge_flat=flase)](https://github.com/honeok/tools)
 
 Description: This script is used to automate the installation of the latest docker community edition (ce) on supported linux distributions.
