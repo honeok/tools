@@ -35,3 +35,21 @@ updates:
       docker:
         patterns:
           - "*"
+
+  - package-ecosystem: "gomod"
+    directories:
+      - "/forge/geolocation"
+      - "/forge/translate"
+    schedule:
+      interval: "daily"
+      time: "00:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
+    target-branch: "release"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      gomod:
+        patterns:
+          - "*"
