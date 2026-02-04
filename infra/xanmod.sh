@@ -11,8 +11,9 @@
 
 set -eE
 
+# MAJOR.MINOR.PATCH
 # shellcheck disable=SC2034
-readonly SCRIPT_VERSION='v26.1.3'
+readonly SCRIPT_VERSION='v1.0.1'
 
 # 强制linux输出英文
 # https://www.gnu.org/software/gettext/manual/html_node/The-LANGUAGE-variable.html
@@ -23,10 +24,6 @@ export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
 
 # 环境变量用于在debian或ubuntu操作系统中设置非交互式 (noninteractive) 安装模式
 export DEBIAN_FRONTEND=noninteractive
-
-if [ "$GITHUB_ACTIONS" = "true" ] || [ "$HOME" = "/home/runner" ]; then
-    GITHUB_CI=1
-fi
 
 # https://github.com/deater/linux_logo
 linux_logo() {
@@ -193,6 +190,7 @@ xanmod_install() {
     XANMOD_APTLIST="/etc/apt/sources.list.d/xanmod-release.list"
 
     dpkg -s gnupg > /dev/null 2>&1 || install_pkg gnupg
+    [ -f "$XANMOD_KEYRING" ] && rm -f "$XANMOD_KEYRING" > /dev/null 2>&1
     curl -L "$XANMOD_KEY" | gpg --dearmor -vo "$XANMOD_KEYRING"
     echo "deb [signed-by=$XANMOD_KEYRING] http://deb.xanmod.org $VERSION_CODENAME main" | tee "$XANMOD_APTLIST"
     if [[ -n "$XANMOD_VERSION" && "$XANMOD_VERSION" =~ ^[0-9]$ ]]; then
