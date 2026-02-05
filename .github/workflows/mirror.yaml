@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Mirror to cnb"
-        uses: honeok/git-mirror-repository-action@v1
+        uses: yesolutions/mirror-action@master
         with:
           REMOTE: https://cnb.cool/${{ github.repository }}.git
           GIT_USERNAME: cnb
@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Mirror to framagit"
-        uses: honeok/git-mirror-repository-action@v1
+        uses: yesolutions/mirror-action@master
         with:
           REMOTE: git@framagit.org:${{ github.repository }}.git
           GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
 
       - name: "Mirror to codeberg"
-        uses: honeok/git-mirror-repository-action@v1
+        uses: yesolutions/mirror-action@master
         with:
           REMOTE: git@codeberg.org:${{ github.repository }}.git
           GIT_SSH_PRIVATE_KEY: ${{ secrets.SYNC_PRIVATE_KEY }}
