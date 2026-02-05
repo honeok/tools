@@ -1,0 +1,67 @@
+---
+name: "Bump Openresty deps"
+
+on:
+  push:
+    branches: [master, release]
+    paths:
+      - "ldnmp/openresty/scripts/deps.sh"
+      - ".github/workflows/openresty-deps.yaml"
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - "ldnmp/openresty/scripts/deps.sh"
+      - ".github/workflows/openresty-deps.yaml"
+  schedule:
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: "Bump Openresty deps"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: ldnmp/openresty/scripts
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v6
+        with:
+          ref: release
+          fetch-depth: 0
+
+      - name: "Update dependencies"
+        run: bash deps.sh --debug
+
+      - name: "Ready to submit"
+        run: |
+          if ! git diff-index --quiet HEAD; then
+            echo "IS_RENEW=1" >> "$GITHUB_ENV"
+
+            echo "COMMIT_MSG<<EOF" >> "$GITHUB_ENV"
+            bash deps-commit-msg.sh >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+          fi
+
+      - name: "Upload commit to repository"
+        uses: stefanzweifel/git-auto-commit-action@v7
+        if: env.IS_RENEW == '1'
+        with:
+          commit_message: |
+            chore: bump openresty dependencies by github actions
+
+            ${{ env.COMMIT_MSG }}
+          commit_options: "--no-verify --signoff"
+          commit_user_name: github-actions[bot]
+          commit_user_email: 41898282+github-actions[bot]@users.noreply.github.com
+          commit_author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
