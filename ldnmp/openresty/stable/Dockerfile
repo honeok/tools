@@ -13,7 +13,7 @@ FROM alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f
 
 FROM base AS builder
 
-LABEL maintainer="honeok <i@honeok.com>"
+LABEL org.opencontainers.image.authors="honeok <i@honeok.com>"
 
 ARG RESTY_VERSION=""
 ARG ZSTD_VERSION=""
@@ -57,8 +57,8 @@ FROM base AS dist
 ARG RESTY_VERSION=""
 
 # https://github.com/openresty/openresty-packaging/blob/master/alpine/openresty-openssl3/APKBUILD
-ARG RESTY_OPENSSL_VERSION="3.4.1"
-ARG RESTY_OPENSSL_PATCH_VERSION="3.4.1"
+ARG RESTY_OPENSSL_VERSION="3.5.5"
+ARG RESTY_OPENSSL_PATCH_VERSION="3.5.5"
 ARG RESTY_OPENSSL_URL_BASE="https://github.com/openssl/openssl/releases/download/openssl-${RESTY_OPENSSL_VERSION}"
 ARG RESTY_OPENSSL_BUILD_OPTIONS="enable-camellia enable-seed enable-rfc3779 enable-cms enable-md2 enable-rc5 \
     enable-weak-ssl-ciphers enable-ssl3 enable-ssl3-method enable-md2 enable-ktls enable-fips \
@@ -146,13 +146,7 @@ ARG RESTY_CONFIG_DEPS="--with-pcre \
     --with-ld-opt='-L/usr/local/openresty/pcre2/lib -L/usr/local/openresty/openssl3/lib -Wl,-rpath,/usr/local/openresty/pcre2/lib:/usr/local/openresty/openssl3/lib' \
     "
 
-LABEL maintainer="honeok <i@honeok.com>" \
-    org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT" \
-    org.opencontainers.image.licenses="BSD-2-Clause" \
-    org.opencontainers.image.source="https://github.com/openresty/openresty" \
-    org.opencontainers.image.title="OpenResty" \
-    org.opencontainers.image.url="https://openresty.org" \
-    org.opencontainers.image.version=${RESTY_VERSION}
+LABEL org.opencontainers.image.authors="honeok <i@honeok.com>"
 
 COPY --from=builder /tmp/openresty-${RESTY_VERSION}/build/nginx-*/objs/*.so /usr/local/openresty/nginx/modules/
 

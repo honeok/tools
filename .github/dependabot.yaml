@@ -21,6 +21,7 @@ updates:
     directories:
       - "/ldnmp/nginx"
       - "/ldnmp/openresty/edge"
+      - "/ldnmp/openresty/luarocks"
       - "/ldnmp/openresty/stable"
     schedule:
       interval: "daily"
