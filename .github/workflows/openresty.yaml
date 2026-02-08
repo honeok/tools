@@ -78,11 +78,12 @@ jobs:
           PLATFORM_PAIR=$(awk -F/ '{print $1"-"$2$3}' <<< "${{ matrix.platform }}")
           echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> "$GITHUB_ENV"
 
-      - name: "Set permissions"
+      - name: "Stage build assets"
         working-directory: ${{ env.WORK_DIR }}/stable
         run: |
           set -eEuxo pipefail
-          find . -type f -name "*.sh" -exec chmod +x {} +
+          cp ../scripts/docker-entrypoint.sh .
+          cp ../templates/*.conf .
 
       - name: "Setup Docker Buildx"
         uses: docker/setup-buildx-action@v3
@@ -238,11 +239,12 @@ jobs:
           PLATFORM_PAIR=$(awk -F/ '{print $1"-"$2$3}' <<< "${{ matrix.platform }}")
           echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> "$GITHUB_ENV"
 
-      - name: "Set permissions"
+      - name: "Stage build assets"
         working-directory: ${{ env.WORK_DIR }}/edge
         run: |
           set -eEuxo pipefail
-          find . -type f -name "*.sh" -exec chmod +x {} +
+          cp ../scripts/docker-entrypoint.sh .
+          cp ../templates/*.conf .
 
       - name: "Setup Docker Buildx"
         uses: docker/setup-buildx-action@v3
@@ -265,7 +267,7 @@ jobs:
           labels: |
             org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT"
             org.opencontainers.image.licenses="BSD-2-Clause"
-            org.opencontainers.image.source="https://github.com/openresty/openresty"
+            org.opencontainers.image.source="https://github.com/teddysun/openresty"
             org.opencontainers.image.title="OpenResty"
             org.opencontainers.image.url="https://openresty.org"
 
@@ -331,7 +333,7 @@ jobs:
           labels: |
             org.opencontainers.image.description="High Performance Web Platform Based on Nginx and LuaJIT"
             org.opencontainers.image.licenses="BSD-2-Clause"
-            org.opencontainers.image.source="https://github.com/openresty/openresty"
+            org.opencontainers.image.source="https://github.com/teddysun/openresty"
             org.opencontainers.image.title="OpenResty"
             org.opencontainers.image.url="https://openresty.org"
 
