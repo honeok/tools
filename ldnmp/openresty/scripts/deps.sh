@@ -12,7 +12,7 @@ set -eEo pipefail
 
 # MAJOR.MINOR.PATCH
 # shellcheck disable=SC2034
-readonly SCRIPT_VERSION='v1.0.0'
+readonly SCRIPT_VERSION='v1.0.2'
 
 SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
@@ -24,7 +24,7 @@ while [ "$#" -gt 0 ]; do
         set -x
         ;;
     --*)
-        _yellow "Illegal option $1"
+        echo 2>&1 "Illegal option $1"
         ;;
     esac
     shift $(($# > 0 ? 1 : 0))
@@ -55,7 +55,7 @@ curl() {
 bump_stable() {
     local OFFICIAL VAR OFFICIAL_VALUE LOCAL_VALUE
 
-    cd stable > /dev/null 2>&1 || exit 1
+    pushd stable > /dev/null 2>&1 || exit 1
 
     OFFICIAL="$(curl -Ls https://raw.githubusercontent.com/openresty/docker-openresty/master/alpine/Dockerfile)"
     for VAR in \
@@ -66,44 +66,44 @@ bump_stable() {
         OFFICIAL_VALUE="$(grep -o "$VAR=\"[^\"]*\"" <<< "$OFFICIAL" | cut -d'"' -f2)"
         LOCAL_VALUE="$(grep -o "$VAR=\"[^\"]*\"" Dockerfile | cut -d'"' -f2)"
 
-        if [ "$OFFICIAL_VALUE" != "$LOCAL_VALUE" ]; then
-            sed -i "s/$VAR=\"$LOCAL_VALUE\"/$VAR=\"$OFFICIAL_VALUE\"/" Dockerfile
+        if [ "$LOCAL_VALUE" != "$OFFICIAL_VALUE" ]; then
+            sed -i "s#$VAR=\"$LOCAL_VALUE\"#$VAR=\"$OFFICIAL_VALUE\"#" Dockerfile
         fi
     done
 
-    cd ..
+    popd > /dev/null 2>&1 || exit 1
 }
 
 bump_stable_luarocks() {
     local OFFICIAL
 
-    cd luarocks > /dev/null 2>&1 || exit 1
+    pushd luarocks > /dev/null 2>&1 || exit 1
 
     OFFICIAL="$(curl -Ls https://raw.githubusercontent.com/openresty/docker-openresty/master/alpine/Dockerfile.fat)"
     OFFICIAL_LUAROCKS_VERSION="$(grep -o 'RESTY_LUAROCKS_VERSION="[^"]*"' <<< "$OFFICIAL" | cut -d'"' -f2)"
     LOCAL_LUAROCKS_VERSION="$(grep -o 'RESTY_LUAROCKS_VERSION="[^"]*"' Dockerfile | cut -d'"' -f2)"
-    if [ -n "$OFFICIAL_LUAROCKS_VERSION" ] && [ "$OFFICIAL_LUAROCKS_VERSION" != "$LOCAL_LUAROCKS_VERSION" ]; then
-        sed -i "s/RESTY_LUAROCKS_VERSION=\"$LOCAL_LUAROCKS_VERSION\"/RESTY_LUAROCKS_VERSION=\"$OFFICIAL_LUAROCKS_VERSION\"/" Dockerfile
+    if [ -n "$OFFICIAL_LUAROCKS_VERSION" ] && [ "$LOCAL_LUAROCKS_VERSION" != "$OFFICIAL_LUAROCKS_VERSION" ]; then
+        sed -i "s#RESTY_LUAROCKS_VERSION=\"$LOCAL_LUAROCKS_VERSION\"#RESTY_LUAROCKS_VERSION=\"$OFFICIAL_LUAROCKS_VERSION\"#" Dockerfile
     fi
 
-    cd ..
+    popd > /dev/null 2>&1 || exit 1
 }
 
 bump_edge() {
     local EDGE_OPENSSL_VERSION LOCAL_OPENSSL_VERSION EDGE_PCRE2_VERSION LOCAL_PCRE2_VERSION PCRE_SHA512
 
-    cd edge > /dev/null 2>&1 || exit 1
+    pushd edge > /dev/null 2>&1 || exit 1
 
     EDGE_OPENSSL_VERSION="$(curl -Ls https://api.github.com/repos/teddysun/openresty/contents/patches | grep '"name"' | cut -d '"' -f4 | grep '^openssl' | sort -V | tail -n1 | cut -d- -f2)"
     LOCAL_OPENSSL_VERSION="$(grep -o 'RESTY_OPENSSL_VERSION="[^"]*"' Dockerfile | head -n1 | cut -d'"' -f2)"
-    if [ -n "$EDGE_OPENSSL_VERSION" ] && [ "$EDGE_OPENSSL_VERSION" != "$LOCAL_OPENSSL_VERSION" ]; then
+    if [ -n "$EDGE_OPENSSL_VERSION" ] && [ "$LOCAL_OPENSSL_VERSION" != "$EDGE_OPENSSL_VERSION" ]; then
         sed -i "s#RESTY_OPENSSL_VERSION=\"[^\"]*\"#RESTY_OPENSSL_VERSION=\"$EDGE_OPENSSL_VERSION\"#" Dockerfile
         sed -i "s#RESTY_OPENSSL_PATCH_VERSION=\"[^\"]*\"#RESTY_OPENSSL_PATCH_VERSION=\"$EDGE_OPENSSL_VERSION\"#" Dockerfile
     fi
 
     EDGE_PCRE2_VERSION="$(curl -Ls https://raw.githubusercontent.com/teddysun/openresty/main/util/build-win32.sh | sed -n 's/^PCRE=.*-\([0-9.]\+\).*/\1/p' | head -n 1)"
     LOCAL_PCRE2_VERSION="$(grep -o 'RESTY_PCRE_VERSION="[^"]*"' Dockerfile | head -n1 | cut -d'"' -f2)"
-    if [ -n "$EDGE_PCRE2_VERSION" ] && [ "$EDGE_PCRE2_VERSION" != "$LOCAL_PCRE2_VERSION" ]; then
+    if [ -n "$EDGE_PCRE2_VERSION" ] && [ "$LOCAL_PCRE2_VERSION" != "$EDGE_PCRE2_VERSION" ]; then
         sed -i "s#RESTY_PCRE_VERSION=\"[^\"]*\"#RESTY_PCRE_VERSION=\"$EDGE_PCRE2_VERSION\"#" Dockerfile
 
         # 更新SHA512
@@ -113,7 +113,7 @@ bump_edge() {
         sed -i "s#^ARG RESTY_PCRE_SHA512=\"[^\"]*\"#ARG RESTY_PCRE_SHA512=\"$PCRE_SHA512\"#" Dockerfile
     fi
 
-    cd ..
+    popd > /dev/null 2>&1 || exit 1
 }
 
 cd "$PARENT_DIR" > /dev/null 2>&1 || exit 1
