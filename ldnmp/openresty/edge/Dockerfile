@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2025 honeok <i@honeok.com>
+# Copyright (c) 2025-2026 honeok <i@honeok.com>
 #
 # References:
 # https://github.com/openresty/docker-openresty
@@ -182,7 +182,7 @@ RUN set -ex \
     && tar fxz openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && cd openssl-${RESTY_OPENSSL_VERSION} \
 # Patching openssl 3.x for openresty
-    && curl -Ls https://github.com/openresty/openresty/raw/master/patches/openssl-${RESTY_OPENSSL_PATCH_VERSION}-sess_set_get_cb_yield.patch | patch -p1 \
+    && curl -Ls https://github.com/teddysun/openresty/raw/main/patches/openssl-${RESTY_OPENSSL_PATCH_VERSION}-sess_set_get_cb_yield.patch | patch -p1 \
     && ./config \
         shared zlib -g \
         --prefix=/usr/local/openresty/openssl3 \
@@ -238,7 +238,7 @@ ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY nginx.vh.default.conf /etc/nginx/conf.d/default.conf
 
-COPY docker-entrypoint.sh /
+COPY --chmod=755 docker-entrypoint.sh /
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
 EXPOSE 80
