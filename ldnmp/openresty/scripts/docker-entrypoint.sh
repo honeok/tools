@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # vim:sw=4:ts=4:et
 # SPDX-License-Identifier: BSD-2-Clause
 
