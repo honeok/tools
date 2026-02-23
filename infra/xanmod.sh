@@ -72,13 +72,13 @@ die() {
 }
 
 show_usage() {
-    tee >&2 << 'EOF'
+    tee >&2 <<- 'EOF'
 Usage: ./xanmod.sh
 
 Options:
     -h, --help      Show this help message and exit
     -x, --debug     Enable debug mode (set -x)
-    --ci            Force CI mode (skip grub update, use mirror URLs)
+    -m, --mirror    Use CDN mirror instead of official servers (recommended if download is slow)
 EOF
     exit 1
 }
@@ -251,7 +251,7 @@ while [ "$#" -gt 0 ]; do
         set -x
         shift 1
         ;;
-    --mirror)
+    -m | --mirror)
         USE_MIRROR=1
         shift 1
         ;;
