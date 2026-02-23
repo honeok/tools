@@ -3,16 +3,12 @@ name: "XanMod CI"
 
 on:
   push:
-    branches:
-      - "**"
+    branches: [master, release]
     paths:
       - "infra/xanmod.sh"
       - ".github/workflows/xanmod.yaml"
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
+    types: [opened, reopened, synchronize]
     paths:
       - "infra/xanmod.sh"
       - ".github/workflows/xanmod.yaml"
@@ -47,4 +43,4 @@ jobs:
         working-directory: infra
         run: |
           bash ci-deps.sh
-          bash xanmod.sh --debug --ci
+          bash xanmod.sh --debug --mirror

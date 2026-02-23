@@ -7,7 +7,7 @@ set -ex
 export DEBIAN_FRONTEND=noninteractive
 
 _exists() {
-    command -v "$@" >/dev/null 2>&1
+    command -v "$@" > /dev/null 2>&1
 }
 
 install_pkg() {

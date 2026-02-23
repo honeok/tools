@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
-
+#
 # Description: The script installs the high performance xanmod kernel on debian based systems.
 # Copyright (c) 2025-2026 honeok <i@honeok.com>
-#                                <honeok7@gmail.com>
-
+#
 # References:
 # https://github.com/bin456789/reinstall
 # https://github.com/mlocati/docker-php-extension-installer
@@ -13,7 +12,22 @@ set -eE
 
 # MAJOR.MINOR.PATCH
 # shellcheck disable=SC2034
-readonly SCRIPT_VERSION='v1.0.1'
+readonly SCRIPT_VERSION='v1.1.0'
+
+_exit() {
+    local EXIT_CODE XANMOD_KEYRING XANMOD_APTLIST
+
+    EXIT_CODE="$?"
+    XANMOD_KEYRING="/etc/apt/keyrings/xanmod-archive-keyring.gpg"
+    XANMOD_APTLIST="/etc/apt/sources.list.d/xanmod-release.list"
+
+    rm -f "$XANMOD_KEYRING" > /dev/null 2>&1
+    rm -f "$XANMOD_APTLIST" > /dev/null 2>&1
+    exit "$EXIT_CODE"
+}
+
+# 终止信号捕获
+trap '_exit' INT TERM EXIT
 
 # 强制linux输出英文
 # https://www.gnu.org/software/gettext/manual/html_node/The-LANGUAGE-variable.html
@@ -69,6 +83,20 @@ EOF
     exit 1
 }
 
+is_ci() {
+    if [ -n "$GITHUB_ACTIONS" ]; then
+        return
+    elif [ -n "$GITLAB_CI" ]; then
+        return
+    elif [ -n "$JENKINS_URL" ]; then
+        return
+    elif [ -n "$TEAMCITY_GIT_PATH" ]; then
+        return
+    else
+        return 1
+    fi
+}
+
 get_cmd_path() {
     # -f: 忽略shell内置命令和函数, 只考虑外部命令
     # -p: 只输出外部命令的完整路径
@@ -102,7 +130,7 @@ check_bash() {
 
 check_arch() {
     if [ -z "$OS_ARCH" ]; then
-        case "$(uname -m 2> /dev/null)" in
+        case "$(uname -m 2> /dev/null || arch 2> /dev/null)" in
         amd64 | x86_64) OS_ARCH="amd64" ;;
         *) die "This architecture is not supported." ;;
         esac
@@ -158,7 +186,7 @@ curl() {
 
     for ((i = 1; i <= 5; i++)); do
         if ! command curl --connect-timeout 10 --fail --insecure "$@"; then
-            EXIT_CODE=$?
+            EXIT_CODE="$?"
             # 403 404 错误或达到重试次数
             if [ "$EXIT_CODE" -eq 22 ] || [ "$i" -eq 5 ]; then
                 return "$EXIT_CODE"
@@ -175,9 +203,9 @@ curl() {
 xanmod_install() {
     local XANMOD_URL XANMOD_CHECK_SCRIPT XANMOD_KEY XANMOD_VERSION XANMOD_KEYRING XANMOD_APTLIST
 
-    if [ "$GITHUB_CI" = 1 ]; then
-        XANMOD_CHECK_SCRIPT="https://github.com/yumaoss/My_tools/raw/main/check_x86-64_psabi.sh"
-        XANMOD_KEY="https://github.com/yumaoss/My_tools/raw/main/archive.key"
+    if [ "$USE_MIRROR" = 1 ]; then
+        XANMOD_CHECK_SCRIPT="https://fastly.jsdelivr.net/gh/yumaoss/My_tools@main/check_x86-64_psabi.sh"
+        XANMOD_KEY="https://fastly.jsdelivr.net/gh/yumaoss/My_tools@main/archive.key"
     else
         XANMOD_URL="dl.xanmod.org"
         XANMOD_CHECK_SCRIPT="https://$XANMOD_URL/check_x86-64_psabi.sh"
@@ -190,16 +218,19 @@ xanmod_install() {
     XANMOD_APTLIST="/etc/apt/sources.list.d/xanmod-release.list"
 
     dpkg -s gnupg > /dev/null 2>&1 || install_pkg gnupg
-    [ -f "$XANMOD_KEYRING" ] && rm -f "$XANMOD_KEYRING" > /dev/null 2>&1
     curl -L "$XANMOD_KEY" | gpg --dearmor -vo "$XANMOD_KEYRING"
     echo "deb [signed-by=$XANMOD_KEYRING] http://deb.xanmod.org $VERSION_CODENAME main" | tee "$XANMOD_APTLIST"
+
     if [[ -n "$XANMOD_VERSION" && "$XANMOD_VERSION" =~ ^[0-9]$ ]]; then
         install_pkg "linux-xanmod-x64v$XANMOD_VERSION"
     else
         die "Failed to get XanMod version."
     fi
-    rm -f "$XANMOD_APTLIST" || true
-    [ "$GITHUB_CI" = 1 ] || update-grub
+
+    if is_ci; then
+        return
+    fi
+    update-grub # 更新 GRUB
 }
 
 ## 主程序入口
@@ -220,8 +251,8 @@ while [ "$#" -gt 0 ]; do
         set -x
         shift 1
         ;;
-    --ci)
-        GITHUB_CI=1
+    --mirror)
+        USE_MIRROR=1
         shift 1
         ;;
     *)
