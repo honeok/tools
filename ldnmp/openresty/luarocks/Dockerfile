@@ -10,7 +10,7 @@
 
 FROM honeok/openresty:1.27.1.2-alpine@sha256:2c3d283d45a953aa7a6aa96c3ba4ff9e574e39a2f37a74e4d6d50719a0dd0295 AS dist
 
-ARG RESTY_LUAROCKS_VERSION="3.12.2"
+ARG RESTY_LUAROCKS_VERSION="3.13.0"
 
 LABEL org.opencontainers.image.authors="Evan Wies <evan@neomantra.net>"
 LABEL org.opencontainers.image.authors="honeok <i@honeok.com>"
