@@ -97,7 +97,7 @@ jobs:
 
       - name: "Docker metadata"
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
@@ -112,7 +112,7 @@ jobs:
 
       - name: "Build and export"
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ env.WORK_DIR }}/stable
           platforms: ${{ matrix.platform }}
@@ -163,7 +163,7 @@ jobs:
 
       - name: "Docker metadata"
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
@@ -258,7 +258,7 @@ jobs:
 
       - name: "Docker metadata"
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
@@ -273,7 +273,7 @@ jobs:
 
       - name: "Build and export"
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ env.WORK_DIR }}/edge
           platforms: ${{ matrix.platform }}
@@ -324,7 +324,7 @@ jobs:
 
       - name: "Docker metadata"
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
