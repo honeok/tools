@@ -55,7 +55,7 @@ jobs:
       - name: "Extract Docker metadata"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKER_USERNAME }}/frp
           tags: |
@@ -69,7 +69,7 @@ jobs:
 
       - name: "Build and Push frp image"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ github.workspace }}/forge/frp
           file: ${{ github.workspace }}/forge/frp/Dockerfile

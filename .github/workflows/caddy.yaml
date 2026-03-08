@@ -56,7 +56,7 @@ jobs:
       - name: "Extract Docker metadata"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKER_USERNAME }}/caddy
           tags: |
@@ -70,7 +70,7 @@ jobs:
 
       - name: "Build and Push Caddy image"
         if: steps.bump_version.outputs.build_image == '1' || github.event_name == 'workflow_dispatch'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ github.workspace }}/ldnmp/caddy
           file: ${{ github.workspace }}/ldnmp/caddy/Dockerfile
