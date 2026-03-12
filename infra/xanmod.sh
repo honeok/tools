@@ -12,7 +12,7 @@ set -eE
 
 # MAJOR.MINOR.PATCH
 # shellcheck disable=SC2034
-readonly SCRIPT_VERSION='v1.1.0'
+readonly SCRIPT_VERSION='v1.2.0'
 
 _exit() {
     local EXIT_CODE XANMOD_KEYRING XANMOD_APTLIST
@@ -73,12 +73,16 @@ die() {
 
 show_usage() {
     tee >&2 <<- 'EOF'
-Usage: ./xanmod.sh
+Usage: ./xanmod.sh [Options]
 
 Options:
-    -h, --help      Show this help message and exit
-    -x, --debug     Enable debug mode (set -x)
-    -m, --mirror    Use CDN mirror instead of official servers (recommended if download is slow)
+    -h,  --help         Show this help message and exit
+    -x,  --debug        Enable script debug mode (set -x) for troubleshooting
+    -m,  --mirror       Use CDN mirror instead of official servers (recommended if download is slow)
+
+    -ml, --mainline    [Default] Install Mainline kernel. Best for latest hardware and features.
+    -lt, --longterm    Install LTS kernel. Strictly recommended for production servers.
+         --edge        Install Edge kernel. Bleeding-edge features, use at your own risk.
 EOF
     exit 1
 }
@@ -161,13 +165,12 @@ load_os_info() {
 
 install_pkg() {
     for pkg in "$@"; do
-        if is_have_cmd dnf; then
-            dnf install -y "$pkg"
-        elif is_have_cmd yum; then
-            yum install -y "$pkg"
-        elif is_have_cmd apt-get; then
+        if is_have_cmd apt-get; then
             apt-get update
             apt-get install -y -q "$pkg"
+        elif is_have_cmd apt; then
+            apt update
+            apt install -y -q "$pkg"
         else
             die "The package manager is not supported."
         fi
@@ -198,21 +201,62 @@ curl() {
     done
 }
 
-# debian/ubuntu
-# https://xanmod.org
-xanmod_install() {
-    local XANMOD_URL XANMOD_CHECK_SCRIPT XANMOD_KEY XANMOD_VERSION XANMOD_KEYRING XANMOD_APTLIST
+# 校验选项并设置相关变量
+check_opts() {
+    local BRANCH_COUNT
 
+    BRANCH_COUNT=0
+
+    if [ -z "$USE_MAINLINE" ] && [ -z "$USE_LTS" ] && [ -z "$USE_EDGE" ]; then
+        USE_MAINLINE=1
+    fi
+
+    # 互斥校验 防止非法传参组合
+    if [ "$USE_MAINLINE" = 1 ]; then
+        BRANCH_COUNT=$((BRANCH_COUNT + 1))
+    fi
+    if [ "$USE_LTS" = 1 ]; then
+        BRANCH_COUNT=$((BRANCH_COUNT + 1))
+    fi
+    if [ "$USE_EDGE" = 1 ]; then
+        BRANCH_COUNT=$((BRANCH_COUNT + 1))
+    fi
+    if [ "$BRANCH_COUNT" -ne 1 ]; then
+        die "Cannot specify multiple kernel branches at the same time."
+    fi
+
+    # 根据选项设置XanMod的下载源和版本检查脚本
     if [ "$USE_MIRROR" = 1 ]; then
-        XANMOD_CHECK_SCRIPT="https://fastly.jsdelivr.net/gh/yumaoss/My_tools@main/check_x86-64_psabi.sh"
-        XANMOD_KEY="https://fastly.jsdelivr.net/gh/yumaoss/My_tools@main/archive.key"
+        XANMOD_CHECK_SCRIPT="https://fastly.jsdelivr.net/gh/kejilion/sh@main/check_x86-64_psabi.sh"
+        XANMOD_KEY="https://fastly.jsdelivr.net/gh/kejilion/sh@main/archive.key"
     else
         XANMOD_URL="dl.xanmod.org"
         XANMOD_CHECK_SCRIPT="https://$XANMOD_URL/check_x86-64_psabi.sh"
         XANMOD_KEY="https://$XANMOD_URL/archive.key"
     fi
 
-    # https://gitlab.com/xanmod/linux
+    # 判断是否同时使用了主线版本和长期支持版本 默认使用主线版本
+    if [ "$USE_MAINLINE" = 1 ]; then
+        KERNEL_BRANCH=""
+    elif [ "$USE_LTS" = 1 ]; then
+        KERNEL_BRANCH="-lts"
+    elif [ "$USE_EDGE" = 1 ]; then
+        KERNEL_BRANCH="-edge"
+    fi
+}
+
+update_grub() {
+    if is_ci; then
+        return
+    fi
+    update-grub # 更新 GRUB
+}
+
+# https://xanmod.org
+# https://gitlab.com/xanmod/linux
+xanmod_install() {
+    local XANMOD_VERSION XANMOD_KEYRING XANMOD_APTLIST
+
     XANMOD_VERSION="$(curl -L "$XANMOD_CHECK_SCRIPT" | awk -f - 2> /dev/null | awk -F 'x86-64-v' '{v=$2+0; if(v==4)v=3; print v}')"
     XANMOD_KEYRING="/etc/apt/keyrings/xanmod-archive-keyring.gpg"
     XANMOD_APTLIST="/etc/apt/sources.list.d/xanmod-release.list"
@@ -222,15 +266,10 @@ xanmod_install() {
     echo "deb [signed-by=$XANMOD_KEYRING] http://deb.xanmod.org $VERSION_CODENAME main" | tee "$XANMOD_APTLIST"
 
     if [[ -n "$XANMOD_VERSION" && "$XANMOD_VERSION" =~ ^[0-9]$ ]]; then
-        install_pkg "linux-xanmod-x64v$XANMOD_VERSION"
+        install_pkg "linux-xanmod${KERNEL_BRANCH}-x64v${XANMOD_VERSION}"
     else
         die "Failed to get XanMod version."
     fi
-
-    if is_ci; then
-        return
-    fi
-    update-grub # 更新 GRUB
 }
 
 ## 主程序入口
@@ -255,6 +294,18 @@ while [ "$#" -gt 0 ]; do
         USE_MIRROR=1
         shift 1
         ;;
+    -ml | --mainline)
+        USE_MAINLINE=1 # 主线版本
+        shift 1
+        ;;
+    -lt | --longterm)
+        USE_LTS=1 # 长期支持版本
+        shift 1
+        ;;
+    --edge)
+        USE_EDGE=1 # 边缘版本
+        shift 1
+        ;;
     *)
         echo "Unexpected option: $1."
         show_usage
@@ -262,4 +313,6 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
+check_opts
 xanmod_install
+update_grub

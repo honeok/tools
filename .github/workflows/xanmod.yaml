@@ -31,6 +31,11 @@ jobs:
           - ubuntu:noble # 24.04
           - ubuntu:plucky # 25.04
           - ubuntu:rolling
+        branch:
+          - ""
+          - "--mainline"
+          - "--longterm"
+          - "--edge"
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.os }}
@@ -43,4 +48,4 @@ jobs:
         working-directory: infra
         run: |
           bash ci-deps.sh
-          bash xanmod.sh --debug --mirror
+          bash xanmod.sh --debug --mirror ${{ matrix.branch }}
