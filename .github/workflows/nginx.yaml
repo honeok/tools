@@ -45,7 +45,7 @@ jobs:
         run: |
           set -eEuxo pipefail
           RENEW="false"
-          LATEST_VER="$(gh release view -R nginx/nginx --json tagName -q .tagName | sed 's#^release-##')"
+          LATEST_VER="$(gh release list -R nginx/nginx --limit 1000 | awk '{print $1}' | sed 's#^release-##' | grep -E '^[0-9.]+$' | sort -V | tail -1)"
           LATEST_IMG_VER="$(docker run --rm nginx:${LATEST_VER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
           CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | grep -E -- '-alpine$' | sort -rV | head -n1 | sed 's#-alpine$##' || true)"
           ACME_VER="$(gh release view -R nginx/nginx-acme --json tagName -q .tagName | sed 's#v##')"
