@@ -43,7 +43,7 @@ jobs:
         run: |
           set -eEuxo pipefail
           RENEW="false"
-          LATEST_VER="$(gh release view -R openresty/openresty --json tagName -q .tagName | sed 's#v##')"
+          LATEST_VER="$(gh api repos/openresty/openresty/tags --jq '.[0].name' | sed 's#^v##')"
           CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | grep -Ev '^alpine$|edge|fat' | sort -rV | head -n1 | sed 's#-alpine##' || true)"
           ZSTD_VER="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
           echo "resty_version=${LATEST_VER}" >> "$GITHUB_OUTPUT"
