@@ -24,6 +24,7 @@ RUN set -ex \
         build-base \
         curl \
         git \
+        linux-headers \
         lz4-dev \
         openssl-dev \
         pcre2-dev \
