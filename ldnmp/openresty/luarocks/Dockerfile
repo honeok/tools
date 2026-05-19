@@ -8,7 +8,7 @@
 # openresty and it's author agentzh <agentzh@gmail.com>
 #                                   <admin@openresty.com>
 
-FROM honeok/openresty:1.29.2.3-alpine@sha256:6818e9f8aa6cb7c684b55f72ab04613c0285c6554b88b3824c9c2985dc4ba02a AS dist
+FROM honeok/openresty:1.29.2.4-alpine@sha256:832e16c5f1959259a3de36299545e7cde49fb894a464d31e21608b71d2a68290 AS dist
 
 ARG RESTY_LUAROCKS_VERSION="3.13.0"
 
