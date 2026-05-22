@@ -1,16 +1,17 @@
 ---
-name: "Shellcheck"
+name: "Run shellcheck"
 
 on:
-  push:
-    branches:
-      - "**"
-    paths:
-      - "**/*.sh"
-  pull_request:
-    paths:
-      - "**/*.sh"
-  workflow_dispatch:
+  push: {}
+  pull_request: {}
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   shellcheck:
@@ -18,10 +19,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: "Check out repository"
+      - name: "Checkout repository"
         uses: actions/checkout@v6
 
       - name: "Run shellcheck"
         uses: ludeeus/action-shellcheck@master
-        with:
-          ignore_names: install-docker.sh

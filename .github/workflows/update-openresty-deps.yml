@@ -1,17 +1,17 @@
 ---
-name: "Bump Openresty deps"
+name: "Update Openresty deps"
 
 on:
   push:
     branches: [master, release]
     paths:
       - "ldnmp/openresty/scripts/deps.sh"
-      - ".github/workflows/openresty-deps.yaml"
+      - ".github/workflows/update-openresty-deps.yml"
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
       - "ldnmp/openresty/scripts/deps.sh"
-      - ".github/workflows/openresty-deps.yaml"
+      - ".github/workflows/update-openresty-deps.yml"
   schedule:
     - cron: "0 16 * * *"
   workflow_dispatch:
@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   check:
-    name: "Bump Openresty deps"
+    name: "Update Openresty deps"
     runs-on: ubuntu-latest
     permissions:
       contents: write

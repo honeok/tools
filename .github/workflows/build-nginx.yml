@@ -7,13 +7,13 @@ on:
     paths:
       - "ldnmp/nginx/**"
       - "!ldnmp/nginx/**/*.md"
-      - ".github/workflows/nginx.yaml"
+      - ".github/workflows/build-nginx.yml"
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
       - "ldnmp/nginx/**"
       - "!ldnmp/nginx/**/*.md"
-      - ".github/workflows/nginx.yaml"
+      - ".github/workflows/build-nginx.yml"
   schedule:
     - cron: "0 16 * * *"
   workflow_dispatch:

@@ -6,12 +6,12 @@ on:
     branches: [master, release]
     paths:
       - "infra/xanmod.sh"
-      - ".github/workflows/xanmod.yaml"
+      - ".github/workflows/xanmod.yml"
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
       - "infra/xanmod.sh"
-      - ".github/workflows/xanmod.yaml"
+      - ".github/workflows/xanmod.yml"
   workflow_dispatch:
 
 jobs:

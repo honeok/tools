@@ -1,5 +1,5 @@
 ---
-name: "Build and Publish DanmakuRender"
+name: "Build DanmakuRender"
 
 on:
   schedule:
@@ -16,7 +16,7 @@ env:
 
 jobs:
   build:
-    name: "Build and Publish DanmakuRender"
+    name: "Build DanmakuRender"
     runs-on: ubuntu-latest
     outputs:
       pushed: ${{ steps.bump_version.outputs.build_image }}
