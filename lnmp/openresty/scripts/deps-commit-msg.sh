@@ -13,7 +13,7 @@ generate_commit_msg() {
     fi
 
     # 动态提取变动的目录名: 获取路径 -> 提取父目录名 -> 排序去重 -> 转换为空间分隔字符串
-    # example: ldnmp/openresty/edge/Dockerfile -> edge
+    # example: lnmp/openresty/edge/Dockerfile -> edge
     DYNAMIC_CATEGO="$(git diff --name-only | xargs -n1 dirname | xargs -n1 basename | sort -u | xargs)"
 
     # 执行解析逻辑并交付格式化成果

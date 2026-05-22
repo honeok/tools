@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 env:
-  WORK_DIR: ldnmp/openresty
+  WORK_DIR: lnmp/openresty
   DOCKERHUB_REPO: ${{ secrets.DOCKER_USERNAME }}/openresty
 
 jobs:

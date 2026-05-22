@@ -5,14 +5,14 @@ on:
   push:
     branches: [master, release]
     paths:
-      - "ldnmp/nginx/**"
-      - "!ldnmp/nginx/**/*.md"
+      - "lnmp/nginx/**"
+      - "!lnmp/nginx/**/*.md"
       - ".github/workflows/build-nginx.yml"
   pull_request:
     types: [opened, reopened, synchronize]
     paths:
-      - "ldnmp/nginx/**"
-      - "!ldnmp/nginx/**/*.md"
+      - "lnmp/nginx/**"
+      - "!lnmp/nginx/**/*.md"
       - ".github/workflows/build-nginx.yml"
   schedule:
     - cron: "0 16 * * *"
@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WORK_DIR: ldnmp/nginx
+  WORK_DIR: lnmp/nginx
   DOCKERHUB_REPO: ${{ secrets.DOCKER_USERNAME || github.repository_owner }}/nginx
 
 jobs:

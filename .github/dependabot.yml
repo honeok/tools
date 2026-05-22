@@ -19,10 +19,10 @@ updates:
 
   - package-ecosystem: "docker"
     directories:
-      - "/ldnmp/nginx"
-      - "/ldnmp/openresty/edge"
-      - "/ldnmp/openresty/luarocks"
-      - "/ldnmp/openresty/stable"
+      - "/lnmp/nginx"
+      - "/lnmp/openresty/edge"
+      - "/lnmp/openresty/luarocks"
+      - "/lnmp/openresty/stable"
     schedule:
       interval: "daily"
       time: "00:00"
@@ -34,23 +34,5 @@ updates:
       include: "scope"
     groups:
       docker:
-        patterns:
-          - "*"
-
-  - package-ecosystem: "gomod"
-    directories:
-      - "/forge/geolocation"
-      - "/forge/translate"
-    schedule:
-      interval: "daily"
-      time: "00:00"
-      timezone: "Asia/Shanghai"
-    open-pull-requests-limit: 10
-    target-branch: "release"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    groups:
-      gomod:
         patterns:
           - "*"

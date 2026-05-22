@@ -1,16 +1,15 @@
 ---
-name: "Update Openresty deps"
+name: "Update openresty deps"
 
 on:
   push:
     branches: [master, release]
     paths:
-      - "ldnmp/openresty/scripts/deps.sh"
+      - "lnmp/openresty/scripts/deps.sh"
       - ".github/workflows/update-openresty-deps.yml"
   pull_request:
-    types: [opened, reopened, synchronize]
     paths:
-      - "ldnmp/openresty/scripts/deps.sh"
+      - "lnmp/openresty/scripts/deps.sh"
       - ".github/workflows/update-openresty-deps.yml"
   schedule:
     - cron: "0 16 * * *"
@@ -25,13 +24,13 @@ permissions:
 
 jobs:
   check:
-    name: "Update Openresty deps"
+    name: "Update openresty deps"
     runs-on: ubuntu-latest
     permissions:
       contents: write
     defaults:
       run:
-        working-directory: ldnmp/openresty/scripts
+        working-directory: lnmp/openresty/scripts
 
     steps:
       - name: "Checkout repository"
