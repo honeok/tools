@@ -19,6 +19,7 @@ updates:
 
   - package-ecosystem: "docker"
     directories:
+      - "/lnmp/freenginx"
       - "/lnmp/nginx"
       - "/lnmp/openresty/edge"
       - "/lnmp/openresty/luarocks"

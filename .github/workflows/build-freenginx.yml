@@ -1,0 +1,209 @@
+---
+name: "Build freenginx"
+
+on:
+  push:
+    branches: [master, release]
+    paths:
+      - "lnmp/freenginx/**"
+      - "!lnmp/freenginx/**/*.md"
+      - ".github/workflows/build-freenginx.yml"
+  pull_request:
+    paths:
+      - "lnmp/freenginx/**"
+      - "!lnmp/freenginx/**/*.md"
+      - ".github/workflows/build-freenginx.yml"
+  schedule:
+    - cron: "0 16 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WORK_DIR: lnmp/freenginx
+  DOCKERHUB_REPO: ${{ secrets.DOCKER_USERNAME || github.repository_owner }}/freenginx
+
+jobs:
+  check:
+    name: "Pre check"
+    runs-on: ubuntu-latest
+    outputs:
+      renew: ${{ steps.vers.outputs.renew }}
+      nginx_version: ${{ steps.vers.outputs.nginx_version }}
+      njs_version: ${{ steps.vers.outputs.njs_version }}
+      zstd_version: ${{ steps.vers.outputs.zstd_version }}
+      headers_more_version: ${{ steps.vers.outputs.headers_more_version }}
+
+    steps:
+      - name: "Resolve upstream versions"
+        id: vers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eEuo pipefail
+
+          RENEW="false"
+          LATEST_VER="$(gh api repos/freenginx/nginx/tags --jq '.[].name' | sed 's#^release-##' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
+          CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | sed -nE 's#^([0-9]+\.[0-9]+\.[0-9]+).*#\1#p' | sort -V | tail -1 || true)"
+          NJS_VERSION="$(gh release view -R nginx/njs --json tagName -q .tagName | sed 's#v##')"
+          ZSTD_VERSION="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
+          HEADERS_MORE_VERSION="$(gh api 'repos/openresty/headers-more-nginx-module/tags?per_page=100' --jq '.[].name' | sed 's#^v##' | grep -E '^[0-9]+(\.[0-9]+){1,2}$' | sort -V | tail -1)"
+
+          if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n 1)" != "$LATEST_VER" ]]; then
+            echo "Build required."
+            RENEW="true"
+          else
+            echo "Build skipped."
+          fi
+
+          echo "renew=$RENEW" >> "$GITHUB_OUTPUT"
+          echo "nginx_version=$LATEST_VER" >> "$GITHUB_OUTPUT"
+          echo "njs_version=$NJS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "zstd_version=$ZSTD_VERSION" >> "$GITHUB_OUTPUT"
+          echo "headers_more_version=$HEADERS_MORE_VERSION" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: "Build image"
+    needs: [check]
+    if: needs.check.outputs.renew == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-24.04, platform: linux/amd64 }
+          - { os: ubuntu-24.04-arm, platform: linux/arm64 }
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: "Set platform pair"
+        run: |
+          PLATFORM_PAIR=$(awk -F/ '{print $1"-"$2$3}' <<< "${{ matrix.platform }}")
+          echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> "$GITHUB_ENV"
+
+      - name: "Prepare build context"
+        working-directory: ${{ env.WORK_DIR }}
+        run: |
+          set -eEuxo pipefail
+          curl -L -O https://github.com/nginx/pkg-oss/raw/master/alpine/alpine/nginx.conf
+          curl -L -O https://github.com/nginx/pkg-oss/raw/master/alpine/alpine/nginx.default.conf
+          curl -L -O https://github.com/nginx/docker-nginx/raw/master/entrypoint/docker-entrypoint.sh
+          curl -L -O https://github.com/nginx/docker-nginx/raw/master/entrypoint/10-listen-on-ipv6-by-default.sh
+          curl -L -O https://github.com/nginx/docker-nginx/raw/master/entrypoint/15-local-resolvers.envsh
+          curl -L -O https://github.com/nginx/docker-nginx/raw/master/entrypoint/20-envsubst-on-templates.sh
+          curl -L -O https://github.com/nginx/docker-nginx/raw/master/entrypoint/30-tune-worker-processes.sh
+
+      - name: "Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Docker metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=alpine
+            type=raw,value=${{ needs.check.outputs.nginx_version }}-alpine
+          labels: |
+            org.opencontainers.image.title=freenginx
+            org.opencontainers.image.description=Free and Open Nginx HTTP, Reverse Proxy, Mail Proxy, and TCP/UDP Proxy Server
+            org.opencontainers.image.url=https://freenginx.org
+            org.opencontainers.image.source=https://github.com/freenginx/nginx
+            org.opencontainers.image.version=${{ needs.check.outputs.nginx_version }}
+            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.licenses=BSD-2-Clause
+
+      - name: "Build and export"
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.WORK_DIR }}
+          platforms: ${{ matrix.platform }}
+          build-args: |
+            NGINX_VERSION=${{ needs.check.outputs.nginx_version }}
+            NJS_VERSION=${{ needs.check.outputs.njs_version }}
+            ZSTD_VERSION=${{ needs.check.outputs.zstd_version }}
+            HEADERS_MORE_VERSION=${{ needs.check.outputs.headers_more_version }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.DOCKERHUB_REPO }},push-by-digest=${{ github.ref_name == 'master' }},name-canonical=${{ github.ref_name == 'master' }},push=${{ github.ref_name == 'master' }}
+
+      - name: "Export digest"
+        if: ${{ github.ref_name == 'master' }}
+        run: |
+          rm -rf /tmp/digests
+          mkdir -p /tmp/digests
+          digest=${{ steps.build.outputs.digest }}
+          touch /tmp/digests/${digest#sha256:}
+
+      - name: "Upload artifact"
+        if: ${{ github.ref_name == 'master' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: "Merge manifest"
+    needs: [check, build]
+    if: github.ref_name == 'master' && needs.check.outputs.renew == 'true' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Download digests"
+        uses: actions/download-artifact@v7
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - name: "Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Login to DockerHub"
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "Docker metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=raw,value=alpine
+            type=raw,value=${{ needs.check.outputs.nginx_version }}-alpine
+          labels: |
+            org.opencontainers.image.title=freenginx
+            org.opencontainers.image.description=Free and Open Nginx HTTP, Reverse Proxy, Mail Proxy, and TCP/UDP Proxy Server
+            org.opencontainers.image.url=https://freenginx.org
+            org.opencontainers.image.source=https://github.com/freenginx/nginx
+            org.opencontainers.image.version=${{ needs.check.outputs.nginx_version }}
+            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.licenses=BSD-2-Clause
+
+      - name: "Create manifest list and push"
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.DOCKERHUB_REPO }}@sha256:%s ' *)
+
+      - name: "Inspect image"
+        run: docker buildx imagetools inspect ${{ env.DOCKERHUB_REPO }}:${{ needs.check.outputs.nginx_version }}-alpine
