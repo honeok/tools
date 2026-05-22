@@ -2,9 +2,13 @@
 name: "Run shellcheck"
 
 on:
-  push: {}
-  pull_request: {}
-  workflow_dispatch: {}
+  push:
+    paths:
+      - "**/*.sh"
+  pull_request:
+    paths:
+      - "**/*.sh"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
