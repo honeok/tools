@@ -6,6 +6,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   mirror2cnb:
     name: "Mirror to cnb"

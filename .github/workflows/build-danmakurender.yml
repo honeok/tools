@@ -6,13 +6,12 @@ on:
     - cron: "0 16 * * 3,6"
   workflow_dispatch:
 
-defaults:
-  run:
-    shell: bash
-
 env:
   DOCKER_USERNAME: ${{ github.repository_owner }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+permissions:
+  contents: read
 
 jobs:
   build:

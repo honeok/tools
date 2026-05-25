@@ -21,6 +21,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   WORK_DIR: lnmp/freenginx
   DOCKERHUB_REPO: ${{ secrets.DOCKER_USERNAME || github.repository_owner }}/freenginx
