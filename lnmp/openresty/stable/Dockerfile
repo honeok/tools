@@ -17,11 +17,14 @@ LABEL org.opencontainers.image.authors="honeok <i@honeok.com>"
 
 ARG RESTY_VERSION=""
 ARG ZSTD_VERSION=""
+ARG ACME_VERSION=""
 
 RUN set -ex \
     && apk add --update --no-cache --virtual .build-deps \
         brotli-dev \
         build-base \
+        cargo \
+        clang-dev \
         curl \
         git \
         linux-headers \
@@ -29,6 +32,7 @@ RUN set -ex \
         openssl-dev \
         pcre2-dev \
         perl-dev \
+        rust \
         xz-dev \
         zlib-dev \
     && cd /tmp \
@@ -43,11 +47,14 @@ RUN set -ex \
     && make -j$(getconf _NPROCESSORS_ONLN) install \
     && cd /tmp \
     && git clone --depth=10 https://github.com/tokers/zstd-nginx-module.git \
+    && curl -Ls https://github.com/nginx/nginx-acme/releases/download/v${ACME_VERSION}/nginx-acme-${ACME_VERSION}.tar.gz -o nginx-acme-${ACME_VERSION}.tar.gz \
+    && tar fxz nginx-acme-${ACME_VERSION}.tar.gz \
     && cd openresty-${RESTY_VERSION} \
     && ./configure \
         --with-compat \
         --add-dynamic-module=../ngx_brotli \
         --add-dynamic-module=../zstd-nginx-module \
+        --add-dynamic-module=../nginx-acme-${ACME_VERSION} \
     && make \
     && strip build/nginx-*/objs/*.so \
     && apk del --no-network .build-deps \
