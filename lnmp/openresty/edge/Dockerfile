@@ -227,6 +227,9 @@ RUN set -ex \
     fi \
     && rm -f /usr/local/openresty/nginx/conf/*.default \
     && rm -rf /tmp/* \
+# Add default nginx welcome page.
+    && curl -Ls https://github.com/openresty/openresty/raw/master/html/index.html -o /usr/local/openresty/nginx/html/index.html \
+    && curl -Ls https://github.com/openresty/openresty/raw/master/html/50x.html -o /usr/local/openresty/nginx/html/50x.html \
     && apk del --no-network .build-deps \
 # Temporary file cache directory.
     && mkdir -p /var/cache/openresty \
