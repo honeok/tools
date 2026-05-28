@@ -288,8 +288,8 @@ jobs:
             org.opencontainers.image.title=OpenResty
             org.opencontainers.image.description=High Performance Web Platform Based on Nginx and LuaJIT
             org.opencontainers.image.url=https://teddysun.com
-            org.opencontainers.image.source=https://github.com/openresty/openresty
-            org.opencontainers.image.version=${{ needs.check-stable.outputs.resty_version }}
+            org.opencontainers.image.source=https://github.com/teddysun/openresty
+            org.opencontainers.image.version=${{ needs.check-edge.outputs.resty_version }}
             org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
             org.opencontainers.image.licenses=BSD-2-Clause
 
@@ -357,8 +357,8 @@ jobs:
             org.opencontainers.image.title=OpenResty
             org.opencontainers.image.description=High Performance Web Platform Based on Nginx and LuaJIT
             org.opencontainers.image.url=https://teddysun.com
-            org.opencontainers.image.source=https://github.com/openresty/openresty
-            org.opencontainers.image.version=${{ needs.check-stable.outputs.resty_version }}
+            org.opencontainers.image.source=https://github.com/teddysun/openresty
+            org.opencontainers.image.version=${{ needs.check-edge.outputs.resty_version }}
             org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
             org.opencontainers.image.licenses=BSD-2-Clause
 
