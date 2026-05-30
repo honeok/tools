@@ -1,5 +1,5 @@
 ---
-name: "Build Nginx"
+name: "Build nginx"
 
 on:
   push:
@@ -35,35 +35,39 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       renew: ${{ steps.vers.outputs.renew }}
-      ngx_version: ${{ steps.vers.outputs.ngx_version }}
-      acme_version: ${{ steps.vers.outputs.acme_version }}
+      nginx_version: ${{ steps.vers.outputs.nginx_version }}
       zstd_version: ${{ steps.vers.outputs.zstd_version }}
-      headers_more_tag: ${{ steps.vers.outputs.headers_more_tag }}
+      headers_more_version: ${{ steps.vers.outputs.headers_more_version }}
+      geoip2_version: ${{ steps.vers.outputs.geoip2_version }}
 
     steps:
-      - name: "Get Version and Decide"
+      - name: "Resolve upstream versions"
         id: vers
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -eEuxo pipefail
+          set -eEuo pipefail
+
           RENEW="false"
-          LATEST_VER="$(gh release list -R nginx/nginx --limit 1000 | awk '{print $1}' | sed 's#^release-##' | grep -E '^[0-9.]+$' | sort -V | tail -1)"
+          LATEST_VER="$(gh api 'repos/nginx/nginx/tags?per_page=100' --jq '.[].name' | sed -nE 's#^release-([0-9]+\.[0-9]+\.[0-9]+)$#\1#p' | sort -V | tail -n 1)"
           LATEST_IMG_VER="$(docker run --rm nginx:${LATEST_VER}-alpine sh -c "nginx -v 2>&1" 2>/dev/null | awk -F'[/ ]' '{print $NF}' || true)"
-          CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | grep -E -- '-alpine$' | sort -rV | head -n1 | sed 's#-alpine$##' || true)"
-          ACME_VER="$(gh release view -R nginx/nginx-acme --json tagName -q .tagName | sed 's#v##')"
-          ZSTD_VER="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
-          HEADERS_MORE_TAG="$(gh api repos/openresty/headers-more-nginx-module/tags -q '.[].name' | sort -rV | head -n1 | sed 's#v##')"
-          if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n 1)" != "$LATEST_VER" && "$LATEST_VER" == "$LATEST_IMG_VER" ]] || \
-            [[ -z "$CURRENT_VER" && "$LATEST_VER" == "$LATEST_IMG_VER" ]]; then
+          CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | grep -oP '(?<![0-9.])1\.\d{1,2}\.\d{1,2}(?![0-9.])' | sort -uV | tail -n1 || true)"
+          ZSTD_VERSION="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
+          HEADERS_MORE_VERSION="$(gh api 'repos/openresty/headers-more-nginx-module/tags?per_page=100' --jq '.[].name' | sed 's#^v##' | grep -E '^[0-9]+(\.[0-9]+){1,2}$' | sort -V | tail -1)"
+          GEOIP2_VERSION="$(gh api 'repos/leev/ngx_http_geoip2_module/tags?per_page=100' --jq '.[].name' | grep -E '^v?[0-9]+(\.[0-9]+){1,2}$' | sort -V | tail -1)"
+
+          if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n 1)" != "$LATEST_VER" && "$LATEST_VER" == "$LATEST_IMG_VER" ]] || [[ -z "$CURRENT_VER" && "$LATEST_VER" == "$LATEST_IMG_VER" ]]; then
             echo "Build required."
             RENEW="true"
+          else
+            echo "Build skipped."
           fi
+
           echo "renew=${RENEW}" >> "$GITHUB_OUTPUT"
-          echo "ngx_version=${LATEST_VER}" >> "$GITHUB_OUTPUT"
-          echo "acme_version=${ACME_VER}" >> "$GITHUB_OUTPUT"
-          echo "zstd_version=${ZSTD_VER}" >> "$GITHUB_OUTPUT"
-          echo "headers_more_tag=${HEADERS_MORE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "nginx_version=$LATEST_VER" >> "$GITHUB_OUTPUT"
+          echo "zstd_version=$ZSTD_VERSION" >> "$GITHUB_OUTPUT"
+          echo "headers_more_version=$HEADERS_MORE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "geoip2_version=$GEOIP2_VERSION" >> "$GITHUB_OUTPUT"
 
   build:
     name: "Build image"
@@ -83,7 +87,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: "Prepare"
+      - name: "Set platform pair"
         run: |
           PLATFORM_PAIR=$(awk -F/ '{print $1"-"$2$3}' <<< "${{ matrix.platform }}")
           echo "PLATFORM_PAIR=$PLATFORM_PAIR" >> "$GITHUB_ENV"
@@ -93,7 +97,6 @@ jobs:
 
       - name: "Login to DockerHub"
         uses: docker/login-action@v4
-        if: ${{ github.event_name != 'pull_request' }}
         with:
           registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -106,12 +109,15 @@ jobs:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
             type=raw,value=alpine
-            type=raw,value=${{ needs.check.outputs.ngx_version }}-alpine
+            type=raw,value=${{ needs.check.outputs.nginx_version }}-alpine
           labels: |
+            org.opencontainers.image.title=nginx
             org.opencontainers.image.description=nginx is an HTTP web server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server.
-            org.opencontainers.image.source=https://github.com/nginx/nginx
-            org.opencontainers.image.title=Nginx
             org.opencontainers.image.url=https://nginx.org
+            org.opencontainers.image.source=https://github.com/nginx/nginx
+            org.opencontainers.image.version=${{ needs.check.outputs.nginx_version }}
+            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.licenses=BSD-2-Clause
 
       - name: "Build and export"
         id: build
@@ -120,19 +126,15 @@ jobs:
           context: ${{ env.WORK_DIR }}
           platforms: ${{ matrix.platform }}
           build-args: |
-            NGX_VERSION=${{ needs.check.outputs.ngx_version }}
-            ACME_VERSION=${{ needs.check.outputs.acme_version }}
+            NGINX_VERSION=${{ needs.check.outputs.nginx_version }}
             ZSTD_VERSION=${{ needs.check.outputs.zstd_version }}
-            HEADERS_MORE_TAG=${{ needs.check.outputs.headers_more_tag }}
+            HEADERS_MORE_VERSION=${{ needs.check.outputs.headers_more_version }}
+            GEOIP2_VERSION=${{ needs.check.outputs.geoip2_version }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: >
-            type=image,name=${{ env.DOCKERHUB_REPO }},
-            push-by-digest=${{ github.ref_name == github.event.repository.default_branch }},
-            name-canonical=${{ github.ref_name == github.event.repository.default_branch }},
-            push=${{ github.ref_name == github.event.repository.default_branch }}
+          outputs: type=image,name=${{ env.DOCKERHUB_REPO }},push-by-digest=${{ github.ref_name == 'master' }},name-canonical=${{ github.ref_name == 'master' }},push=${{ github.ref_name == 'master' }}
 
       - name: "Export digest"
-        if: ${{ github.ref_name == github.event.repository.default_branch }}
+        if: ${{ github.ref_name == 'master' }}
         run: |
           rm -rf /tmp/digests
           mkdir -p /tmp/digests
@@ -140,7 +142,7 @@ jobs:
           touch /tmp/digests/${digest#sha256:}
 
       - name: "Upload artifact"
-        if: ${{ github.ref_name == github.event.repository.default_branch }}
+        if: ${{ github.ref_name == 'master' }}
         uses: actions/upload-artifact@v7
         with:
           name: digest-${{ env.PLATFORM_PAIR }}
@@ -151,7 +153,7 @@ jobs:
   merge:
     name: "Merge manifest"
     needs: [check, build]
-    if: ${{ github.ref_name == github.event.repository.default_branch }}
+    if: github.ref_name == 'master' && needs.check.outputs.renew == 'true' && needs.build.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -179,12 +181,15 @@ jobs:
           images: ${{ env.DOCKERHUB_REPO }}
           tags: |
             type=raw,value=alpine
-            type=raw,value=${{ needs.check.outputs.ngx_version }}-alpine
+            type=raw,value=${{ needs.check.outputs.nginx_version }}-alpine
           labels: |
+            org.opencontainers.image.title=nginx
             org.opencontainers.image.description=nginx is an HTTP web server, reverse proxy, content cache, load balancer, TCP/UDP proxy server, and mail proxy server.
-            org.opencontainers.image.source=https://github.com/nginx/nginx
-            org.opencontainers.image.title=Nginx
             org.opencontainers.image.url=https://nginx.org
+            org.opencontainers.image.source=https://github.com/nginx/nginx
+            org.opencontainers.image.version=${{ needs.check.outputs.nginx_version }}
+            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.licenses=BSD-2-Clause
 
       - name: "Create manifest list and push"
         working-directory: /tmp/digests
@@ -194,13 +199,11 @@ jobs:
             $(printf '${{ env.DOCKERHUB_REPO }}@sha256:%s ' *)
 
       - name: "Inspect image"
-        run: |
-          docker buildx imagetools inspect ${{ env.DOCKERHUB_REPO }}:${{ needs.check.outputs.ngx_version }}-alpine
+        run: docker buildx imagetools inspect ${{ env.DOCKERHUB_REPO }}:${{ needs.check.outputs.nginx_version }}-alpine
 
   sync:
-    name: "Sync readme"
-    needs:
-      - merge
+    name: "Sync readme to dockerhub"
+    needs: [merge]
     runs-on: ubuntu-latest
 
     steps:

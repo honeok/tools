@@ -4,34 +4,39 @@
 # Description: This dockerfile is used to add third-party modules to nginx and recompile the nginx web server.
 # Copyright (c) 2024-2026 honeok <i@honeok.com>
 
-ARG NGX_VERSION=""
+ARG NGINX_VERSION=""
 
 FROM alpine:3.23.4@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11 AS builder
 
-LABEL maintainer="honeok <i@honeok.com>"
-
-ARG NGX_VERSION=""
+ARG NGINX_VERSION=""
+ARG GEOIP2_VERSION=""
 ARG ZSTD_VERSION=""
-ARG ACME_VERSION=""
-ARG HEADERS_MORE_TAG=""
+ARG HEADERS_MORE_VERSION=""
+
+ARG NGX_DYNAMIC_MODULE_ARGS="\
+    --with-compat \
+    --with-stream \
+    --add-dynamic-module=../ngx_brotli \
+    --add-dynamic-module=../zstd-nginx-module \
+    --add-dynamic-module=../headers-more-nginx-module-${HEADERS_MORE_VERSION} \
+    --add-dynamic-module=../ngx_http_geoip2_module-${GEOIP2_VERSION} \
+    "
 
 RUN set -ex \
     && apk add --update --no-cache --virtual .build-deps \
         brotli-dev \
         build-base \
-        cargo \
-        clang-dev \
         curl \
         git \
         lz4-dev \
+        libmaxminddb-dev \
         openssl-dev \
         pcre2-dev \
-        rust \
         xz-dev \
         zlib-dev \
     && cd /tmp \
-    && curl -Ls https://github.com/nginx/nginx/releases/download/release-${NGX_VERSION}/nginx-${NGX_VERSION}.tar.gz -o nginx-${NGX_VERSION}.tar.gz \
-    && tar fxz nginx-${NGX_VERSION}.tar.gz \
+    && curl -Ls https://github.com/nginx/nginx/releases/download/release-${NGINX_VERSION}/nginx-${NGINX_VERSION}.tar.gz -o nginx-${NGINX_VERSION}.tar.gz \
+    && tar fxz nginx-${NGINX_VERSION}.tar.gz \
     && git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli \
     && curl -Ls https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz -o zstd-${ZSTD_VERSION}.tar.gz \
     && tar fxz zstd-${ZSTD_VERSION}.tar.gz \
@@ -41,27 +46,33 @@ RUN set -ex \
     && make -j$(getconf _NPROCESSORS_ONLN) install \
     && cd /tmp \
     && git clone --depth=10 https://github.com/tokers/zstd-nginx-module.git \
-    && curl -Ls https://github.com/openresty/headers-more-nginx-module/archive/v${HEADERS_MORE_TAG}.tar.gz -o v${HEADERS_MORE_TAG}.tar.gz \
-    && tar fxz v${HEADERS_MORE_TAG}.tar.gz \
-    && curl -Ls https://github.com/nginx/nginx-acme/releases/download/v${ACME_VERSION}/nginx-acme-${ACME_VERSION}.tar.gz -o nginx-acme-${ACME_VERSION}.tar.gz \
-    && tar fxz nginx-acme-${ACME_VERSION}.tar.gz \
-    && cd nginx-${NGX_VERSION} \
-    && ./configure \
-        --with-compat \
-        --with-http_ssl_module \
-        --add-dynamic-module=../ngx_brotli \
-        --add-dynamic-module=../zstd-nginx-module \
-        --add-dynamic-module=../headers-more-nginx-module-${HEADERS_MORE_TAG} \
-        --add-dynamic-module=../nginx-acme-${ACME_VERSION} \
+    && curl -Ls https://github.com/openresty/headers-more-nginx-module/archive/v${HEADERS_MORE_VERSION}.tar.gz -o headers-more-${HEADERS_MORE_VERSION}.tar.gz \
+    && tar fxz headers-more-${HEADERS_MORE_VERSION}.tar.gz \
+    && curl -Ls https://github.com/leev/ngx_http_geoip2_module/archive/${GEOIP2_VERSION}.tar.gz -o geoip2-${GEOIP2_VERSION}.tar.gz \
+    && tar fxz geoip2-${GEOIP2_VERSION}.tar.gz \
+    && cd nginx-${NGINX_VERSION} \
+    && eval ./configure ${NGX_DYNAMIC_MODULE_ARGS} \
     && make modules \
-    && strip objs/*.so \
+    && strip --strip-unneeded objs/*.so \
     && apk del --no-network .build-deps \
     && rm -rf /var/cache/apk/*
 
-FROM nginx:${NGX_VERSION}-alpine AS dist
+FROM nginx:${NGINX_VERSION}-alpine AS dist
 
-LABEL maintainer="honeok <i@honeok.com>"
+LABEL org.opencontainers.image.authors="honeok <i@honeok.com>"
 
-ARG NGX_VERSION=""
+ARG NGINX_VERSION=""
 
-COPY --from=builder /tmp/nginx-${NGX_VERSION}/objs/*.so /usr/lib/nginx/modules
+COPY --from=builder /tmp/nginx-${NGINX_VERSION}/objs/*.so /usr/lib/nginx/modules/
+
+RUN set -ex \
+    && find /usr/lib/nginx/modules/ -type f -name '*-debug.so' -delete \
+    && runDeps="$( \
+        scanelf --needed --nobanner --format '%n#p' \
+            /usr/sbin/nginx \
+            /usr/lib/nginx/modules/*.so \
+        | tr ',' '\n' \
+        | sort -u \
+        | awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
+    )" \
+    && apk add --no-cache --virtual .runDeps ${runDeps}
