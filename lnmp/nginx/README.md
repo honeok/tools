@@ -34,9 +34,10 @@ To take advantage of this image’s unique features, add the following lines to 
 ```shell
 vim /etc/nginx/nginx.conf
 
-load_module modules/ngx_http_acme_module.so;
 load_module modules/ngx_http_brotli_filter_module.so;
 load_module modules/ngx_http_brotli_static_module.so;
+load_module modules/ngx_http_geoip2_module.so;
+load_module modules/ngx_stream_geoip2_module.so;
 load_module modules/ngx_http_headers_more_filter_module.so;
 load_module modules/ngx_http_zstd_filter_module.so;
 load_module modules/ngx_http_zstd_static_module.so;
