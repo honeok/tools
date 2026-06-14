@@ -35,6 +35,7 @@ jobs:
       resty_version: ${{ steps.vers.outputs.resty_version }}
       zstd_version: ${{ steps.vers.outputs.zstd_version }}
       acme_version: ${{ steps.vers.outputs.acme_version }}
+      geoip2_version: ${{ steps.vers.outputs.geoip2_version }}
 
     steps:
       - name: "Resolve upstream versions"
@@ -49,6 +50,7 @@ jobs:
           CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[]' | grep -Ev '^alpine$|edge|fat' | sort -rV | head -n1 | sed 's#-alpine##' || true)"
           ZSTD_VERSION="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
           ACME_VERSION="$(gh release view -R nginx/nginx-acme --json tagName -q .tagName | sed 's#v##')"
+          GEOIP2_VERSION="$(gh api 'repos/leev/ngx_http_geoip2_module/tags?per_page=100' --jq '.[].name' | grep -E '^v?[0-9]+(\.[0-9]+){1,2}$' | sort -V | tail -1)"
 
           if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n1)" != "$LATEST_VER" ]] || [[ -z "$CURRENT_VER" && -n "$LATEST_VER" ]]; then
             echo "Build required."
@@ -61,6 +63,7 @@ jobs:
           echo "resty_version=$LATEST_VER" >> "$GITHUB_OUTPUT"
           echo "zstd_version=$ZSTD_VERSION" >> "$GITHUB_OUTPUT"
           echo "acme_version=$ACME_VERSION" >> "$GITHUB_OUTPUT"
+          echo "geoip2_version=$GEOIP2_VERSION" >> "$GITHUB_OUTPUT"
 
   build-stable:
     name: "Build stable image"
@@ -130,6 +133,7 @@ jobs:
             RESTY_VERSION=${{ needs.check-stable.outputs.resty_version }}
             ZSTD_VERSION=${{ needs.check-stable.outputs.zstd_version }}
             ACME_VERSION=${{ needs.check-stable.outputs.acme_version }}
+            GEOIP2_VERSION=${{ needs.check-stable.outputs.geoip2_version }}
             RESTY_STRIP_BINARIES=1
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.DOCKERHUB_REPO }},push-by-digest=${{ github.ref_name == 'master' }},name-canonical=${{ github.ref_name == 'master' }},push=${{ github.ref_name == 'master' }}
@@ -208,6 +212,7 @@ jobs:
       resty_version: ${{ steps.vers.outputs.resty_version }}
       zstd_version: ${{ steps.vers.outputs.zstd_version }}
       acme_version: ${{ steps.vers.outputs.acme_version }}
+      geoip2_version: ${{ steps.vers.outputs.geoip2_version }}
 
     steps:
       - name: "Resolve upstream versions"
@@ -222,6 +227,7 @@ jobs:
           CURRENT_VER="$(skopeo list-tags "docker://docker.io/$DOCKERHUB_REPO" 2>/dev/null | jq -r '.Tags[] | select(contains("edge") and . != "alpine-edge")' | sort -rV | head -n1 | sed 's#-alpine-edge##' || true)"
           ZSTD_VERSION="$(gh release view -R facebook/zstd --json tagName -q .tagName | sed 's#v##')"
           ACME_VERSION="$(gh release view -R nginx/nginx-acme --json tagName -q .tagName | sed 's#v##')"
+          GEOIP2_VERSION="$(gh api 'repos/leev/ngx_http_geoip2_module/tags?per_page=100' --jq '.[].name' | grep -E '^v?[0-9]+(\.[0-9]+){1,2}$' | sort -V | tail -1)"
 
           if [[ "$(printf '%s\n%s\n' "$LATEST_VER" "$CURRENT_VER" | sort -V | head -n1)" != "$LATEST_VER" ]] || [[ -z "$CURRENT_VER" && -n "$LATEST_VER" ]]; then
             echo "Build required."
@@ -234,6 +240,7 @@ jobs:
           echo "resty_version=$LATEST_VER" >> "$GITHUB_OUTPUT"
           echo "zstd_version=$ZSTD_VERSION" >> "$GITHUB_OUTPUT"
           echo "acme_version=$ACME_VERSION" >> "$GITHUB_OUTPUT"
+          echo "geoip2_version=$GEOIP2_VERSION" >> "$GITHUB_OUTPUT"
 
   build-edge:
     name: "Build edge image"
@@ -303,6 +310,7 @@ jobs:
             RESTY_VERSION=${{ needs.check-edge.outputs.resty_version }}
             ZSTD_VERSION=${{ needs.check-edge.outputs.zstd_version }}
             ACME_VERSION=${{ needs.check-edge.outputs.acme_version }}
+            GEOIP2_VERSION=${{ needs.check-edge.outputs.geoip2_version }}
             RESTY_STRIP_BINARIES=1
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.DOCKERHUB_REPO }},push-by-digest=${{ github.ref_name == 'master' }},name-canonical=${{ github.ref_name == 'master' }},push=${{ github.ref_name == 'master' }}

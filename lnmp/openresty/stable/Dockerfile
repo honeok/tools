@@ -1,13 +1,9 @@
-# syntax=docker/dockerfile:1
 # SPDX-License-Identifier: BSD-2-Clause
 # Copyright (c) 2025-2026 honeok <i@honeok.com>
 #
 # References:
 # https://github.com/openresty/docker-openresty
 # https://github.com/nginx/docker-nginx
-# Acknowledgements:
-# openresty and it's author agentzh <agentzh@gmail.com>
-#                                   <admin@openresty.com>
 
 FROM alpine:3.24.0@sha256:a2d49ea686c2adfe3c992e47dc3b5e7fa6e6b5055609400dc2acaeb241c829f4 AS base
 
@@ -16,8 +12,18 @@ FROM base AS builder
 LABEL org.opencontainers.image.authors="honeok <i@honeok.com>"
 
 ARG RESTY_VERSION=""
+ARG GEOIP2_VERSION=""
 ARG ZSTD_VERSION=""
 ARG ACME_VERSION=""
+
+ARG NGX_DYNAMIC_MODULE_ARGS="\
+    --with-compat \
+    --with-stream \
+    --add-dynamic-module=../ngx_brotli \
+    --add-dynamic-module=../zstd-nginx-module \
+    --add-dynamic-module=../nginx-acme-${ACME_VERSION} \
+    --add-dynamic-module=../ngx_http_geoip2_module-${GEOIP2_VERSION} \
+    "
 
 RUN set -ex \
     && apk add --update --no-cache --virtual .build-deps \
@@ -27,6 +33,7 @@ RUN set -ex \
         clang-dev \
         curl \
         git \
+        libmaxminddb-dev \
         linux-headers \
         lz4-dev \
         openssl-dev \
@@ -49,12 +56,10 @@ RUN set -ex \
     && git clone --depth=10 https://github.com/tokers/zstd-nginx-module.git \
     && curl -Ls https://github.com/nginx/nginx-acme/releases/download/v${ACME_VERSION}/nginx-acme-${ACME_VERSION}.tar.gz -o nginx-acme-${ACME_VERSION}.tar.gz \
     && tar fxz nginx-acme-${ACME_VERSION}.tar.gz \
+    && curl -Ls https://github.com/leev/ngx_http_geoip2_module/archive/${GEOIP2_VERSION}.tar.gz -o geoip2-${GEOIP2_VERSION}.tar.gz \
+    && tar fxz geoip2-${GEOIP2_VERSION}.tar.gz \
     && cd openresty-${RESTY_VERSION} \
-    && ./configure \
-        --with-compat \
-        --add-dynamic-module=../ngx_brotli \
-        --add-dynamic-module=../zstd-nginx-module \
-        --add-dynamic-module=../nginx-acme-${ACME_VERSION} \
+    && eval ./configure ${NGX_DYNAMIC_MODULE_ARGS} \
     && make \
     && strip build/nginx-*/objs/*.so \
     && apk del --no-network .build-deps \
@@ -175,13 +180,8 @@ RUN set -ex \
         ${RESTY_ADD_PACKAGE_BUILDDEPS} \
     && apk add --no-cache \
         curl \
-        gd \
-        geoip \
         gettext-envsubst \
-        libgcc \
-        libxslt \
         tzdata \
-        zlib \
         ${RESTY_ADD_PACKAGE_RUNDEPS} \
     && cd /tmp \
     && curl -Ls "${RESTY_OPENSSL_URL_BASE}/openssl-${RESTY_OPENSSL_VERSION}.tar.gz" -o openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
@@ -225,6 +225,27 @@ RUN set -ex \
         && find /usr/local/openresty/nginx -type f -perm -u+x -exec strip --strip-unneeded '{}' \; ; \
     fi \
     && rm -f /usr/local/openresty/nginx/conf/*.default \
+    && runDeps="$( \
+        scanelf --needed --nobanner --format '%n#p' \
+            /usr/local/openresty/nginx/sbin/nginx \
+            /usr/local/openresty/nginx/modules/*.so \
+            /usr/local/openresty/luajit/bin/* \
+        | tr ',' '\n' \
+        | sort -u \
+        | while read -r so; do \
+            [ -z "$so" ] && continue; \
+            for libdir in \
+                /usr/local/openresty/openssl3/lib \
+                /usr/local/openresty/pcre2/lib \
+                /usr/local/openresty/luajit/lib \
+                /usr/local/lib \
+            ; do \
+                [ -e "$libdir/$so" ] && continue 2; \
+            done; \
+            echo "so:$so"; \
+        done \
+    )" \
+    && apk add --no-cache --virtual .runDeps $runDeps \
     && rm -rf /tmp/* \
     && apk del --no-network .build-deps \
 # Temporary file cache directory.
