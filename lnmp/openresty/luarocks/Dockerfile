@@ -1,19 +1,9 @@
-# syntax=docker/dockerfile:1
 # SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2025 honeok <i@honeok.com>
-#
-# References:
-# https://github.com/openresty/docker-openresty
-# Acknowledgements:
-# openresty and it's author agentzh <agentzh@gmail.com>
-#                                   <admin@openresty.com>
+# Copyright (c) 2025-2026 honeok <i@honeok.com>
 
 FROM honeok/openresty:1.31.1.1-alpine@sha256:24a0b09f0eb9d1f53181253402594046737a561046e70699c7669a440fd24355 AS dist
 
 ARG RESTY_LUAROCKS_VERSION="3.13.0"
-
-LABEL org.opencontainers.image.authors="Evan Wies <evan@neomantra.net>"
-LABEL org.opencontainers.image.authors="honeok <i@honeok.com>"
 
 RUN set -ex \
     && apk add --update --no-cache --virtual .build-deps \
@@ -32,9 +22,5 @@ RUN set -ex \
     && apk del --no-network .build-deps \
     && rm -rf /var/cache/apk/* /tmp/*
 
-# Add LuaRocks paths
-# If OpenResty changes, these may need updating:
-#    /usr/local/openresty/bin/resty -e 'print(package.path)'
-#    /usr/local/openresty/bin/resty -e 'print(package.cpath)'
 ENV LUA_PATH="/usr/local/openresty/site/lualib/?.ljbc;/usr/local/openresty/site/lualib/?/init.ljbc;/usr/local/openresty/lualib/?.ljbc;/usr/local/openresty/lualib/?/init.ljbc;/usr/local/openresty/site/lualib/?.lua;/usr/local/openresty/site/lualib/?/init.lua;/usr/local/openresty/lualib/?.lua;/usr/local/openresty/lualib/?/init.lua;./?.lua;/usr/local/openresty/luajit/share/luajit-2.1/?.lua;/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua;/usr/local/openresty/luajit/share/lua/5.1/?.lua;/usr/local/openresty/luajit/share/lua/5.1/?/init.lua"
 ENV LUA_CPATH="/usr/local/openresty/site/lualib/?.so;/usr/local/openresty/lualib/?.so;./?.so;/usr/local/lib/lua/5.1/?.so;/usr/local/openresty/luajit/lib/lua/5.1/?.so;/usr/local/lib/lua/5.1/loadall.so;/usr/local/openresty/luajit/lib/lua/5.1/?.so"
