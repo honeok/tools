@@ -9,10 +9,6 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 max_line_length = 120
 
-[{*.{go,mk},go.{mod,sum},*[Mm]akefile*}]
-indent_style = tab
-indent_size = 4
-
 [{*[Dd]ockerfile*}]
 indent_style = space
 indent_size = 4
@@ -22,7 +18,7 @@ indent_style = space
 indent_size = 4
 space_redirects = true
 
-[*.{json,yml,yaml}]
+[*.{js,json,yml,yaml}]
 indent_style = space
 indent_size = 2
 
